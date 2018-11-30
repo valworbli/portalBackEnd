@@ -4,12 +4,19 @@ const compress = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('./router.js');
+const whitelist = process.env.CORS_WHITELIST
 
 const corsOptions = {
-  origin: process.env.FRONT_END_URL,
-  allowedHeaders: ['Content-Type', 'Authorization', 'Content-Length', 'X-Requested-With', 'Accept'],
-  methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
-  optionsSuccessStatus: 200
+    origin: function (origin, callback) {
+        if (whitelist.indexOf(origin) !== -1) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+    },
+    allowedHeaders: ['Content-Type', 'Authorization', 'Content-Length', 'X-Requested-With', 'Accept'],
+    methods: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+    optionsSuccessStatus: 200
 }
 
 const app = express();
