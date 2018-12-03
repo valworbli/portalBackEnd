@@ -144,16 +144,27 @@ function get_status(req, res){
             res.status(200).json({data: true, token: newjwt, onfido_status, action:'redirect'})
           }
         })
-      } else
-       if (parse && parse.checks[0] && parse.checks[0].status === 'complete' && parse.checks[0].result !== 'clear'){
+      } 
+      else if (parse && parse.checks[0] && parse.checks[0].status === 'complete' && parse.checks[0].result !== 'clear'){        
         userModel.find({email},(err, data) => {
           if(!err && data && data[0] && data[0].name_first){
             const firstName = data[0].name_first;
-            console.log(firstName);
-            mail.send_email(email, '', 'kycfail', firstName)
+            const status = data[0].onfido_status;
+            if(status !== 'rejected'){
+              const onfido_status = 'rejected'
+              const newData = {onfido_status};
+              const query = {email};
+              userModel.findOneAndUpdate(query, newData, {upsert:true}, (err, doc) => {
+                if(!err){
+                  res.status(200).json({status: 200, data: true, action:'support'})
+                  mail.send_email(email, '', 'kycfail', firstName)
+                }
+              })
+            } else {
+              res.status(200).json({status: 200, data: true, action:'support'})
+            }
           }
         })
-        res.status(200).json({status: 200, data: true, action:'support'})
       } else {
         res.status(400).json({status: 400, data: false})
       }
