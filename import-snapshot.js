@@ -1,39 +1,39 @@
 'use strict';
-require('dotenv').config()
-
+require('dotenv').config();
 const csv = require('fast-csv');
 const mongoose = require('mongoose');
 
-mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`, { useNewUrlParser: true });
+mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`, {useNewUrlParser: true});
 
 const snapshotSchema = new mongoose.Schema({
-    account_name:   { type: String, required: true, unique: true },
-    owner_key:      { type: String, required: true},
-    active_key:     { type: String, required: true},
-    total_nostake:  { type: Number},
-    staked:         { type: Number},
-    delegated:      { type: Number},
-    total:          { type: Number, required: true},
-    created_at:     Date,
-    updated_at:     Date
-  });
+  account_name: {type: String, required: true, unique: true},
+  owner_key: {type: String, required: true},
+  active_key: {type: String, required: true},
+  total_nostake: {type: Number},
+  staked: {type: Number},
+  delegated: {type: Number},
+  total: {type: Number, required: true},
+  created_at: Date,
+  updated_at: Date,
+});
 
-  const Account = mongoose.model('Snapshot', snapshotSchema);
+const Account = mongoose.model('Snapshot', snapshotSchema);
 
-  csv.fromPath(`${process.env.CSV_NAME}`)
-  .on("data", (data) => {
-    console.log(new Date().getTime());
-    const account_name = data[1];
-    const owner_key = data[2];
-    const active_key = data[3];
-    const total_nostake = parseFloat(data[4]) || 0;
-    const staked = parseFloat(data[5]) || 0;
-    const delegated = parseFloat(data[6]) || 0;
-    const total = parseFloat(data[7]) || 0;
-    const recordToInsert = new Account({account_name, owner_key, active_key, total_nostake, staked, delegated, total});
-    recordToInsert.save((err) => {
+csv.fromPath(`${process.env.CSV_NAME}`)
+    .on('data', (data) => {
+      console.log(new Date().getTime());
+      const recordToInsert = new Account({
+        account_name: data[1],
+        owner_key: data[2],
+        active_key: data[3],
+        total_nostake: parseFloat(data[4]) || 0,
+        staked: parseFloat(data[5]) || 0,
+        delegated: parseFloat(data[6]) || 0,
+        total: parseFloat(data[7]) || 0,
+      });
+      recordToInsert.save((err) => {
         if (err) console.log(err);
-    });
-  })
-  .on("end", () => console.log(`Done`));
+      });
+    })
+    .on('end', () => console.log(`Done`));
 

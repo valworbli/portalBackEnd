@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node worbli-api.js",
     "import": "node import-snapshot.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint --ignore-path .gitignore ."
   },
   "repository": {
     "type": "git",
@@ -41,5 +42,9 @@
     "node-fetch": "^2.2.1",
     "npm": "^6.4.1",
     "unirest": "^0.5.1"
+  },
+  "devDependencies": {
+    "eslint": "^5.10.0",
+    "eslint-config-google": "^0.11.0"
   }
 }
