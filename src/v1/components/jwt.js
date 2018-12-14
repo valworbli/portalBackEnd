@@ -8,7 +8,11 @@ const jwtSecret = process.env.JWT_SECRET;
  * @return {string} jwt
  */
 function jwtSign(payload) {
-  return jwt.sign(payload, jwtSecret);
+  try {
+    return jwt.sign(payload, jwtSecret);
+  } catch (err) {
+    console.log(`jwt expires. ${err}`); // eslint-disable-line no-console
+  }
 }
 
 /**
@@ -18,7 +22,11 @@ function jwtSign(payload) {
  * @return {string} jwt
  */
 function jwtExpires(payload, expiresIn) {
-  return jwt.sign(payload, jwtSecret, {expiresIn});
+  try {
+    return jwt.sign(payload, jwtSecret, {expiresIn});
+  } catch (err) {
+    console.log(`jwt expires. ${err}`); // eslint-disable-line no-console
+  }
 }
 
 /**
@@ -27,15 +35,23 @@ function jwtExpires(payload, expiresIn) {
  * @return {object} decoded - jwt data
  */
 function jwtDecode(token) {
-  return new Promise(function(resolve, reject) {
-    jwt.verify(token, jwtSecret, (err, decoded) => {
-      if (!err && decoded) {
-        resolve(decoded);
-      } else {
-        reject(err);
-      }
+  try {
+    return new Promise(function(resolve, reject) {
+      jwt.verify(token, jwtSecret, (err, decoded) => {
+        if (!err && decoded) {
+          resolve(decoded);
+        } else {
+          reject(err);
+        }
+      });
     });
-  });
+  } catch (err) {
+    console.log(`jwt decode. ${err}`); // eslint-disable-line no-console
+  }
 }
 
-module.exports = {jwtSign, jwtExpires, jwtDecode};
+module.exports = {
+  jwtSign,
+  jwtExpires,
+  jwtDecode,
+};
