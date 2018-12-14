@@ -21,7 +21,7 @@ const Account = mongoose.model('Snapshot', snapshotSchema);
 
 csv.fromPath(`${process.env.CSV_NAME}`)
     .on('data', (data) => {
-      console.log(new Date().getTime());
+      console.log(new Date().getTime()); // eslint-disable-line no-console
       const recordToInsert = new Account({
         account_name: data[1],
         owner_key: data[2],
@@ -32,8 +32,8 @@ csv.fromPath(`${process.env.CSV_NAME}`)
         total: parseFloat(data[7]) || 0,
       });
       recordToInsert.save((err) => {
-        if (err) console.log(err);
+        if (err) console.log(err); // eslint-disable-line no-console
       });
     })
-    .on('end', () => console.log(`Done`));
+    .on('end', () => console.log(`Done`)); // eslint-disable-line no-console
 

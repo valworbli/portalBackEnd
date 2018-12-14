@@ -16,15 +16,18 @@ function postApplicant(req, res) {
   const token = bearer[1];
   jwt.jwtDecode(token)
       .then((data) => {
-        const applicant_id = data.onfido_id;
+        const applicantId = data.onfido_id;
         const referrer = '*://*/*';
-        const sdk_token = {
+        const sdkToken = {
           url: 'https://api.onfido.com/v2/sdk_token',
           method: 'POST',
           headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
-          body: {applicant_id, referrer},
+          body: {
+            applicant_id: applicantId,
+            referrer,
+          },
         };
-        return fetch.fetchData(sdk_token);
+        return fetch.fetchData(sdkToken);
       })
       .then((jwt) => {
         res.status(200).json({data: true, kyc_token: jwt.token});
@@ -50,16 +53,23 @@ function getApplicant(req, res) {
         return onfido.createApplicant();
       })
       .then((data) => {
-        const onfido_id = data;
-        const onfido_status = 'started';
-        const newData = {onfido_status, onfido_id};
+        const onfidoId = data;
+        const onfidoStatus = 'started';
+        const newData = {
+          onfido_status: onfidoStatus,
+          onfido_id: onfidoId,
+        };
         const query = {email};
         userModel.findOneAndUpdate(query, newData, {upsert: true},
             (err, doc) => {
               if (!err) {
                 const email = doc.email;
-                const onfido_status = doc.onfido_status
-                const newjwt = jwt.jwtSign({email, onfido_status, onfido_id});
+                const onfidoStatus = doc.onfido_status;
+                const newjwt = jwt.jwtSign({
+                  email,
+                  onfido_status: onfidoStatus,
+                  onfidoId,
+                });
                 res.status(200).json(
                     {data: true, token: newjwt, onfido_status: 'started'});
               } else {
@@ -82,12 +92,12 @@ function getCheck(req, res) {
   const bearer = req.headers.authorization.split(' ');
   const token = bearer[1];
   let email;
-  let onfido_id;
+  let onfidoId;
   jwt.jwtDecode(token)
       .then((data) => {
         if (data.onfido_status === 'started') {
           email = data.email;
-          onfido_id = data.onfido_id;
+          onfidoId = data.onfido_id;
           const async = true;
           const type = 'express';
           const reports = [
@@ -95,8 +105,8 @@ function getCheck(req, res) {
             {name: 'facial_similarity'},
             {name: 'watchlist', variant: 'full'},
           ];
-          const sdk_token = {
-            url: `https://api.onfido.com/v2/applicants/${onfido_id}/checks`,
+          const sdkToken = {
+            url: `https://api.onfido.com/v2/applicants/${onfidoId}/checks`,
             method: 'POST',
             headers:
               {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`,
@@ -104,24 +114,30 @@ function getCheck(req, res) {
                 'Content-Type': 'application/json'},
             body: {type, reports, async},
           };
-          return fetch.fetchData(sdk_token);
+          return fetch.fetchData(sdkToken);
         }
       })
       .then((data) => {
-        const onfido_status = 'review';
-        const newjwt = jwt.jwtSign({email, onfido_status, onfido_id});
-        const newData = {onfido_status};
+        const onfidoStatus = 'review';
+        const newjwt = jwt.jwtSign({
+          email,
+          onfido_status: onfidoStatus,
+          onfido_id: onfidoId,
+        });
+        const newData = {onfidoStatus};
         const query = {email};
         userModel.findOneAndUpdate(query, newData, {upsert: true},
             (err, doc) => {
               if (!err) {
-                res.status(200).json(
-                    {data: true, token: newjwt, onfido_status});
+                res.status(200).json({
+                  data: true,
+                  token: newjwt,
+                  onfido_status: onfidoStatus});
               }
             });
       })
       .catch((err) => {
-        console.log(err);
+        console.log(err); // eslint-disable-line no-console
       });
 }
 
@@ -137,18 +153,18 @@ function getCheck(req, res) {
  * @property {string} req.body.payload.object.href - The resource type.
  */
 function postWebhook(req, res) {
-  const resource_type = req.body.payload.resource_type;
+  const resourceType = req.body.payload.resource_type;
   const action = req.body.payload.action;
-  const onfido_id = req.body.payload.object.id;
+  const onfidoId = req.body.payload.object.id;
   const status = req.body.payload.object.status;
-  const completed_at = req.body.payload.object.completed_at;
+  const completedAt = req.body.payload.object.completed_at;
   const href = req.body.payload.object.href;
   onfidoWebhookModel({
-    resource_type,
+    resource_type: resourceType,
     action,
-    onfido_id,
+    onfido_id: onfidoId,
     status,
-    completed_at,
+    completed_at: completedAt,
     href}).save((err, data) => {
     if (!err && data) {
       res.status(200).json({status: 200});
@@ -168,18 +184,20 @@ function getStatus(req, res) {
   const bearer = req.headers.authorization.split(' ');
   const token = bearer[1];
   let email;
-  let onfido_id;
+  let onfidoId;
   jwt.jwtDecode(token)
       .then((data) => {
         email = data.email;
-        onfido_id = data.onfido_id;
+        onfidoId = data.onfido_id;
         if (data.onfido_status === 'review') {
-          const sdk_token = {
-            url: `https://api.onfido.com/v2/applicants/${onfido_id}/checks`,
+          const sdkToken = {
+            url: `https://api.onfido.com/v2/applicants/${onfidoId}/checks`,
             method: 'GET',
-            headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
+            headers: {
+              'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`,
+            },
           };
-          return fetch.fetchData(sdk_token);
+          return fetch.fetchData(sdkToken);
         }
       })
       .then((data) => {
@@ -189,9 +207,13 @@ function getStatus(req, res) {
             parse.checks[0] &&
             parse.checks[0].status === 'complete'
             && parse.checks[0].result === 'clear') {
-            const onfido_status = 'approved';
-            const newjwt = jwt.jwtSign({email, onfido_status, onfido_id});
-            const newData = {onfido_status};
+            const onfidoStatus = 'approved';
+            const newjwt = jwt.jwtSign({
+              email,
+              onfido_status: onfidoStatus,
+              onfido_id: onfidoId,
+            });
+            const newData = {onfido_status: onfidoStatus};
             const query = {email};
             userModel.findOneAndUpdate(query, newData, {upsert: true},
                 (err, doc) => {
@@ -199,7 +221,7 @@ function getStatus(req, res) {
                     res.status(200).json({
                       data: true,
                       token: newjwt,
-                      onfido_status,
+                      onfido_status: onfidoStatus,
                       action: 'redirect',
                     });
                   }
@@ -212,8 +234,8 @@ function getStatus(req, res) {
                 const firstName = data[0].name_first;
                 const status = data[0].onfido_status;
                 if (status !== 'rejected') {
-                  const onfido_status = 'rejected';
-                  const newData = {onfido_status};
+                  const onfidoStatus = 'rejected';
+                  const newData = {onfido_status: onfidoStatus};
                   const query = {email};
                   userModel.findOneAndUpdate(query, newData, {upsert: true},
                       (err, doc) => {

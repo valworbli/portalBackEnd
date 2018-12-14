@@ -7,23 +7,29 @@ const loggerModel = require('../models/log.js');
  * @param {string} res - The outcoming response.
  * @property {string} req.headers.authorization - The bearer token.
  */
-function post_log(req, res) {
+function postLog(req, res) {
   const token = req.body.token;
   const data = req.body.data || {};
   const browser = req.body.browser;
-  const created_at = req.body.created_at;
+  const createdAt = req.body.created_at;
   const from = 'front end';
   const action = req.body.action;
   if (token) {
     jwt.jwtDecode(token)
-        .then((jwt_data) => {
-          if (jwt_data && jwt_data.email) {
-            const email = jwt_data.email;
+        .then((jwtData) => {
+          if (jwtData && jwtData.email) {
+            const email = jwtData.email;
             data.jwt_token = token;
-            data.jwt_data = jwt_data;
-            const str_data = JSON.stringify(data);
-            return save_log({
-              email, data: str_data, browser, created_at, action, from});
+            data.jwt_data = jwtData;
+            const strData = JSON.stringify(data);
+            return saveLog({
+              email,
+              data: strData,
+              browser,
+              created_at: createdAt,
+              action,
+              from,
+            });
           }
         })
         .then((data) => {
@@ -34,8 +40,15 @@ function post_log(req, res) {
         });
   } else if (data && data.email) {
     const email = data.email;
-    const str_data = JSON.stringify(data);
-    save_log({email, data: str_data, browser, created_at, action, from})
+    const strData = JSON.stringify(data);
+    saveLog({
+      email,
+      data: strData,
+      browser,
+      created_at: createdAt,
+      action,
+      from,
+    })
         .then(() => {
           res.status(200).json({data: true});
         })
@@ -52,7 +65,7 @@ function post_log(req, res) {
  * @param {data} data - The incoming request.
  * @return {data} req - The incoming request.
  */
-function save_log(data) {
+function saveLog(data) {
   return new Promise(function(resolve, reject) {
     loggerModel(data).save((err, data) => {
       if (!err && data) {
@@ -64,6 +77,6 @@ function save_log(data) {
   });
 }
 
-module.exports = {post_log};
+module.exports = {postLog};
 
 

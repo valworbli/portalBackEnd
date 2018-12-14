@@ -21,16 +21,23 @@ function postLogin(req, res) {
     userModel.find({email}, (err, data) => {
       if (!err && data && data[0] && data[0].password) {
         const hash = data[0].password;
-        const mongo_id = data[0]._id;
         const email = data[0].email;
-        const onfido_status = data[0].onfido_status;
-        const onfido_id = data[0].onfido_id || null;
-        const security_code = data[0].security_code || null;
+        const onfidoStatus = data[0].onfido_status;
+        const onfidoId = data[0].onfido_id || null;
+        const securityCode = data[0].security_code || null;
         bcrypt.compare(plaintextPassword, hash, function(err, data) {
           if (data === true) {
             const token = jwt.jwtExpires({
-              email, onfido_status, onfido_id, security_code}, '72h');
-            res.status(200).json({data: true, token, onfido_status});
+              email,
+              onfido_status: onfidoStatus,
+              onfido_id: onfidoId,
+              security_code: securityCode,
+            }, '72h');
+            res.status(200).json({
+              data: true,
+              token,
+              onfido_status: onfidoStatus,
+            });
           } else {
             res.status(400).json({data: false});
           }
@@ -57,9 +64,13 @@ function postAuth(req, res) {
     const token = bearer[1];
     jwt.jwtDecode(token)
         .then((data) => {
-          const onfido_status = data.onfido_status;
-          const security_code = data.security_code;
-          res.status(200).json({data: true, onfido_status, security_code});
+          const onfidoStatus = data.onfido_status;
+          const securityCode = data.security_code;
+          res.status(200).json({
+            data: true,
+            onfido_status: onfidoStatus,
+            security_code: securityCode,
+          });
         })
         .catch((err) => {
           res.status(400).json({data: false});
@@ -116,14 +127,14 @@ function postPassword(req, res) {
  * @param {string} res - The outcoming response.
  * @property {string} req.headers.authorization - The bearer token.
  * @property {string} req.body.name_first - The users first name.
- * @property {string} req.body.name_middle - The users middle name.
+ * @property {string} req.body.Mme_middle - The users middle name.
  * @property {string} req.body.name_last - The users last name.
  * @property {string} req.body.address_country - The users country.
  * @property {string} req.body.address_zip - The users zip.
  * @property {string} req.body.address_town - The users town.
  * @property {string} req.body.address_flat_number - The users flat number.
  * @property {string} req.body.address_building_name - The users building name.
- * @property {string} req.body.address_building_number - The users building number.
+ * @property {string} req.body.address_building_number - building number.
  * @property {string} req.body.address_one - The users address line one.
  * @property {string} req.body.address_two - The users address line two.
  * @property {string} req.body.address_state - The users address state.
@@ -142,57 +153,59 @@ function postProfile(req, res) {
         .then((jwtdata) => {
           if (jwtdata.onfido_status === 'default' ||
           jwtdata.onfido_status === 'started') {
-            const onfido_status = 'started';
-            const onfido_id = jwtdata.onfido_id;
+            const onfidoStatus = 'started';
+            const onfidoId = jwtdata.onfido_id;
             const email = jwtdata.email;
-            const name_first = req.body.name_first;
-            const name_middle = req.body.name_middle;
-            const name_last = req.body.name_last;
-            const address_country = req.body.address_country;
-            const address_zip = req.body.address_zip;
-            const address_town = req.body.address_town;
-            const address_flat_number = req.body.address_flat_number || '';
-            const address_building_name = req.body.address_building_name || '';
-            const address_building_number = req.body.address_building_number || '';
-            const address_one = req.body.address_one || '';
-            const address_two = req.body.address_two || '';
-            const address_state = req.body.address_state || '';
-            const phone_code = req.body.phone_code;
-            const phone_mobile = req.body.phone_mobile;
-            const date_birth_day = req.body.date_birth_day;
-            const date_birth_month = req.body.date_birth_month;
-            const date_birth_year = req.body.date_birth_year;
+            const nameFirst = req.body.name_first;
+            const nameMiddle = req.body.Mme_middle;
+            const nameLast = req.body.name_last;
+            const addressCountry = req.body.address_country;
+            const addressZip = req.body.address_zip;
+            const addressTown = req.body.address_town;
+            const addressFlatNumber = req.body.address_flat_number || '';
+            const addressBuildingName = req.body.address_building_name || '';
+            const addressBuildingNumber = req.body.address_building_number ||
+            '';
+            const addressOne = req.body.address_one || '';
+            const addressTwo = req.body.address_two || '';
+            const addressState = req.body.address_state || '';
+            const phoneCode = req.body.phone_code;
+            const phoneMobile = req.body.phone_mobile;
+            const dateBirthDay = req.body.date_birth_day;
+            const dateBirthMonth = req.body.date_birth_month;
+            const dateBirthYear = req.body.date_birth_year;
             const gender = req.body.gender;
             const query = {email};
             const newData = {
-              name_first,
-              name_middle,
-              name_last,
-              address_country,
-              address_zip,
-              address_town,
-              address_flat_number,
-              address_building_name,
-              address_building_number,
-              address_one,
-              address_two,
-              address_state,
-              phone_code,
-              phone_mobile,
-              date_birth_day,
-              date_birth_month,
-              date_birth_year,
+              name_first: nameFirst,
+              Mme_middle: nameMiddle,
+              name_last: nameLast,
+              address_country: addressCountry,
+              address_zip: addressZip,
+              address_town: addressTown,
+              address_flat_number: addressFlatNumber,
+              address_building_name: addressBuildingName,
+              address_building_number: addressBuildingNumber,
+              address_one: addressOne,
+              address_two: addressTwo,
+              address_state: addressState,
+              phone_code: phoneCode,
+              phone_mobile: phoneMobile,
+              date_birth_day: dateBirthDay,
+              date_birth_month: dateBirthMonth,
+              date_birth_year: dateBirthYear,
               gender,
-              onfido_status,
+              onfido_status: onfidoStatus,
             };
             userModel.findOneAndUpdate(query, newData, {upsert: true},
                 (err, doc) => {
                   if (!err) {
-                    onfido.updateApplicant(newData, onfido_id)
+                    onfido.updateApplicant(newData, onfidoId)
                         .then(()=>{
                           const newjwt = jwt.jwtSign({
-                            email, onfido_status,
-                            onfido_id,
+                            email,
+                            onfido_status: onfidoStatus,
+                            onfido_id: onfidoId,
                           });
                           res.status(200).json({data: true, newjwt});
                         })
@@ -234,8 +247,11 @@ function getProfile(req, res) {
                   .then((imageCount) => {
                     profile.password = '';
                     profile.onfido_id = '';
-                    const image_count = imageCount;
-                    res.status(200).json({data: true, profile: profile, image_count});
+                    res.status(200).json({
+                      data: true,
+                      profile: profile,
+                      image_count: imageCount,
+                    });
                   });
             } else {
               res.status(400).json({data: false});
@@ -243,7 +259,7 @@ function getProfile(req, res) {
           });
         })
         .catch((err) => {
-            console.log(err);
+          console.log(err); // eslint-disable-line no-console
         });
   } catch (err) {
     const error = 'user get profile failed';
@@ -262,42 +278,65 @@ function getProfile(req, res) {
  */
 function postAccount(req, res) {
   try {
-    const worbli_account_name = req.body.worbli_account_name;
-    const public_key_active = req.body.public_key_active;
-    const public_key_owner = req.body.public_key_owner;
+    const worbliAccountName = req.body.worbli_account_name;
+    const publicKeyActive = req.body.public_key_active;
+    const publicKeyOwner = req.body.public_key_owner;
     const bearer = req.headers.authorization.split(' ');
     const token = bearer[1];
     let jwtData;
     jwt.jwtDecode(token)
         .then((jwtdata) => {
-          const onfido_id = jwtdata.onfido_id;
+          const onfidoId = jwtdata.onfido_id;
           const email = jwtdata.email;
-          const newAccount = {worbli_account_name, public_key_active, public_key_owner, email};
-          const onfido_status = jwtdata.onfido_status;
+          const newAccount = {
+            worbli_account_name: worbliAccountName,
+            public_key_active: publicKeyActive,
+            public_key_owner: publicKeyOwner,
+            email,
+          };
+          const onfidoStatus = jwtdata.onfido_status;
           jwtData = jwtdata;
-          if (onfido_status === 'approved') {
+          if (onfidoStatus === 'approved') {
             userModel.find({email}, (err, data) => {
               if (!err && data && data[0].worbli_account_name) {
-                res.status(400).json({data: false, error: `You have already claimed the name: ${data[0].worbli_account_name}`});
+                res.status(400).json({
+                  data: false,
+                  error: `You have already claimed the name: 
+                  ${data[0].worbli_account_name}`,
+                });
               } else {
-                account.checkExists(worbli_account_name)
+                account.checkExists(worbliAccountName)
                     .then((exists) => {
                       if (exists === true || exists === undefined) {
-                        res.status(400).json({data: false, error: 'Name already exists'});
+                        res.status(400).json({
+                          data: false,
+                          error: 'Name already exists',
+                        });
                       } else {
                         const email = jwtData.email;
-                        const onfido_status = 'named';
-                        const newData = {worbli_account_name, onfido_status};
+                        const onfidoStatus = 'named';
+                        const newData = {
+                          worbli_account_name: worbliAccountName,
+                          onfido_status: onfidoStatus,
+                        };
                         const query = {email};
-                        userModel.findOneAndUpdate(query, newData, {upsert: true}, (err, doc) => {
-                          if (!err) {
-                            account.createAccount(newAccount);
-                            const newjwt = jwt.jwtSign({email, onfido_status, onfido_id});
-                            res.status(200).json({data: true, newjwt});
-                          } else {
-                            res.status(400).json({data: false});
-                          }
-                        });
+                        userModel.findOneAndUpdate(
+                            query,
+                            newData,
+                            {upsert: true},
+                            (err, doc) => {
+                              if (!err) {
+                                account.createAccount(newAccount);
+                                const newjwt = jwt.jwtSign({
+                                  email,
+                                  onfido_status: onfidoStatus,
+                                  onfido_id: onfidoId,
+                                });
+                                res.status(200).json({data: true, newjwt});
+                              } else {
+                                res.status(400).json({data: false});
+                              }
+                            });
                       }
                     })
                     .catch((err) => {
@@ -323,8 +362,8 @@ function postAccount(req, res) {
  */
 function getSnapshot(req, res) {
   try {
-    const snap_shot = req.query.account;
-    snapShotModel.find({account_name: snap_shot}, (err, data) => {
+    const snapShot = req.query.account;
+    snapShotModel.find({account_name: snapShot}, (err, data) => {
       if (data[0] && data[0].account_name) {
         return res.send(data[0]);
       } else {
@@ -333,7 +372,7 @@ function getSnapshot(req, res) {
     });
   } catch (err) {
     const error = 'user post snapshot failed';
-    res.status(400).json({data: false, error})
+    res.status(400).json({data: false, error});
   }
 }
 
@@ -352,14 +391,14 @@ function getSecurity(req, res) {
           const email = jwtdata.email;
           userModel.find({email}, (err, data) => {
             if (!err && data && data[0] && data[0].security_code) {
-              const security_code = data[0].security_code;
-              res.status(200).json({data: true, security_code});
+              const securityCode = data[0].security_code;
+              res.status(200).json({data: true, security_code: securityCode});
             }
           });
         });
   } catch (err) {
     const error = 'user get security failed';
-    res.status(400).json({data: false, error})
+    res.status(400).json({data: false, error});
   }
 }
 
@@ -375,20 +414,25 @@ function getSharedrop(req, res) {
     const token = bearer[1];
     jwt.jwtDecode(token)
         .then((jwtdata) => {
-          const onfido_id = jwtdata.onfido_id;
+          const onfidoId = jwtdata.onfido_id;
           const email = jwtdata.email;
           userModel.find({email}, (err, data) => {
-            const worbli_account_name = data[0].worbli_account_name;
-            sharegrabRequestModel.find({worbli_account_name}, (err, data) => {
+            const worbliAccountName = data[0].worbli_account_name;
+            sharegrabRequestModel.find({worbliAccountName}, (err, data) => {
               if (!err && data && data[0] && data[0].state === 'success') {
-                const onfido_status = 'credited';
-                const newData = {onfido_status};
+                const onfidoStatus = 'credited';
+                const newData = {
+                  onfido_status: onfidoStatus,
+                };
                 const query = {email};
                 userModel.findOneAndUpdate(query, newData, {upsert: true},
                     (err, doc) => {
                       if (!err) {
-                        const newjwt = jwt.jwtSign(
-                            {email, onfido_status, onfido_id});
+                        const newjwt = jwt.jwtSign({
+                          email,
+                          onfido_status: onfidoStatus,
+                          onfido_id: onfidoId,
+                        });
                         res.status(200).json({data: true, newjwt});
                       } else {
                         res.status(400).json({data: false});
@@ -424,8 +468,11 @@ function getName(req, res) {
           const email = jwtdata.email;
           userModel.find({email}, (err, data) => {
             if (!err && data && data[0] && data[0].worbli_account_name) {
-              const worbli_account_name = data[0].worbli_account_name;
-              res.status(200).json({data: true, worbli_account_name});
+              const worbliAccountName = data[0].worbli_account_name;
+              res.status(200).json({
+                data: true,
+                worbli_account_name: worbliAccountName,
+              });
             }
           });
         })

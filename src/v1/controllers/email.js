@@ -15,27 +15,42 @@ const crypto = require('crypto');
 function postAuthorize(req, res) {
   onfido.createApplicant()
       .then((data) => {
-        const onfido_id = data;
+        const onfidoId = data;
         const email = req.body.email;
-        const agreed_terms = req.body.agreed_terms;
-        const agreed_marketing = req.body.agreed_marketing;
+        const agreedTerms = req.body.agreed_terms;
+        const agreedMarketing = req.body.agreed_marketing;
         logger.log('create aplicant id', email, {data});
-        userModel.find({email},(err, data) => {
+        userModel.find({email}, (err, data) => {
           if (!err && data && data[0] && data[0]._id) {
             const email = data[0].email;
-            const onfido_status = data[0].onfido_status;
-            const onfido_id = data[0].onfido_id;
-            const newjwt = jwt.jwtExpires({email, onfido_status, onfido_id}, '72h');
+            const onfidoStatus = data[0].onfido_status;
+            const onfidoId = data[0].onfido_id;
+            const newjwt = jwt.jwtExpires({
+              email,
+              onfido_status: onfidoStatus,
+              onfido_id: onfidoId,
+            }, '72h');
             emailSender.sendEmail(email, newjwt, 'authorize')
                 .then(() => res.status(200).json({data: true}))
                 .catch(() => res.status(400).json({data: false}));
           } else {
-            const onfido_status = 'default';
-            const security_code = bigInt(Buffer.from(crypto.randomBytes(8)).toString('hex'), 16);
-            userModel({email, agreed_terms, agreed_marketing, onfido_status, onfido_id, security_code}).save((err, data) => {
+            const onfidoStatus = 'default';
+            const securityCode = bigInt(
+                Buffer.from(crypto.randomBytes(8)).toString('hex'), 16
+            );
+            userModel({
+              email,
+              agreed_terms: agreedTerms,
+              agreed_marketing: agreedMarketing,
+              onfido_status: onfidoStatus,
+              onfido_id: onfidoId,
+              security_code: securityCode,
+            }).save((err, data) => {
               if (!err && data) {
-                const mongo_id = data._id;
-                const newjwt = jwt.jwtSign({email, onfido_status, onfido_id});
+                const newjwt = jwt.jwtSign({
+                  email,
+                  onfido_status: onfidoStatus,
+                  onfido_id: onfidoId});
                 emailSender.sendEmail(email, newjwt, 'authorize')
                     .then(() => res.status(200).json({data: true}))
                     .catch(() => res.status(400).json({data: false}));
@@ -47,7 +62,7 @@ function postAuthorize(req, res) {
         });
       })
       .catch((err)=>{
-        console.log(err);
+        console.log(err); // eslint-disable-line no-console
       });
 }
 
@@ -61,10 +76,12 @@ function postReset(req, res) {
   const email = req.body.email;
   userModel.find({email}, (err, data) => {
     if (!err && data && data[0] && data[0]._id) {
-      const mongo_id = data[0]._id;
       const email = data[0].email;
-      const onfido_status = data[0].onfido_status;
-      const newjwt = jwt.jwtExpires({email, mongo_id, onfido_status}, '72h');
+      const onfidoStatus = data[0].onfido_status;
+      const newjwt = jwt.jwtExpires({
+        email,
+        onfido_status: onfidoStatus,
+      }, '72h');
       emailSender.sendEmail(email, newjwt, 'reset')
           .then(() => res.status(200).json({data: true}))
           .catch(() => res.status(400).json({data: false}));
