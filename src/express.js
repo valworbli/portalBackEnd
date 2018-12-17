@@ -10,7 +10,7 @@ const corsOptions = {
     if (process.env.CORS_WHITELIST.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null);
+      callback('Not allowed by CORS');
     }
   },
   allowedHeaders: [
