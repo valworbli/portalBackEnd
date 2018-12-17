@@ -7,10 +7,10 @@ const app = require('../../../worbli-api');
 chai.config.includeStack = true;
 
 describe('## Misc', () => {
-  describe('# GET /api/health-check', () => {
+  describe('# GET /api/v1/health/check', () => {
     it('should return OK', (done) => {
       request(app)
-          .get('/api/health-check')
+          .get('/api/v1/health/check/')
           .expect(httpStatus.OK)
           .then((res) => {
             expect(res.text).to.equal('OK');
