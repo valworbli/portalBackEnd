@@ -1,41 +1,65 @@
-const { Api, JsonRpc, RpcError, JsSignatureProvider } = require('eosjs');
-const fetch = require('node-fetch'); 
-const rpc = new JsonRpc('https://endpoint-1.worbli.io', { fetch });
+const {JsonRpc} = require('eosjs');
+const fetch = require('node-fetch');
+const rpc = new JsonRpc('https://endpoint-1.worbli.io', {fetch});
 
 const AWS = require('aws-sdk');
-AWS.config.update({ "accessKeyId": process.env.AWS_ACCESS_KEY_ID, "secretAccessKey": process.env.AWS_SECRET_ACCESS_KEY, "region": "us-east-1" });
+AWS.config.update({
+  'accessKeyId': process.env.AWS_ACCESS_KEY_ID,
+  'secretAccessKey': process.env.AWS_SECRET_ACCESS_KEY,
+  'region': 'us-east-1',
+});
 const sqs = new AWS.SQS({apiVersion: '2012-11-05'});
 
-function create_account(data) {
-  return new Promise(function(resolve, reject) {
-    if(data && data.worbli_account_name && data.public_key_active && data.public_key_owner){
-      const accountRequest = data;
-      const params = {
-        MessageBody: JSON.stringify(accountRequest),
-        QueueUrl: process.env.SQS_QUEUE
-      };
-      console.log(`----- STARTING SQS - ${(new Date).getTime()}`)
-      sqs.sendMessage(params, function(err, data) {
-          if (err) {
-            reject("Error", err);
-          } else {
-            console.log(`----- FINISHED SQS - ${(new Date).getTime()}`)
-            resolve(data.MessageId);
-          }
-      });
-    }
-  })
+/**
+ * Create Account
+ * @param {string} data - Data.
+ * @return {string} data.MessageId - The SQS Message ID
+ */
+function createAccount(data) {
+  try {
+    return new Promise(function(resolve, reject) {
+      if (data &&
+        data.worbli_account_name &&
+        data.public_key_active &&
+        data.public_key_owner) {
+        const accountRequest = data;
+        const params = {
+          MessageBody: JSON.stringify(accountRequest),
+          QueueUrl: process.env.SQS_QUEUE,
+        };
+        sqs.sendMessage(params,
+            function(err, data) {
+              if (err) {
+                reject('Error', err);
+              } else {
+                resolve(data.MessageId);
+              }
+            });
+      }
+    });
+  } catch (err) {
+    console.log(`create account. ${err}`); // eslint-disable-line no-console
+  }
 }
 
-function check_exists(worbli_account_name) {
-  return new Promise((resolve, reject) => {
-    rpc.get_account(worbli_account_name)
-    .then((data) => resolve(true))
-    .catch((err) => resolve(false))
-  })
+/**
+ * Check Exists
+ * @param {string} worbliAccountName - The Worbli account name to check.
+ * @return {boolean} true/false - Does the name already exist
+ */
+function checkExists(worbliAccountName) {
+  try {
+    return new Promise((resolve, reject) => {
+      rpc.get_account(worbliAccountName)
+          .then((data) => resolve(true))
+          .catch((err) => resolve(false));
+    });
+  } catch (err) {
+    console.log(`check exists. ${err}`); // eslint-disable-line no-console
+  }
 }
 
-module.exports = { create_account, check_exists };
-    
-
-var milliseconds = (new Date).getTime();
+module.exports = {
+  createAccount,
+  checkExists,
+};

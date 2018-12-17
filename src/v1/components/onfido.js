@@ -1,115 +1,165 @@
 const fetch = require('./fetch.js');
-    
-function create_applicant(data) {
-  return new Promise(function(resolve, reject) {
-    const first_name = 'Enter';
-    const last_name = 'Name';
-    const applicant = {
-      url: 'https://api.onfido.com/v2/applicants',
-      method: 'POST',
-      headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
-      body: {first_name, last_name}
-    }
-    fetch.fetch_data(applicant)
-    .then((onfido_id) => {
-      resolve(onfido_id.id)
-    })
-    .catch((err) => {
-      reject(err);
-    })
-  })
+
+/**
+ * Create Applicant
+ * @param {object} data - The data to sign
+ * @return {object} onfido_id.id - onfio applicant id
+ */
+function createApplicant(data) {
+  try {
+    return new Promise(function(resolve, reject) {
+      const firstName = 'Enter';
+      const lastName = 'Name';
+      const applicant = {
+        url: 'https://api.onfido.com/v2/applicants',
+        method: 'POST',
+        headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
+        body: {first_name: firstName, last_name: lastName},
+      };
+      fetch.fetchData(applicant)
+          .then((onfidoId) => {
+            resolve(onfidoId.id);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+    });
+  } catch (err) {
+    console.log(`create applicant. ${err}`); // eslint-disable-line no-console
+  }
 }
 
-function update_applicant(data, onfido_id) {
-  return new Promise(function(resolve, reject) {
-    const first_name = data.name_first;
-    const middle_name = data.name_middle
-    const last_name = data.name_last;
-    const gender = data.gender;
-    const date_birth_day = data.date_birth_day;
-    const date_birth_month = data.date_birth_month;
-    const date_birth_year = data.date_birth_year;
-    const dob = `${date_birth_year}-${date_birth_month}-${date_birth_day}`;
-    const flat_number = data.address_flat_number;
-    const building_name = data.address_building_name;
-    const building_number = data.address_building_number;
-    const street = data.address_one;
-    const sub_street = data.address_two;
-    const state = data.address_state;
-    const town = data.address_town;
-    const postcode = data.address_zip;
-    const country = data.address_country.toUpperCase();
-    const onfidoid = onfido_id;
-    const mobile = `+${data.phone_code} ${data.phone_mobile}`;
+/**
+ * Update Applicant
+ * @param {object} data - The data to update tje applicant with
+ * @param {object} _onfidoId - The onfido id to update
+ * @return {object} onfido_id.id - onfio applicant id
+ */
+function updateApplicant(data, _onfidoId) {
+  try {
+    return new Promise(function(resolve, reject) {
+      const firstName = data.name_first;
+      const middleName = data.name_middle;
+      const lastName = data.name_last;
+      const gender = data.gender;
+      const dateBirthDay = data.date_birth_day;
+      const dateBirthMonth = data.date_birth_month;
+      const dateBirthYear = data.date_birth_year;
+      const dob = `${dateBirthYear}-${dateBirthMonth}-${dateBirthDay}`;
+      const flatNumber = data.address_flat_number;
+      const buildingName = data.address_building_name;
+      const buildingNumber = data.address_building_number;
+      const street = data.address_one;
+      const subStreet = data.address_two;
+      const state = data.address_state;
+      const town = data.address_town;
+      const postcode = data.address_zip;
+      const country = data.address_country.toUpperCase();
+      const onfidoid = _onfidoId;
+      const mobile = `+${data.phone_code} ${data.phone_mobile}`;
 
-    const rowApplicant = {
-      url: `https://api.onfido.com/v2/applicants/${onfidoid}`,
-      method: 'PUT',
-      headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
-      body: {first_name, last_name, middle_name, country, dob, mobile, gender,
-      'addresses[][flat_number]': flat_number,
-      'addresses[][building_name]': building_name,
-      'addresses[][building_number]': building_number,
-      'addresses[][street]': street,
-      'addresses[][sub_street]': sub_street,
-      'addresses[][town]': town,
-      'addresses[][postcode]': postcode,
-      'addresses[][country]': country }
-    } 
-
-    const usApplicant = {
+      const rowApplicant = {
         url: `https://api.onfido.com/v2/applicants/${onfidoid}`,
         method: 'PUT',
         headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
-        body: {first_name, last_name, middle_name, country, dob, mobile, gender,
-        'addresses[][flat_number]': flat_number,
-        'addresses[][building_name]': building_name,
-        'addresses[][building_number]': building_number,
-        'addresses[][street]': street,
-        'addresses[][sub_street]': sub_street,
-        'addresses[][town]': town,
-        'addresses[][state]': state,
-        'addresses[][postcode]': postcode,
-        'addresses[][country]': country }
-    } 
+        body: {
+          'first_name': firstName,
+          'last_name': lastName,
+          'middle_name': middleName,
+          country,
+          dob,
+          mobile,
+          gender,
+          'addresses[][flat_number]': flatNumber,
+          'addresses[][building_name]': buildingName,
+          'addresses[][building_number]': buildingNumber,
+          'addresses[][street]': street,
+          'addresses[][sub_street]': subStreet,
+          'addresses[][town]': town,
+          'addresses[][postcode]': postcode,
+          'addresses[][country]': country,
+        },
+      };
 
-    let applicant;
-    if (country == 'usa' || country == 'USA'){
+      const usApplicant = {
+        url: `https://api.onfido.com/v2/applicants/${onfidoid}`,
+        method: 'PUT',
+        headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
+        body: {
+          'first_name': firstName,
+          'last_name': lastName,
+          'middle_name': middleName,
+          country,
+          dob,
+          mobile,
+          gender,
+          'addresses[][flat_number]': flatNumber,
+          'addresses[][building_name]': buildingName,
+          'addresses[][building_number]': buildingNumber,
+          'addresses[][street]': street,
+          'addresses[][sub_street]': subStreet,
+          'addresses[][town]': town,
+          'addresses[][state]': state,
+          'addresses[][postcode]': postcode,
+          'addresses[][country]': country,
+        },
+      };
+
+      let applicant;
+      if (country == 'usa' || country == 'USA') {
         applicant = usApplicant;
-    } else {
-        applicant = rowApplicant;
-    }
-    fetch.fetch_data(applicant)
-    .then((onfido_id) => {
-        resolve(onfido_id.id);
-    })
-    .catch((err) => {
-        reject(err);
-    })
-  })
-}
-
-function check_images(onfido_id) {
-  return new Promise(function(resolve, reject) {
-    const applicant = {
-      url: `https://api.onfido.com/v2/applicants/${onfido_id}/documents`,
-      method: 'GET',
-      headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
-    }
-    fetch.fetch_data(applicant)
-    .then((imageData) => {
-      if(imageData && imageData.documents && imageData.documents.length >0){
-        const docCount = imageData.documents.length;
-        resolve(docCount);
       } else {
-        const docCount = 0;
-        resolve(docCount); 
+        applicant = rowApplicant;
       }
-    })
-    .catch((err) => {
-      reject(err);
-    })
-  })
+      fetch.fetchData(applicant)
+          .then((onfidoId) => {
+            resolve(onfidoId.id);
+          })
+          .catch((err) => {
+            reject(err);
+          });
+    });
+  } catch (err) {
+    console.log(`update applicant. ${err}`); // eslint-disable-line no-console
+  }
 }
 
-module.exports = { create_applicant, update_applicant, check_images };
+/**
+ * Update Applicant
+ * @param {object} onfidoId - The onfido id to update
+ * @return {object} docCount - how many documents has the user uploaded
+ */
+function checkImages(onfidoId) {
+  try {
+    return new Promise(function(resolve, reject) {
+      const applicant = {
+        url: `https://api.onfido.com/v2/applicants/${onfidoId}/documents`,
+        method: 'GET',
+        headers: {'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`},
+      };
+      fetch.fetchData(applicant)
+          .then((imageData) => {
+            if (imageData &&
+              imageData.documents &&
+              imageData.documents.length >0) {
+              const docCount = imageData.documents.length;
+              resolve(docCount);
+            } else {
+              const docCount = 0;
+              resolve(docCount);
+            }
+          })
+          .catch((err) => {
+            reject(err);
+          });
+    });
+  } catch (err) {
+    console.log(`check images. ${err}`); // eslint-disable-line no-console
+  }
+}
+
+module.exports = {
+  createApplicant,
+  updateApplicant,
+  checkImages,
+};

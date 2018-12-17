@@ -4,6 +4,6 @@ module.exports = {
   validate: {
     headers: {
       authorization: Joi.string().required(),
-    }
-  }
+    },
+  },
 };

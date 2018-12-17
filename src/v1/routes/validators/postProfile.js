@@ -14,9 +14,6 @@ module.exports = {
       date_birth_month: Joi.number().required(),
       date_birth_year: Joi.number().required(),
       gender: Joi.string().lowercase().min(4).max(6).required(),
-    }
-  }
+    },
+  },
 };
-
-
-

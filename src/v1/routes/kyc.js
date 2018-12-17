@@ -1,14 +1,19 @@
 const express = require('express');
 const validate = require('express-validation');
 const kycController = require('../controllers/kyc.js');
-const router = express.Router();
+const router = new express.Router();
 
-const post_applicant = require('./validators/post_applicant.js');
+const postApplicant = require('./validators/postApplicant.js');
 
-router.route('/applicant/').post(validate(post_applicant.validate), kycController.post_applicant);
-router.route('/applicant/').get(kycController.get_applicant);
-router.route('/check/').get(kycController.get_check);
-router.route('/status/').get(kycController.get_status);
-router.route('/webhook/').post(kycController.post_webhook);
+router.route('/applicant/').post(
+    validate(postApplicant.validate), kycController.postApplicant);
+router.route('/applicant/').get(
+    kycController.getApplicant);
+router.route('/check/').get(
+    kycController.getCheck);
+router.route('/status/').get(
+    kycController.getStatus);
+router.route('/webhook/').post(
+    kycController.postWebhook);
 
 module.exports = router;
