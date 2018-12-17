@@ -6,8 +6,6 @@ cache:
   directories:
   - node_modules
 services: mongodb
-before_script:
-- npm install
 script:
 - npm run test
 before_install:
