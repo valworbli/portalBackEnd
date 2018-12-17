@@ -9,6 +9,8 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (process.env.CORS_WHITELIST.indexOf(origin) !== -1) {
       callback(null, true);
+    } else {
+      callback(null);
     }
   },
   allowedHeaders: [
