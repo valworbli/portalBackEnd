@@ -1,5 +1,7 @@
 # Portal Backend
 
+[![Build Status](https://travis-ci.org/worbli/portalBackEnd.svg?branch=master)](https://travis-ci.org/worbli/portalBackEnd)
+
 ### Node Installation Guide
 
 ##### Mongo DB
@@ -16,11 +18,11 @@ sudo systemctl start mongod
 
 ##### Install Dependancies
 
-  npm install.
+  npm install
 
 ##### Start Import of snapshot
 
-  npm run import
+  node import-snapshot.js
 
 ##### Start API
 
