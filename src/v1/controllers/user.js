@@ -334,14 +334,14 @@ function postAccount(req, res) {
                                 });
                                 res.status(200).json({data: true, newjwt});
                               } else {
-                                const logerror = 'could not findOneAndUpdate in function postAccount in users.js';
+                                const logerror = 'could not findOneAndUpdate in function postAccount in users.js'; // eslint-disable-line
                                 res.status(400).json({data: false, logerror});
                               }
                             });
                       }
                     })
                     .catch((err) => {
-                      const logerror = 'could not checkExists in function postAccount in users.js';
+                      const logerror = 'could not checkExists in function postAccount in users.js'; // eslint-disable-line
                       res.status(400).json({data: false, logerror});
                     });
               }
@@ -523,6 +523,7 @@ function postFind(req, res) {
                 user.name_last = data[0].name_last;
                 user.phone_code = data[0].phone_code;
                 user.phone_mobile = data[0].phone_mobile;
+                user.status = data[0].onfido_status;
                 res.status(200).json({
                   data: true,
                   user,
