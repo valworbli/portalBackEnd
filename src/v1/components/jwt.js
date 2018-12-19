@@ -1,6 +1,7 @@
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const jwtSecret = process.env.JWT_SECRET;
+const activeJwtModel = require('../models/activeJwt.js');
 
 /**
  * Sign JWT
@@ -50,8 +51,35 @@ function jwtDecode(token) {
   }
 }
 
+function insertActiveJwt(email, token){
+  try{
+    activeJwtModel.findOneAndUpdate({email}, {token}, {upsert: true}, (err, data) => {
+      if(!err && data){
+        return
+      }
+    })
+  } catch(err){`jwt decode. ${err}`}
+}
+
+function existingActiveJwt(email, token){
+  try{
+    return new Promise(function(resolve, reject){
+      activeJwtModel.findOne({email, token}, (err, data) => {
+        console.log(data)
+        if(!err && data !== null){
+          activeJwtModel.deleteOne({email, token}, (err, data) =>{
+            resolve(true);
+          });
+        }else{resolve(false)}
+      })
+    })
+  }catch(err){return err}
+}
+
 module.exports = {
   jwtSign,
   jwtExpires,
   jwtDecode,
+  insertActiveJwt,
+  existingActiveJwt,
 };

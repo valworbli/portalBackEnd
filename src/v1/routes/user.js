@@ -13,6 +13,8 @@ const postPassword = require('./validators/postPassword.js');
 
 router.route('/password/').post(
     validate(postPassword.validate), userController.postPassword);
+router.route('/password/').put(
+    validate(postPassword.validate), userController.putPassword);
 router.route('/login/').post(
     validate(postLogin.validate), userController.postLogin);
 router.route('/auth/').post(
