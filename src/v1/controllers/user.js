@@ -334,13 +334,15 @@ function postAccount(req, res) {
                                 });
                                 res.status(200).json({data: true, newjwt});
                               } else {
-                                res.status(400).json({data: false});
+                                const logerror = 'could not findOneAndUpdate in function postAccount in users.js';
+                                res.status(400).json({data: false, logerror});
                               }
                             });
                       }
                     })
                     .catch((err) => {
-                      res.status(400).json({data: false});
+                      const logerror = 'could not checkExists in function postAccount in users.js';
+                      res.status(400).json({data: false, logerror});
                     });
               }
             });
