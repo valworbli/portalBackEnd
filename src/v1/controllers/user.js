@@ -487,62 +487,6 @@ function getName(req, res) {
   }
 }
 
-/**
- * Find
- * @param {string} req - The incoming request.
- * @param {string} res - The outcoming response.
- * @property {string} req.headers.authorization - The bearer token.
- */
-function postFind(req, res) {
-  try {
-    const bearer = req.headers.authorization.split(' ');
-    const token = bearer[1];
-    jwt.jwtDecode(token)
-        .then((jwtdata) => {
-          const level = jwtdata.level;
-          const email = req.body.email;
-          if (level === 'admin' && email) {
-            userModel.find({email}, (err, data) => {
-              if (!err && data && data[0]) {
-                const user = {};
-                user.email = data[0].email;
-                user.address_building_name = data[0].address_building_name;
-                user.address_building_number = data[0].address_building_number;
-                user.address_country = data[0].address_country;
-                user.address_flat_number = data[0].address_flat_number;
-                user.address_one = data[0].address_one;
-                user.address_state = data[0].address_state;
-                user.address_town = data[0].address_town;
-                user.address_two = data[0].address_two;
-                user.address_zip = data[0].address_zip;
-                user.date_birth_day = data[0].date_birth_day;
-                user.date_birth_month = data[0].date_birth_month;
-                user.date_birth_year = data[0].date_birth_year;
-                user.gender = data[0].gender;
-                user.name_first = data[0].name_first;
-                user.name_last = data[0].name_last;
-                user.phone_code = data[0].phone_code;
-                user.phone_mobile = data[0].phone_mobile;
-                user.status = data[0].onfido_status;
-                res.status(200).json({
-                  data: true,
-                  user,
-                });
-              } else {
-                res.status(400).json({data: false});
-              }
-            });
-          }
-        })
-        .catch((err) => {
-          res.status(400).json({data: false, error: err});
-        });
-  } catch (err) {
-    const error = 'user get name failed';
-    res.status(400).json({data: false, error});
-  }
-}
-
 module.exports = {
   postLogin,
   postAuth,
@@ -554,5 +498,4 @@ module.exports = {
   getSecurity,
   getSharedrop,
   getName,
-  postFind,
 };
