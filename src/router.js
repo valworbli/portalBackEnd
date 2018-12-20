@@ -12,4 +12,5 @@ router.use('/api/v1/kyc', kycRoutes);
 router.use('/api/v1/logger', loggerRoutes);
 router.use('/api/v1/health', healthRoutes);
 
+
 module.exports = router;

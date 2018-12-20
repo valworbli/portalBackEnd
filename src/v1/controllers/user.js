@@ -53,7 +53,7 @@ function postLogin(req, res) {
 }
 
 /**
- * Login
+ * Auth
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
  * @property {string} req.headers.authorization - The bearer token.
@@ -384,13 +384,15 @@ function postAccount(req, res) {
                                 });
                                 res.status(200).json({data: true, newjwt});
                               } else {
-                                res.status(400).json({data: false});
+                                const logerror = 'could not findOneAndUpdate in function postAccount in users.js'; // eslint-disable-line
+                                res.status(400).json({data: false, logerror});
                               }
                             });
                       }
                     })
                     .catch((err) => {
-                      res.status(400).json({data: false});
+                      const logerror = 'could not checkExists in function postAccount in users.js'; // eslint-disable-line
+                      res.status(400).json({data: false, logerror});
                     });
               }
             });
