@@ -88,7 +88,7 @@ function postAuth(req, res) {
  * @property {string} req.headers.authorization - The bearer token.
  * @property {string} req.body.password - The bearer token.
  */
-function postPassword(req, res) {
+function postUpdatePassword(req, res) {
   try {
     const plaintextPassword = req.body.password;
     const bearer = req.headers.authorization.split(' ');
@@ -128,7 +128,7 @@ function postPassword(req, res) {
  * @property {string} req.headers.authorization - The bearer token.
  * @property {string} req.body.password - The bearer token.
  */
-function putPassword(req, res) {
+function postPassword(req, res) {
   try {
     const plaintextPassword = req.body.password;
     const bearer = req.headers.authorization.split(' ');
@@ -542,8 +542,8 @@ module.exports = {
   getProfile,
   postAccount,
   getSnapshot,
+  postUpdatePassword,
   postPassword,
-  putPassword,
   getSecurity,
   getSharedrop,
   getName,
