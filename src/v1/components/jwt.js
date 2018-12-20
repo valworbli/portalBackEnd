@@ -51,29 +51,46 @@ function jwtDecode(token) {
   }
 }
 
-function insertActiveJwt(email, token){
-  try{
-    activeJwtModel.findOneAndUpdate({email}, {token}, {upsert: true}, (err, data) => {
-      if(!err && data){
-        return
-      }
-    })
-  } catch(err){`jwt decode. ${err}`}
+/**
+ * insert or update active jwt
+ * @param {string} email - The users email
+ * @param {string} token - The token to check
+ */
+function insertActiveJwt(email, token) {
+  try {
+    activeJwtModel
+        .findOneAndUpdate({email}, {token}, {upsert: true}, (err, data) => {
+          if (!err && data) {
+            return;
+          }
+        });
+  } catch (err) {
+    `jwt decode. ${err}`;
+  }
 }
 
-function existingActiveJwt(email, token){
-  try{
-    return new Promise(function(resolve, reject){
+/**
+ * jwt was used - delete record
+ * @param {string} email - The users email
+ * @param {string} token - The token to check
+ * @return {bool}
+ */
+function existingActiveJwt(email, token) {
+  try {
+    return new Promise(function(resolve, reject) {
       activeJwtModel.findOne({email, token}, (err, data) => {
-        console.log(data)
-        if(!err && data !== null){
+        if (!err && data !== null) {
           activeJwtModel.deleteOne({email, token}, (err, data) =>{
             resolve(true);
           });
-        }else{resolve(false)}
-      })
-    })
-  }catch(err){return err}
+        } else {
+          resolve(false);
+        }
+      });
+    });
+  } catch (err) {
+    return err;
+  }
 }
 
 module.exports = {

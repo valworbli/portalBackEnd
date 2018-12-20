@@ -142,24 +142,23 @@ function putPassword(req, res) {
               const newData = {password};
               const query = {email};
               jwt.existingActiveJwt(email, token)
-              .then((record) => {
-                if(record){
-                  console.log(record);
-                  userModel.findOneAndUpdate(
-                      query, newData, {upsert: true}, (err, doc) => {
-                        if (!err) {
-                          res.status(200).json({data: true});
-                        } else {
-                          res.status(400).json({data: false});
-                        }
+                  .then((record) => {
+                    if (record) {
+                      userModel.findOneAndUpdate(
+                          query, newData, {upsert: true}, (err, doc) => {
+                            if (!err) {
+                              res.status(200).json({data: true});
+                            } else {
+                              res.status(400).json({data: false});
+                            }
+                          });
+                    } else {
+                      res.status(400).json({data: false});
+                    }
+                  })
+                  .catch((err) =>{
+                    res.status(400).json({data: false});
                   });
-                }else {
-                  res.status(400).json({data: false});
-                }
-              })
-              .catch((err) =>{
-                res.status(400).json({data: false});
-              })
             }
           });
         })
