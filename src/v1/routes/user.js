@@ -11,6 +11,8 @@ const postAccount = require('./validators/postAccount.js');
 const getSnapshot = require('./validators/getSnapshot.js');
 const postPassword = require('./validators/postPassword.js');
 
+router.route('/updatepassword/').post(
+    validate(postPassword.validate), userController.postUpdatePassword);
 router.route('/password/').post(
     validate(postPassword.validate), userController.postPassword);
 router.route('/login/').post(

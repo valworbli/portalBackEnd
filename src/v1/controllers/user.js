@@ -88,7 +88,7 @@ function postAuth(req, res) {
  * @property {string} req.headers.authorization - The bearer token.
  * @property {string} req.body.password - The bearer token.
  */
-function postPassword(req, res) {
+function postUpdatePassword(req, res) {
   try {
     const plaintextPassword = req.body.password;
     const bearer = req.headers.authorization.split(' ');
@@ -108,6 +108,56 @@ function postPassword(req, res) {
                     } else {
                       res.status(400).json({data: false});
                     }
+                  });
+            }
+          });
+        })
+        .catch((err) => {
+          res.status(400).json({data: false});
+        });
+  } catch (err) {
+    const error = 'user post password failed';
+    res.status(400).json({data: false, error});
+  }
+}
+
+/**
+ * Password
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ * @property {string} req.headers.authorization - The bearer token.
+ * @property {string} req.body.password - The bearer token.
+ */
+function postPassword(req, res) {
+  try {
+    const plaintextPassword = req.body.password;
+    const bearer = req.headers.authorization.split(' ');
+    const token = bearer[1];
+    jwt.jwtDecode(token)
+        .then((data) => {
+          bcrypt.hash(plaintextPassword, saltRounds, (err, hash) => {
+            if (!err) {
+              const password = hash;
+              const email = data.email;
+              const newData = {password};
+              const query = {email};
+              jwt.existingActiveJwt(email, token)
+                  .then((record) => {
+                    if (record) {
+                      userModel.findOneAndUpdate(
+                          query, newData, {upsert: true}, (err, doc) => {
+                            if (!err) {
+                              res.status(200).json({data: true});
+                            } else {
+                              res.status(400).json({data: false});
+                            }
+                          });
+                    } else {
+                      res.status(400).json({data: false});
+                    }
+                  })
+                  .catch((err) =>{
+                    res.status(400).json({data: false});
                   });
             }
           });
@@ -301,7 +351,7 @@ function postAccount(req, res) {
               if (!err && data && data[0].worbli_account_name) {
                 res.status(400).json({
                   data: false,
-                  error: `You have already claimed the name: 
+                  error: `You have already claimed the name:
                   ${data[0].worbli_account_name}`,
                 });
               } else {
@@ -494,6 +544,7 @@ module.exports = {
   getProfile,
   postAccount,
   getSnapshot,
+  postUpdatePassword,
   postPassword,
   getSecurity,
   getSharedrop,

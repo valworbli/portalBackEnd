@@ -52,6 +52,7 @@ function postAuthorize(req, res) {
                     email,
                     onfido_status: onfidoStatus,
                     onfido_id: onfidoId});
+                  jwt.insertActiveJwt(email, newjwt);
                   emailSender.sendEmail(email, newjwt, 'authorize')
                       .then(() => res.status(200).json({data: true}))
                       .catch(() => res.status(400).json({data: false}));
@@ -88,6 +89,7 @@ function postReset(req, res) {
           email,
           onfido_status: onfidoStatus,
         }, '72h');
+        jwt.insertActiveJwt(email, newjwt);
         emailSender.sendEmail(email, newjwt, 'reset')
             .then(() => res.status(200).json({data: true}))
             .catch(() => res.status(400).json({data: false}));
