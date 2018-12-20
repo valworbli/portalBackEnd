@@ -10,10 +10,7 @@ const getProfile = require('./validators/getProfile.js');
 const postAccount = require('./validators/postAccount.js');
 const getSnapshot = require('./validators/getSnapshot.js');
 const postPassword = require('./validators/postPassword.js');
-const postFind = require('./validators/postFind.js');
 
-router.route('/find/').post(
-    validate(postFind.validate), userController.postFind);
 router.route('/password/').post(
     validate(postPassword.validate), userController.postPassword);
 router.route('/login/').post(
