@@ -98,7 +98,8 @@ const _checkUser = function(email, agreedTerms, agreedMarketing) {
               reject(`user ${email} already verified`);
             }
           } else {
-            const securityCode = bigInt(Buffer.from(crypto.randomBytes(8)).toString('hex'), 16);
+            const securityCode = bigInt(
+                Buffer.from(crypto.randomBytes(8)).toString('hex'), 16);
             userModel({
               email: email,
               agreed_terms: agreedTerms,
