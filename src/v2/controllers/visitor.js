@@ -200,15 +200,16 @@ function postPassword(req, res) {
   try {
     const plaintextPassword = req.body.password;
     const token = req.body.token;
-
+    let email;
     _lookupToken(token).then((token) => {
       return onfido.createApplicant(token);
     }).then((token) => {
+      email = token.email;
       return _savePassword(token, plaintextPassword);
     }).then((token) => {
       return _deleteToken(token);
     }).then(() => {
-      res.status(200).json({data: true});
+      res.status(200).json({data: true, email});
     }).catch((err) => {
       logger.error(err);
       res.status(400).json({data: false, err});
