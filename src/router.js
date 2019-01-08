@@ -6,7 +6,7 @@ const kycRoutes = require('./v1/routes/kyc.js');
 const loggerRoutes = require('./v1/routes/logger.js');
 const healthRoutes = require('./v1/routes/health.js');
 // Version 2
-const visitorRoutesV2 = require('./v2/routes/email.js');
+const visitorRoutesV2 = require('./v2/routes/visitor.js');
 const userRoutesV2 = require('./v2/routes/user.js');
 const kycRoutesV2 = require('./v2/routes/kyc.js');
 const loggerRoutesV2 = require('./v2/routes/logger.js');
@@ -25,6 +25,5 @@ router.use('/api/v2/user', userRoutesV2);
 router.use('/api/v2/kyc', kycRoutesV2);
 router.use('/api/v2/logger', loggerRoutesV2);
 router.use('/api/v2/health', healthRoutesV2);
-
 
 module.exports = router;
