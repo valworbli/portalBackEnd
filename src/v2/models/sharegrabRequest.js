@@ -9,4 +9,5 @@ const sharegrabRequestSchema = new mongoose.Schema({
   date_inserted: {type: Date, require: true, default: Date.now},
 });
 
-module.exports = mongoose.model('sharegrab_request', sharegrabRequestSchema);
+module.exports = mongoose.models.sharegrab_request ||
+mongoose.model('sharegrab_request', sharegrabRequestSchema);

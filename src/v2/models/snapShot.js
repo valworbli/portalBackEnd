@@ -12,4 +12,5 @@ const snapShotSchema = new mongoose.Schema({
   updated_at: {type: Date, default: Date.now},
 });
 
-module.exports = mongoose.model('SnapShot', snapShotSchema);
+module.exports = mongoose.models.SnapShot ||
+mongoose.model('SnapShot', snapShotSchema);

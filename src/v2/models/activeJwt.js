@@ -5,4 +5,5 @@ const activeJwtSchema = new mongoose.Schema({
   token: {type: String},
 });
 
-module.exports = mongoose.model('activeJwt', activeJwtSchema);
+module.exports = mongoose.models.activeJwt ||
+mongoose.model('activeJwt', activeJwtSchema);

@@ -31,4 +31,5 @@ const userSchema = new mongoose.Schema({
   onfido_id: {type: String},
 });
 
-module.exports = mongoose.model('user', userSchema);
+module.exports = mongoose.models.user ||
+mongoose.model('user', userSchema);

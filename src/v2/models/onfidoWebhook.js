@@ -9,4 +9,5 @@ const onfidoWebhookSchema = new mongoose.Schema({
   href: {type: String, required: true},
 });
 
-module.exports = mongoose.model('onfidowebhook', onfidoWebhookSchema);
+module.exports = mongoose.models.onfidowebhook ||
+mongoose.model('onfidowebhook', onfidoWebhookSchema);
