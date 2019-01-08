@@ -9,7 +9,7 @@ const postProfile = require('../validators/user/postProfile.js');
 const getProfile = require('../validators/user/getProfile.js');
 const postAccount = require('../validators/user/postAccount.js');
 const getSnapshot = require('../validators/user/getSnapshot.js');
-const postPassword = require('../validators/visitor/postPassword.js');
+const postPassword = require('../validators/user/postPassword.js');
 
 router.route('/updatepassword/').post(
     validate(postPassword.validate), userController.postUpdatePassword);
