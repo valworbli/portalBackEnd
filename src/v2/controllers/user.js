@@ -184,19 +184,8 @@ function postPassword(req, res) {
  * @param {string} res - The outcoming response.
  * @property {string} req.headers.authorization - The bearer token.
  * @property {string} req.body.name_first - The users first name.
- * @property {string} req.body.Mme_middle - The users middle name.
  * @property {string} req.body.name_last - The users last name.
  * @property {string} req.body.address_country - The users country.
- * @property {string} req.body.address_zip - The users zip.
- * @property {string} req.body.address_town - The users town.
- * @property {string} req.body.address_flat_number - The users flat number.
- * @property {string} req.body.address_building_name - The users building name.
- * @property {string} req.body.address_building_number - building number.
- * @property {string} req.body.address_one - The users address line one.
- * @property {string} req.body.address_two - The users address line two.
- * @property {string} req.body.address_state - The users address state.
- * @property {string} req.body.phone_code - The users country dialing code.
- * @property {string} req.body.phone_mobile - The users mobile phone number.
  * @property {string} req.body.date_birth_day - The users dob day.
  * @property {string} req.body.date_birth_month - The users dob month.
  * @property {string} req.body.date_birth_year - The users dob year.
@@ -214,20 +203,8 @@ function postProfile(req, res) {
             const onfidoId = jwtdata.onfido_id;
             const email = jwtdata.email;
             const nameFirst = req.body.name_first;
-            const nameMiddle = req.body.name_middle;
             const nameLast = req.body.name_last;
             const addressCountry = req.body.address_country;
-            const addressZip = req.body.address_zip;
-            const addressTown = req.body.address_town;
-            const addressFlatNumber = req.body.address_flat_number || '';
-            const addressBuildingName = req.body.address_building_name || '';
-            const addressBuildingNumber = req.body.address_building_number ||
-            '';
-            const addressOne = req.body.address_one || '';
-            const addressTwo = req.body.address_two || '';
-            const addressState = req.body.address_state || '';
-            const phoneCode = req.body.phone_code;
-            const phoneMobile = req.body.phone_mobile;
             const dateBirthDay = req.body.date_birth_day;
             const dateBirthMonth = req.body.date_birth_month;
             const dateBirthYear = req.body.date_birth_year;
@@ -235,19 +212,8 @@ function postProfile(req, res) {
             const query = {email};
             const newData = {
               name_first: nameFirst,
-              Mme_middle: nameMiddle,
               name_last: nameLast,
               address_country: addressCountry,
-              address_zip: addressZip,
-              address_town: addressTown,
-              address_flat_number: addressFlatNumber,
-              address_building_name: addressBuildingName,
-              address_building_number: addressBuildingNumber,
-              address_one: addressOne,
-              address_two: addressTwo,
-              address_state: addressState,
-              phone_code: phoneCode,
-              phone_mobile: phoneMobile,
               date_birth_day: dateBirthDay,
               date_birth_month: dateBirthMonth,
               date_birth_year: dateBirthYear,
