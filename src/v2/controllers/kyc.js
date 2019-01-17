@@ -291,6 +291,8 @@ function getStatus(req, res) {
             } else {
               res.status(400).json({status: 400, data: false});
             }
+          } else {
+            res.status(200).json({status: 200, data: true, action: 'support'});
           }
         });
   } catch (err) {
