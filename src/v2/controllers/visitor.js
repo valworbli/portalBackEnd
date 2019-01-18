@@ -207,7 +207,7 @@ function postReset(req, res) {
     }).then((token) => {
       return emailSender.sendEmail(email, token.token, 'reset');
     }).then(() => {
-      logger(`password reset email sent to ${email}`);
+      logger.info(`password reset email sent to ${email}`);
       res.status(200).json({data: true});
     }).catch((err) => {
       logger.error('error processing password reset for %s: %s', email, err);
@@ -351,8 +351,7 @@ const _updatePassword = function(token, password) {
     bcrypt.hash(password, saltRounds).then((hash) => {
       userModel.findOneAndUpdate(
           {email: token.email},
-          {password: hash,
-            onfido_id: token.onfido_id},
+          {password: hash},
           {upsert: true}
       ).then((user) => {
         if (user) {
