@@ -309,10 +309,11 @@ const _lookupEmailToken = function(token) {
             logger.error('_lookupEmailToken: error looking up token %s: %s', token, err);
             reject(err);
           } else {
-            if(token)
+            if (token) {
               resolve(token);
-            else
+            } else {
               reject(`_lookupEmailToken: token not found for ${token}`);
+            }
           }
         });
   });
