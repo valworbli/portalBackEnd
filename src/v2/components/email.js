@@ -1,3 +1,4 @@
+/* eslint-disable */
 const AWS = require('aws-sdk');
 AWS.config.update({
   'accessKeyId': process.env.AWS_ACCESS_KEY_ID,
@@ -156,7 +157,7 @@ function sendEmail(email, newjwt, template, firstName) {
                   </br></br></br>
                     <p>Password Reset!</p>
                     <p>Click the button below to reset your password.</p>
-                    <a href="${url}/visitor/password?token=${newjwt}">
+                    <a href="${url}/visitor/password?token=${newjwt}&action=reset">
                       <button type="button" 
                         style="cursor: pointer; 
                         outline: none; 
@@ -177,8 +178,8 @@ function sendEmail(email, newjwt, template, firstName) {
                     please copy the address below to the 
                     browser address bar to reset.
                     </p>
-                    <a href="${url}/visitor/password?token=${newjwt}">
-                    ${url}/visitor/password?token=${newjwt}
+                    <a href="${url}/visitor/password?token=${newjwt}&action=reset">
+                    ${url}/visitor/password?token=${newjwt}&action=reset
                     </a></br></br></br>
                     <p>If this activity is not your own operation, 
                     please contact us immediatly via support@worbli.io</p>

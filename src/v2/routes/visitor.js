@@ -16,5 +16,7 @@ router.route('/password/').post(validate(postPassword.validate),
     visitorController.postPassword);
 router.route('/reset/').post(validate(postReset.validate),
     visitorController.postReset);
+router.route('/resetpassword/').post(validate(postPassword.validate),
+    visitorController.postResetPassword);
 
 module.exports = router;

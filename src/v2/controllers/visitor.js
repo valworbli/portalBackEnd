@@ -1,6 +1,7 @@
 const logger = require('../components/logger')(module);
 const userModel = require('../models/user.js');
-const tokenModel = require('../models/emailToken.js');
+const emailTokenModel = require('../models/emailToken.js');
+const resetTokenModel = require('../models/resetToken.js');
 const emailSender = require('../components/email.js');
 const onfido = require('../components/onfido.js');
 const crypto = require('crypto');
@@ -23,7 +24,7 @@ function postRegister(req, res) {
   const agreedMarketing = req.body.agreed_marketing;
   try {
     _checkUser(email, agreedTerms, agreedMarketing).then(function(res) {
-      return _createToken(email);
+      return _createEmailToken(email);
     }).then(function(token) {
       return emailSender.sendEmail(email, token.token, 'register');
     }).then(function(mail) {
@@ -51,7 +52,7 @@ function postValidate(req, res) {
   try {
     const bearer = req.headers.authorization.split(' ');
     const token = bearer[1];
-    tokenModel.findOne({token})
+    emailTokenModel.findOne({token})
         .then((data) => {
           if (data) {
             logger.info('email token %s valid for %s',
@@ -127,17 +128,46 @@ const _checkUser = function(email, agreedTerms, agreedMarketing) {
  * @param {string} email - the users email.
  * @return {string} token - the created token.
  */
-function _createToken(email) {
+function _createEmailToken(email) {
   // Question: Are you ok with me moving this to a component,
   // maybe components/token.js it will allow us seperate
   // unit and integration tests more easily
   return new Promise(function(resolve, reject) {
-    tokenModel.deleteOne({email: email})
+    emailTokenModel.deleteOne({email: email})
         .exec(function(err, user) {
           if (err) {
             reject(err);
           }
-          tokenModel({
+          emailTokenModel({
+            email: email,
+            token: crypto.randomBytes(16).toString('hex')})
+              .save()
+              .then((token) => {
+                resolve(token);
+              })
+              .catch((err) => {
+                reject(err);
+              });
+        });
+  });
+}
+
+/**
+ * _createToken
+ * @param {string} email - the users email.
+ * @return {string} token - the created token.
+ */
+function _createResetToken(email) {
+  // Question: Are you ok with me moving this to a component,
+  // maybe components/token.js it will allow us seperate
+  // unit and integration tests more easily
+  return new Promise(function(resolve, reject) {
+    resetTokenModel.deleteOne({email: email})
+        .exec(function(err, user) {
+          if (err) {
+            reject(err);
+          }
+          resetTokenModel({
             email: email,
             token: crypto.randomBytes(16).toString('hex')})
               .save()
@@ -173,10 +203,11 @@ function postReset(req, res) {
   try {
     const email = req.body.email;
     _getUser(email).then((user) => {
-      return _createToken(email);
+      return _createResetToken(email);
     }).then((token) => {
       return emailSender.sendEmail(email, token.token, 'reset');
     }).then(() => {
+      logger.info(`password reset email sent to ${email}`);
       res.status(200).json({data: true});
     }).catch((err) => {
       logger.error('error processing password reset for %s: %s', email, err);
@@ -201,13 +232,14 @@ function postPassword(req, res) {
     const plaintextPassword = req.body.password;
     const token = req.body.token;
     let email;
-    _lookupToken(token).then((token) => {
+    _lookupEmailToken(token).then((token) => {
       return onfido.createApplicant(token);
     }).then((token) => {
+      logger.error(token);
       email = token.email;
       return _savePassword(token, plaintextPassword);
     }).then((token) => {
-      return _deleteToken(token);
+      return _deleteEmailToken(token);
     }).then(() => {
       res.status(200).json({data: true, email});
     }).catch((err) => {
@@ -221,24 +253,78 @@ function postPassword(req, res) {
   }
 }
 
+/**
+ * POST visitor/password
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ * @property {string} req.body.password - The users password
+ * @property {string} req.body.token - The users token.
+ */
+function postResetPassword(req, res) {
+  try {
+    const plaintextPassword = req.body.password;
+    const token = req.body.token;
+    let email;
+    _lookupResetToken(token).then((token) => {
+      email = token.email;
+      return _updatePassword(token, plaintextPassword);
+    }).then((token) => {
+      return _deleteResetToken(token);
+    }).then(() => {
+      res.status(200).json({data: true, email});
+    }).catch((err) => {
+      logger.error(err);
+      res.status(400).json({data: false, err});
+    });
+  } catch (err) {
+    logger.error(err);
+    const error = 'user reset password failed';
+    res.status(400).json({data: false, error});
+  }
+}
 
-const _lookupToken = function(token) {
+const _lookupResetToken = function(token) {
   return new Promise(function(resolve, reject) {
-    tokenModel.findOne({token: token})
+    resetTokenModel.findOne({token: token})
         .exec(function(err, token) {
           if (err) {
-            logger.error('error looking up token %s: %s', token, err);
+            logger.error('_lookupResetToken: error looking up token %s: %s'
+                , token, err);
             reject(err);
           } else {
-            resolve(token);
+            if (token) {
+              resolve(token);
+            } else {
+              reject(`_lookupResetToken: token not found for ${token}`);
+            }
           }
         });
   });
 };
 
-const _deleteToken = function(token) {
+
+const _lookupEmailToken = function(token) {
   return new Promise(function(resolve, reject) {
-    tokenModel.findOneAndDelete(
+    emailTokenModel.findOne({token: token})
+        .exec(function(err, token) {
+          if (err) {
+            logger.error('_lookupEmailToken: error looking up token %s: %s'
+                , token, err);
+            reject(err);
+          } else {
+            if (token) {
+              resolve(token);
+            } else {
+              reject(`_lookupEmailToken: token not found for ${token}`);
+            }
+          }
+        });
+  });
+};
+
+const _deleteResetToken = function(token) {
+  return new Promise(function(resolve, reject) {
+    resetTokenModel.findOneAndDelete(
         {email: token.email}
     ).then((user) => {
       logger.info('deleted token for %s', token.email);
@@ -249,6 +335,44 @@ const _deleteToken = function(token) {
     });
   });
 };
+
+const _deleteEmailToken = function(token) {
+  return new Promise(function(resolve, reject) {
+    emailTokenModel.findOneAndDelete(
+        {email: token.email}
+    ).then((user) => {
+      logger.info('deleted token for %s', token.email);
+      resolve();
+    }).catch((err) => {
+      logger.info('error deleting token for %s: %s', token.email, err);
+      reject(err);
+    });
+  });
+};
+
+const _updatePassword = function(token, password) {
+  return new Promise(function(resolve, reject) {
+    bcrypt.hash(password, saltRounds).then((hash) => {
+      userModel.findOneAndUpdate(
+          {email: token.email},
+          {password: hash},
+          {upsert: true}
+      ).then((user) => {
+        if (user) {
+          logger.info('user %s password updated', token.email);
+          resolve(token);
+        } else {
+          const error = `user ${token.email} not found`;
+          logger.error('user %s not found', token.email);
+          reject(error);
+        }
+      }).catch((err) => {
+        reject(err);
+      });
+    });
+  });
+};
+
 
 const _savePassword = function(token, password) {
   return new Promise(function(resolve, reject) {
@@ -280,5 +404,5 @@ module.exports = {
   postReset,
   postValidate,
   postPassword,
-  _createToken,
+  postResetPassword,
 };
