@@ -1,3 +1,4 @@
+/* eslint-disable */
 const AWS = require('aws-sdk');
 AWS.config.update({
   'accessKeyId': process.env.AWS_ACCESS_KEY_ID,
