@@ -288,13 +288,15 @@ const _lookupResetToken = function(token) {
     resetTokenModel.findOne({token: token})
         .exec(function(err, token) {
           if (err) {
-            logger.error('_lookupResetToken: error looking up token %s: %s', token, err);
+            logger.error('_lookupResetToken: error looking up token %s: %s'
+                , token, err);
             reject(err);
           } else {
-            if(token)
+            if (token) {
               resolve(token);
-            else
+            } else {
               reject(`_lookupResetToken: token not found for ${token}`);
+            }
           }
         });
   });
@@ -306,7 +308,8 @@ const _lookupEmailToken = function(token) {
     emailTokenModel.findOne({token: token})
         .exec(function(err, token) {
           if (err) {
-            logger.error('_lookupEmailToken: error looking up token %s: %s', token, err);
+            logger.error('_lookupEmailToken: error looking up token %s: %s'
+                , token, err);
             reject(err);
           } else {
             if (token) {
