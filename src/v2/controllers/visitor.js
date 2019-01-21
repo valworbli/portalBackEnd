@@ -124,14 +124,11 @@ const _checkUser = function(email, agreedTerms, agreedMarketing) {
 };
 
 /**
- * _createToken
+ * _createEmailToken
  * @param {string} email - the users email.
  * @return {string} token - the created token.
  */
 function _createEmailToken(email) {
-  // Question: Are you ok with me moving this to a component,
-  // maybe components/token.js it will allow us seperate
-  // unit and integration tests more easily
   return new Promise(function(resolve, reject) {
     emailTokenModel.deleteOne({email: email})
         .exec(function(err, user) {
@@ -153,14 +150,11 @@ function _createEmailToken(email) {
 }
 
 /**
- * _createToken
+ * _createResetToken
  * @param {string} email - the users email.
  * @return {string} token - the created token.
  */
 function _createResetToken(email) {
-  // Question: Are you ok with me moving this to a component,
-  // maybe components/token.js it will allow us seperate
-  // unit and integration tests more easily
   return new Promise(function(resolve, reject) {
     resetTokenModel.deleteOne({email: email})
         .exec(function(err, user) {
@@ -405,4 +399,5 @@ module.exports = {
   postValidate,
   postPassword,
   postResetPassword,
+  _createEmailToken,
 };
