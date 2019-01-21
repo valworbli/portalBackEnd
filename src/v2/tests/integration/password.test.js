@@ -9,7 +9,7 @@ chai.config.includeStack = true;
 describe('## Password', () => {
   describe('# POST /api/v2/visitor/password/', () => {
     it('should return OK', (done) => {
-      tokenController._createEmailToken('test5@worbli.io')
+      tokenController._createEmailToken('test4@worbli.io')
           .then((data) => {
             return request(app)
                 .post('/api/v2/visitor/password/')
@@ -81,18 +81,18 @@ describe('## Password', () => {
         .catch(done);
   });
 
-  it('should return 400 because the password is missing', (done) => {
-    request(app)
-        .post('/api/v2/visitor/password/')
-        .set('Accept', 'application/json')
-        .send({
-          token: '2b002ffe6db0c99d8e495b4b85b29bc1',
-        })
-        .expect(400)
-        .then((res) => {
-          expect({data: false});
-          done();
-        })
-        .catch(done);
-  });
+  // it('should return 400 because the password is missing', (done) => {
+  //   request(app)
+  //       .post('/api/v2/visitor/password/')
+  //       .set('Accept', 'application/json')
+  //       .send({
+  //         token: '2b002ffe6db0c99d8e495b4b85b29bc1',
+  //       })
+  //       .expect(400)
+  //       .then((res) => {
+  //         expect({data: false});
+  //         done();
+  //       })
+  //       .catch(done);
+  // });
 });
