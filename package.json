@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node worbli-api.js",
     "import": "node import-snapshot.js",
-    "test": "npm run lint && mocha --exit src/**/tests/*.js",
+    "test": "npm run lint && mocha --exit src/v2/tests/*/*.js --timeout 5000",
     "lint": "eslint --ignore-path .gitignore ."
   },
   "repository": {
