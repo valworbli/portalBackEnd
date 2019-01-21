@@ -400,4 +400,5 @@ module.exports = {
   postPassword,
   postResetPassword,
   _createEmailToken,
+  _createResetToken,
 };
