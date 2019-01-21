@@ -9,7 +9,7 @@ chai.config.includeStack = true;
 describe('## Password', () => {
   describe('# POST /api/v2/visitor/password/', () => {
     it('should return OK', (done) => {
-      tokenController._createEmailToken('test4@worbli.io')
+      tokenController._createEmailToken('test5@worbli.io')
           .then((data) => {
             return request(app)
                 .post('/api/v2/visitor/password/')
