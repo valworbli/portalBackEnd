@@ -7,12 +7,12 @@ const tokenController = require('../../controllers/visitor.js');
 chai.config.includeStack = true;
 
 describe('## Reset', () => {
-  describe('# GET /api/v1/visitor/reset/', () => {
+  describe('# GET /api/v2/visitor/reset/', () => {
     it('should return OK', (done) => {
-      tokenController._createToken('test2@worbli.io')
+      tokenController._createEmailToken('test2@worbli.io')
           .then((data) => {
             return request(app)
-                .post('/api/v1/visitor/reset/')
+                .post('/api/v2/visitor/reset/')
                 .set('Accept', 'application/json')
                 .send({
                   email: 'test2@email.com',
@@ -27,7 +27,7 @@ describe('## Reset', () => {
     });
     it('should return 400 because the email is under two atoms', (done) => {
       request(app)
-          .post('/api/v1/visitor/reset/')
+          .post('/api/v2/visitor/reset/')
           .set('Accept', 'application/json')
           .send({
             email: '@email.com',
@@ -40,7 +40,7 @@ describe('## Reset', () => {
     });
     it('should return 200 because any email is valid', (done) => {
       request(app)
-          .post('/api/v1/visitor/reset/')
+          .post('/api/v2/visitor/reset/')
           .set('Accept', 'application/json')
           .send({
             email: 'invalid@email.com',
@@ -53,7 +53,7 @@ describe('## Reset', () => {
     });
     it('should return 400 because the email is not present', (done) => {
       request(app)
-          .post('/api/v1/visitor/reset/')
+          .post('/api/v2/visitor/reset/')
           .set('Accept', 'application/json')
           .expect(400)
           .then((res) => {
@@ -63,7 +63,7 @@ describe('## Reset', () => {
     });
     it('should return 400 because the email is a number', (done) => {
       request(app)
-          .post('/api/v1/visitor/reset/')
+          .post('/api/v2/visitor/reset/')
           .set('Accept', 'application/json')
           .send({
             email: 111,
@@ -76,7 +76,7 @@ describe('## Reset', () => {
     });
     it('should return 400 because the email is a bool', (done) => {
       request(app)
-          .post('/api/v1/visitor/reset/')
+          .post('/api/v2/visitor/reset/')
           .set('Accept', 'application/json')
           .send({
             email: true,

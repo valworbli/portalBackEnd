@@ -8,10 +8,10 @@ chai.config.includeStack = true;
 
 describe('## Validate', () => {
   it('should return 200 because the token exists', (done) => {
-    tokenController._createToken('test@worbli.io')
+    tokenController._createEmailToken('test@worbli.io')
         .then((data) => {
           return request(app)
-              .post('/api/v1/visitor/validate/')
+              .post('/api/v2/visitor/validate/')
               .set('Accept', 'application/json')
               .set('Authorization', `Bearer ${data.token}`)
               .expect(200);
@@ -24,7 +24,7 @@ describe('## Validate', () => {
   });
   it('should return 400 because the token is invalid', (done) => {
     request(app)
-        .post('/api/v1/visitor/validate/')
+        .post('/api/v2/visitor/validate/')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer 11111111111111111111111111111111`)
         .expect(400)
@@ -35,7 +35,7 @@ describe('## Validate', () => {
   });
   it('should return 400 because the token length is too short', (done) => {
     request(app)
-        .post('/api/v1/visitor/validate/')
+        .post('/api/v2/visitor/validate/')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer 1111111111111111111111111111111`)
         .expect(400)
@@ -46,7 +46,7 @@ describe('## Validate', () => {
   });
   it('should return 400 because the token length is too long', (done) => {
     request(app)
-        .post('/api/v1/visitor/validate/')
+        .post('/api/v2/visitor/validate/')
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer 111111111111111111111111111111111`)
         .expect(400)
@@ -57,7 +57,7 @@ describe('## Validate', () => {
   });
   it('should return 400 because the token is a number', (done) => {
     request(app)
-        .post('/api/v1/visitor/validate/')
+        .post('/api/v2/visitor/validate/')
         .set('Accept', 'application/json')
         .set('Authorization', 111111111111111111111111111111111111111)
         .expect(400)
@@ -68,7 +68,7 @@ describe('## Validate', () => {
   });
   it('should return 400 because the token doesnt exist', (done) => {
     request(app)
-        .post('/api/v1/visitor/validate/')
+        .post('/api/v2/visitor/validate/')
         .set('Accept', 'application/json')
         .expect(400)
         .then((res) => {
