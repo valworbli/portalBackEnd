@@ -6,10 +6,10 @@ const app = require('../../../../worbli-api');
 chai.config.includeStack = true;
 
 describe('## Visitor', () => {
-  describe('# POST /api/v1/visitor/register/', () => {
+  describe('# POST /api/v2/visitor/register/', () => {
     it('should return 200 and data true', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test2@email.com',
@@ -26,7 +26,7 @@ describe('## Visitor', () => {
 
     it('should return 400 because agreed_terms is false', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test@email.com',
@@ -42,7 +42,7 @@ describe('## Visitor', () => {
 
     it('should return 400 because email has one atom', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: '@MISTAKE.COM',
@@ -58,7 +58,7 @@ describe('## Visitor', () => {
 
     it('should return 400 because email is missing', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             agreed_terms: true,
@@ -73,7 +73,7 @@ describe('## Visitor', () => {
 
     it('should return 400 because agreed_terms is missing', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test@email.com',
@@ -87,7 +87,7 @@ describe('## Visitor', () => {
     });
     it('should return 400 because agreed_marketing is missing', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test@email.com',
@@ -101,7 +101,7 @@ describe('## Visitor', () => {
     });
     it('should return 400 because agreed_terms is test', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test@email.com',
@@ -116,7 +116,7 @@ describe('## Visitor', () => {
     });
     it('should return 400 because agreed_marketing is test', (done) => {
       request(app)
-          .post('/api/v1/visitor/register/')
+          .post('/api/v2/visitor/register/')
           .set('Accept', 'application/json')
           .send({
             email: 'test@email.com',
