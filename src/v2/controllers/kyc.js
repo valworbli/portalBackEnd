@@ -133,6 +133,7 @@ function getCheck(req, res) {
           }
         })
         .then((data) => {
+          logger.info(`this fetch ${JSON.stringify(data)}`);
           const onfidoStatus = 'review';
           const newjwt = jwt.jwtSign({
             email,
