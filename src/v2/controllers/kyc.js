@@ -318,7 +318,7 @@ function postImage(req, res)
      res.status(422).json({title: 'Image Upload Error',
                            detail: err.message
                           }
-                         ];
+                         );
   else res.status(200).json({imageUrl: req.file.location});
  } // function finishUpload(err, some)
 
