@@ -312,37 +312,61 @@ function getStatus(req, res) {
  */
 function postImage(req, res)
 {
- function finishUpload(err, some)
+ function startUpload()
  {
-  if (err)
-     res.status(422).json({title: 'Image Upload Error',
-                           detail: err.message
-                          }
-                         );
-  else res.status(200).json({imageUrl: req.file.location});
- } // function finishUpload(err, some)
+  return new Promise((resolve,
+                      reject
+                     ) => {
+                           function finishUpload(err)
+//??                           function finishUpload(err, some)
+                           // an online example had "some" as an additional argument;
+                           // but this argument was not documented anywhere.
+                           // TO DO: log what this argument contains...
+                           {
+                            if (err)
+                               reject (err);
+
+                            else resolve(res.status(200).json({imageUrl: req.file.location}));
+                            // req.file becomes req.files
+                            // when upload eventually implements array...
+                           } // function finishUpload(err, some)
+
+                           singleUpload(req, res, finishUpload);
+                          } // (resolve, reject) =>
+                    );
+ } // function startUpload()
 
  try {const bearer=req.headers.authorization.split(' ');
       const token=bearer[1];
 
       jwt.jwtDecode(token)
-         .then((data) => {singleUpload(req, res, finishUpload);
-                         }
-              )
-         .then((jwt) => {res.data=res.statusCode==200;
-                         if (res.data)
-                            res.kyc_token=jwt.token;
-
-                         res.json(res);
-                        }
-              )
-         .catch((err) => {res.status(400).json({data: false});
+         .then((data) => {if (data!==null&&
+                              (typeof data)==='object'&&
+                              'email' in data&&
+                              (typeof data.email)==='string'&&
+                              data.email.length>0
+                             )
+                             {req.headers['email']=data.email; // pass on to multer...
+                              return startUpload();
+                             }
+                          res.status(400).json({data: false,
+                                                error: 'bad email'
+                                               }
+                                              );
+                         } // (data) =>
+              ) // then
+         .catch((err) => {res.status(400).json({data: false,
+                                                error: err.message
+                                               }
+                                              );
                          }
                );
      }
  catch (err)
-       {const error='kyc post image';
-        res.status(400).json({data: false, error});
+       {res.status(400).json({data: false,
+                              error: 'kyc post image'
+                             }
+                            );
        }
 } // function postImage(req, res)
 

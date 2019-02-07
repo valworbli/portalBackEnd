@@ -15,14 +15,17 @@ const upload=multer({storage: multerS3({s3: s3,
                                         bucket: process.env.AWS_S3_BUCKET_IMAGES,
                                         metadata: function (req, file, callback)
                                                   {callback (null,
-                                                             {fieldName: file.fieldname
+                                                             {fieldName: file.fieldname,
+                                                              email: req.headers['email']
                                                              }
                                                             );
                                                   },
                                         key: function (req, file, callback)
-                                             {callback (null,
-                                                        Date.now().toString()+file.fieldname
-                                                       );
+                                             {let path=req.headers['email']+'/'+
+                                                       file.fieldname+'_'+
+                                                       Date.now().toString();
+
+                                              callback (null, path);
                                              }
                                        }
                                       ) // multerS3
