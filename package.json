@@ -42,7 +42,9 @@
     "node-fetch": "^2.2.1",
     "npm": "^6.4.1",
     "unirest": "^0.5.1",
-    "winston": "^3.1.0"
+    "winston": "^3.1.0",
+    "multer": "^1.4.1",
+    "multer-s3": "^2.9.0"
   },
   "devDependencies": {
     "chai": "^4.2.0",

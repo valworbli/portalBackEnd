@@ -6,6 +6,9 @@ const userModel = require('../models/user.js');
 const logger = require('../components/logger')(module);
 const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
+const upload=require('../components/multer'),
+      singleUpload=upload.single('image');
+
 /**
  * Set Applicant
  * @param {string} req - The incoming request.
@@ -301,12 +304,53 @@ function getStatus(req, res) {
   }
 }
 
+/**
+ * Post Image
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ * @property {string} req.headers.authorization - The bearer token.
+ */
+function postImage(req, res)
+{
+ function finishUpload(err, some)
+ {
+  if (err)
+     res.status(422).json({title: 'Image Upload Error',
+                           detail: err.message
+                          }
+                         ];
+  else res.status(200).json({imageUrl: req.file.location});
+ } // function finishUpload(err, some)
+
+ try {const bearer=req.headers.authorization.split(' ');
+      const token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then((data) => {singleUpload(req, res, finishUpload);
+                         }
+              )
+         .then((jwt) => {res.data=res.statusCode==200;
+                         if (res.data)
+                            res.kyc_token=jwt.token;
+
+                         res.json(res);
+                        }
+              )
+         .catch((err) => {res.status(400).json({data: false});
+                         }
+               );
+     }
+ catch (err)
+       {const error='kyc post image';
+        res.status(400).json({data: false, error});
+       }
+} // function postImage(req, res)
+
 module.exports = {
   postApplicant,
   getApplicant,
   getCheck,
   postWebhook,
   getStatus,
+  postImage
 };
-
-
