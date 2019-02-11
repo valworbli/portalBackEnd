@@ -6,6 +6,9 @@ const userModel = require('../models/user.js');
 const logger = require('../components/logger')(module);
 const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
+const upload=require('../components/multer'),
+      singleUpload=upload.single('image');
+
 /**
  * Set Applicant
  * @param {string} req - The incoming request.
@@ -133,7 +136,6 @@ function getCheck(req, res) {
           }
         })
         .then((data) => {
-          logger.info(`this fetch ${JSON.stringify(data)}`);
           const onfidoStatus = 'review';
           const newjwt = jwt.jwtSign({
             email,
@@ -302,12 +304,77 @@ function getStatus(req, res) {
   }
 }
 
+/**
+ * Post Image
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ * @property {string} req.headers.authorization - The bearer token.
+ */
+function postImage(req, res)
+{
+ function startUpload()
+ {
+  return new Promise((resolve,
+                      reject
+                     ) => {
+                           function finishUpload(err)
+//??                           function finishUpload(err, some)
+                           // an online example had "some" as an additional argument;
+                           // but this argument was not documented anywhere.
+                           // TO DO: log what this argument contains...
+                           {
+                            if (err)
+                               reject (err);
+
+                            else resolve(res.status(200).json({imageUrl: req.file.location}));
+                            // req.file becomes req.files
+                            // when upload eventually implements array...
+                           } // function finishUpload(err, some)
+
+                           singleUpload(req, res, finishUpload);
+                          } // (resolve, reject) =>
+                    );
+ } // function startUpload()
+
+ try {const bearer=req.headers.authorization.split(' ');
+      const token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then((data) => {if (data!==null&&
+                              (typeof data)==='object'&&
+                              'email' in data&&
+                              (typeof data.email)==='string'&&
+                              data.email.length>0
+                             )
+                             {req.headers['email']=data.email; // pass on to multer...
+                              return startUpload();
+                             }
+                          res.status(400).json({data: false,
+                                                error: 'bad email'
+                                               }
+                                              );
+                         } // (data) =>
+              ) // then
+         .catch((err) => {res.status(400).json({data: false,
+                                                error: err.message
+                                               }
+                                              );
+                         }
+               );
+     }
+ catch (err)
+       {res.status(400).json({data: false,
+                              error: 'kyc post image'
+                             }
+                            );
+       }
+} // function postImage(req, res)
+
 module.exports = {
   postApplicant,
   getApplicant,
   getCheck,
   postWebhook,
   getStatus,
+  postImage
 };
-
-
