@@ -1,6 +1,10 @@
 const multer=require('multer');
-const fs = require('fs');
-const path = require('path');
+const fs=require('fs');
+const path=require('path');
+var sanitize=require("sanitize-filename");
+
+const MB=1000*1000;
+const LEADING_DOT=/^\./;
 
 /* // AMAZON S3...
 const multerS3=require('multer-s3');
@@ -33,58 +37,89 @@ const upload=multer({storage: multerS3({s3: s3,
                                              }
 */ // END AMAZON S3...
 
-const upload=multer.diskStorage({destination: function(req,
-                                                       file,
-                                                       multer_callback
-                                                      )
-                                              {let path=process.env.IMAGE_STAGING_FOLDER+'/'+
-                                                        req.headers['email'];
+function pathOK(path)
+{
+ if (typeof path!=='string')
+    return false;
+
+ let sanitized=sanitize(path);
+ return sanitized===path;
+} // function pathOK(path)
+
+const upload=multer.diskStorage(
+{limits: {files: process.env.MAX_UPLOAD_IMAGES,
+          fileSize: process.env.MAX_UPLOAD_IMAGE_SIZE_MB*MB
+         },
+
+ destination: function(req, file, multer_callback)
+              {let path=process.env.IMAGE_STAGING_FOLDER+'/'+
+                        req.headers['email'];
                                                         
-                                               function madeDir(err)
-                                               {
-                                                if ((!err)||
-                                                    err&&err.code==='EEXIST'
-                                                   )
-                                                   multer_callback (null,
-                                                                    path
-                                                                   );
+               function madeDir(err)
+                        {
+                         if ((!err)||
+                             err&&err.code==='EEXIST'
+                            )
+                            multer_callback (null, path);
 
-                                                 // TBD: +http response??
-                                                 // _Shouldn't_ happen...
-                                                 else console.error (err);
-                                                } // function madeDir(err)
+                         else {console.error (err);
+                               return multer_callback (res.status(400).json({data: false,
+                                                                             error: 'Insufficient Resources'
+                                                                            }
+                                                                           ),
+                                                       null
+                                                      );
+                              } // !mkdir
+                        } // function madeDir(err)
 
-                                               fs.mkdir (path, madeDir);
-	                                      }, // destination
+               if (pathOk(path))
+                  fs.mkdir (path, madeDir);
 
-                                 filename: function(req,
-                                                    file,
-                                                    multer_callback
-                                                   )
-                                           {let extension=path.extname(file.originalname
-                                                                      ).toLowerCase();
-                                            if (process.env.ALLOWABLE_IMAGES.includes(extension))
-                                               {
-// TO DO: validate file.fieldname; will need to insure spec for that...
-//
-// We could rely on the creation date of the file,
-// but the Date offset suffix insures that files can't be overwritten... 
-                                                let filename=file.fieldname+'_'+
-                                                             Date.now().toString()+
-                                                             extension;
+               else {console.error (`bad image path: ${path}`);
+                     return multer_callback (res.status(400).json({data: false,
+                                                                   error: 'Bad image path'
+                                                                  }
+                                                                 ),
+                                             null
+                                            );
+                    } // !pathOk(path)
+              }, // destination function
 
-                                                multer_callback (null, filename);
-                                               } // ALLOWABLE_IMAGES.includes(extension)
+ filename: function(req, file, multer_callback)
+           {let extension=path.extname(file.originalname
+                                      ).replace(LEADING_DOT, ''
+                                               ).toLowerCase();
 
-                                            else return multer_callback (
-res.status(400).json({data: false,
-                      error: `Image extension not allowed: ${extension}`
-                     }
-                    ),
-                                                                         null
-                                                                        );
-	                                   } // filename
-                                }
+            if (process.env.ALLOWABLE_IMAGES.includes(extension))
+               {let filename=file.fieldname+'_'+
+                             Date.now().toString()+'.'+
+                             extension;
+
+                if (pathOk(filename))
+                   multer_callback (null, filename);
+
+                else {console.error (`bad image filename: ${filename}`);
+                      return multer_callback (res.status(400).json({data: false,
+                                                                    error: 'Bad image path'
+                                                                   }
+                                                                  ),
+                                              null
+                                             );
+                     } // !pathOk(filename)
+               } // process.env.ALLOWABLE_IMAGES.includes(extension)
+
+            else {let message=`Image extension not allowed: ${extension}`;
+
+                  console.error (message);
+                  return multer_callback (res.status(400).json({data: false,
+                                                                error: message
+                                                               }
+                                                              ),
+                                          null
+                                         );
+                 } // !process.env.ALLOWABLE_IMAGES.includes(extension)
+           } // filename function
+}
                                ); // multer.diskStorage
 
 module.exports=upload;
