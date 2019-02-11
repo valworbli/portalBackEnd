@@ -1,4 +1,5 @@
 const multer=require('multer');
+const fs = require('fs');
 const path = require('path');
 
 /* // AMAZON S3...
@@ -48,9 +49,9 @@ const upload=multer.diskStorage({destination: function(req,
                                                                     path
                                                                    );
 
+                                                 // TBD: +http response??
+                                                 // _Shouldn't_ happen...
                                                  else console.error (err);
-                                                      // TBD: +http response??
-                                                      // _Shouldn't_ happen...
                                                 } // function madeDir(err)
 
                                                fs.mkdir (path, madeDir);
