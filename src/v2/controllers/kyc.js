@@ -6,8 +6,8 @@ const userModel = require('../models/user.js');
 const logger = require('../components/logger')(module);
 const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
-const upload=require('../components/multer'),
-      singleUpload=upload.single('image');
+const upload=require('../components/multer');
+const countries=require('./countries');
 
 /**
  * Set Applicant
@@ -311,12 +311,15 @@ function getStatus(req, res) {
  * @property {string} req.headers.authorization - The bearer token.
  */
 function postImage(req, res)
-{
- function startUpload()
+{var onfido_id=null,
+     country_code=null;
+
+ function startUpload(folder)
  {
   return new Promise((resolve,
                       reject
                      ) => {
+
                            function finishUpload(err)
 //??                           function finishUpload(err, some)
                            // an online example had "some" as an additional argument;
@@ -324,16 +327,106 @@ function postImage(req, res)
                            // TO DO: log what this argument contains...
                            {
                             if (err)
-                               reject (err);
+                               {reject (err);
+                                return; // finishUpload
+                               }
 
-                            else resolve(res.status(200).json({imageUrl: req.file.location}));
-                            // req.file becomes req.files
-                            // when upload eventually implements array...
+                            let lastCreated=null,
+                                errors=[];
+                            // get the last created from all the files uploaded...
+                            //
+                            // TO DO:
+                            //
+                            // 1) check for duplicate images
+                            //    (using file.buffer?)
+                            //
+                            // 2) check for excess brightness
+                            //
+                            // 3) future version: check for glare
+                            //
+                            for (var index=0; index<req.files.length; index++)
+                                {let file=req.files[index];
+
+                                 if (index===0)
+                                    lastCreated=file.created;
+
+                                 else if (file.created>lastCreated)
+                                         lastCreated=file.created;
+
+                                 // check for duplicate fieldnames
+                                 // (duplicate "name" html attribute
+                                 //  on the input tags...)
+                                 for (var subindex=index+1;
+                                      subindex<files.length;
+                                      subindex++
+                                     )
+                                     if (files[index].type===files[subindex].type&&
+                                         files[index].side===files[subindex].side
+                                        )
+                                        {
+let message=`Duplicate type+side: ${files[index].type}-${files[index].side}`;
+                                         console.error (message);
+                                         reject (res.status(400).json({data: false,
+                                                                       message: message
+                                                                      }
+                                                                     )
+                                                );
+                                         return; // finishUpload
+                                        }
+if (!(files[index].type in countries[country_code].backSide))
+   errors.push (`type ${files[index].type} not found for country ${country_code}`);
+
+else if (files[index].side==='back'&&
+         !countries[country_code].backSide[files[index].type]
+        )
+        errors.push (
+`attempt to submit a backside for type ${files[index].type}, country ${country_code}`
+                    );
+                                } // for (var index=0; index<req.files.length; index++)
+
+                            if (errors.length>0)
+                               {for (var error=0; error<errors.length; error++)
+                                    console.error (errors[error]);
+
+                                reject (res.status(400).json({data: false,
+                                                              message: errors.join('\n')
+                                                             }
+                                                            )
+                                       );
+                                return; // finishUpload
+                               } // if (errors.length>0)
+// TO DO:
+//
+// insert into kyc_bundle
+//
+//	email, date_updated=lastCreated
+//
+                            for (var index=0;
+                                 index<req.files;
+                                 index<req.files.length
+                                )
+                                {let file=req.files[index];
+// TO DO:
+//
+// insert into kyc_files
+//
+//	kyc_bundle_id=id(kyc_bundle),
+//	type=file.type,
+//	side=file.side,
+//	date_created=file.created,
+//	path=file.path
+                                } // for (var index=0; index<req.files.length; index++)
+
+                            resolve (res.status(200).json({data: true,
+                                                           message: 'TBD' // TO DO...
+                                                          }
+                                                         )
+                                    );
                            } // function finishUpload(err, some)
 
-                           singleUpload(req, res, finishUpload);
+                           upload.start (folder, req, res, finishUpload);
                           } // (resolve, reject) =>
-                    );
+                    ); // new Promise
  } // function startUpload()
 
  try {const bearer=req.headers.authorization.split(' ');
@@ -342,17 +435,46 @@ function postImage(req, res)
       jwt.jwtDecode(token)
          .then((data) => {if (data!==null&&
                               (typeof data)==='object'&&
-                              'email' in data&&
-                              (typeof data.email)==='string'&&
-                              data.email.length>0
+                              'email' in data
                              )
-                             {req.headers['email']=data.email; // pass on to multer...
-                              return startUpload();
+                             {let email=data.email;
+                              if ((typeof email)==='string'&&
+                                  email.length>0
+                                 )
+                                 {userModel.findOne({email},
+                                                    (err, user) => {
+if (!err &&
+    user!==null&&
+    (typeof user)==='object'&&
+    'onfido_id' in user
+   )
+   {onfido_id=user.onfido_id;
+
+    if ((typeof onfido_id)==='string'&&
+        onfido_id.length>0
+       )
+       {country_code=user.address_country.toUpperCase();
+        if (country_code in countries.backSide)
+           return startUpload(process.env.IMAGE_STAGING_FOLDER+'/'+onfido_id);
+
+        let message=`bad country code: ${country_code}`;
+        console.error (message);
+        res.status(400).json({data: false,
+                              error: message
                              }
-                          res.status(400).json({data: false,
-                                                error: 'bad email'
-                                               }
-                                              );
+                            );
+        return;
+       }
+   } // if (!err &&...
+console.error (`user ${email} not found`);
+res.status(400).json({data: false,
+                      error: 'user not found'
+                     }
+                    );
+                                                                   } // (err, user) =>
+                                                   ); // userModel.findOne
+                                 } // if ((typeof email)==='string'&&...
+                             } // if (data!==null&&...
                          } // (data) =>
               ) // then
          .catch((err) => {res.status(400).json({data: false,
