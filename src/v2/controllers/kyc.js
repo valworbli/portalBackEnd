@@ -326,6 +326,7 @@ function postImage(req, res)
                            // but this argument was not documented anywhere.
                            // TO DO: log what this argument contains...
                            {
+console.error('FINISH_UPLOAD');//??
                             if (err)
                                {reject (err);
                                 return; // finishUpload
@@ -424,7 +425,11 @@ else if (files[index].side==='back'&&
                                     );
                            } // function finishUpload(err, some)
 
-                           upload.start (folder, req, res, finishUpload);
+                           resolve (upload.start(folder,
+                                                 req, res,
+                                                 finishUpload
+                                                )
+                                   );
                           } // (resolve, reject) =>
                     ); // new Promise
  } // function startUpload()

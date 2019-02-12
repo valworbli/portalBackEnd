@@ -1,7 +1,10 @@
 const multer=require('multer');
 const fs=require('fs');
 const path=require('path');
-var sanitize=require('sanitize-filename');
+
+// this sucks;
+// leaving here to remind me to explore alternatives...
+//var sanitize=require('sanitize-filename');
 
 const MB=1000*1000;
 const LEADING_DOT=/^\./;
@@ -49,18 +52,20 @@ const upload=multer({storage: multerS3({s3: s3,
 */ // END AMAZON S3...
 
 function pathOK(path)
+// used sanitize-filename -but it was useless...
 {
  if (typeof path!=='string')
     return false;
 
- let sanitized=sanitize(path);
- return sanitized===path;
+ return path.indexOf('..')<0;
 } // function pathOK(path)
+
+var upload=null;
 
 function start(folder, req, res, finishUpload)
 {
- if (pathOk(folder))
-    {var upload=multer.diskStorage(
+ if (pathOK(folder))
+    {var storage=multer.diskStorage(
 {limits: {files: ((process.env.MAX_UPLOAD_IMAGES===undefined)
                   ?Infinity
                   :process.env.MAX_UPLOAD_IMAGES
@@ -74,11 +79,18 @@ function start(folder, req, res, finishUpload)
  destination: folder,
 
  filename: function(req, file, multer_next)
-           {let extension=path.extname(file.originalname
+           {var index;
+            let extension=path.extname(file.originalname
                                       ).replace(LEADING_DOT, ''
-                                               ).toLowerCase();
+                                               ).toLowerCase(),
+                images=process.env.ALLOWABLE_IMAGES;
+console.error('MULTER.FILENAME');//?
 
-            if (process.env.ALLOWABLE_IMAGES.includes(extension))
+            for (index=0; index<images.length; index++)
+                if (images[index].toLowerCase()===extension)
+                   break;
+
+            if (index<images.length)
                {var type, side;
 
                 let type_side=file.fieldname.toLowerCase(),
@@ -124,7 +136,7 @@ function start(folder, req, res, finishUpload)
                              created.getTime()+
                              '.'+extension;
 
-                if (pathOk(filename))
+                if (pathOK(filename))
                    {// Note that we are altering multer's file object(s),
                     // to HOPEFULLY retain when it was created, etc.
                     // (in other words: to have the ancillary info
@@ -134,7 +146,7 @@ function start(folder, req, res, finishUpload)
                     file.type=type;
                     file.side=side;
                     multer_next (null, filename);
-                   } // if (pathOk(filename))
+                   } // if (pathOK(filename))
 
                 else {console.error (`bad image filename: ${filename}`);
                       return multer_next (res.status(400).json({data: false,
@@ -143,8 +155,8 @@ function start(folder, req, res, finishUpload)
                                                               ),
                                           null
                                          );
-                     } // !pathOk(filename)
-               } // process.env.ALLOWABLE_IMAGES.includes(extension)
+                     } // !pathOK(filename)
+               } // index<images.length
 
             else {let message=`Image extension not allowed: ${extension}`;
 
@@ -155,20 +167,22 @@ function start(folder, req, res, finishUpload)
                                                           ),
                                       null
                                      );
-                 } // !process.env.ALLOWABLE_IMAGES.includes(extension)
+                 } // index>=images.length
+console.error('END OF MULTER.FILENAME');//?
            }, // filename function
-} // multer.diskStorage
+}
                                ); // multer.diskStorage
-;
+     upload=multer({storage: storage});
 
-     upload.any (req, res, finishUpload);
-    }
- else {console.error (`bad upload path: ${folder}`);
-       return res.status(400).json({data: false,
-                                    error: 'Insufficient resources...'
-                                   } // beats "Internal Error"!
-                                  );
-      } // !pathOk(folder)
-} // function start(subfolder, req, res, finishUpload)
+console.error('typeof(upload)='+(typeof upload));//??
+     return upload.any(req, res, finishUpload);
+    } // if (pathOK(folder))
 
-module.exports=start;
+ console.error (`bad upload path: ${folder}`);
+ return res.status(400).json({data: false,
+                              error: 'Insufficient resources...'
+                             } // beats "Internal Error"!
+                            );
+} // function start(folder, req, res, finishUpload)
+
+module.exports={start};
