@@ -6,8 +6,9 @@ const userModel = require('../models/user.js');
 const logger = require('../components/logger')(module);
 const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
-const upload=require('../components/multer');
+const multer=require('../components/multer');
 const countries=require('./countries');
+const path=require('path');
 
 /**
  * Set Applicant
@@ -314,8 +315,65 @@ function postImage(req, res)
 {var onfido_id=null,
      country_code=null;
 
+ function filename(filePath)
+ {let basename=path.basename(filePath);
+  let lastDot=basename.lastIndexOf('.');
+  if (lastDot>=0)
+     return basename.substring(0, lastDot);
+
+  return basename;
+ } // function filename(filePath)
+
+ function metaType(multer_file_object)
+ // filename: type-side_timestamp
+ {let multer_filename_parts=filename(multer_file_object.path).split('-');
+
+  if (multer_filename_parts.length!==2)
+     return '';
+
+  return multer_filename_parts[0];
+ } // function metaType(multer_file_object)
+
+ function metaSide(multer_file_object)
+ // filename: type-side_timestamp
+ {let multer_filename_parts=filename(multer_file_object.path).split('-');
+
+  if (multer_filename_parts.length!==2)
+     return '';
+
+  multer_filename_parts=multer_filename_parts[1].split('_');
+  if (multer_filename_parts.length!==2)
+     return '';
+
+  return multer_filename_parts[0];
+ } // function metaSide(multer_file_object)
+
+ function metaCreated(multer_file_object)
+ // filename: type-side_timestamp
+ {let multer_filename_parts=filename(multer_file_object.path).split('_');
+
+  if (multer_filename_parts.length!==2)
+     return null;
+
+  let created=new Date(Number(multer_filename_parts[1]));
+  return isNaN(created)?null:created;
+ } // function metaCreated(multer_file_object)
+
+console.error ('POST_IMAGE');//??
+
+/*
+var upload=multer.upload.any();
+upload(req, res,
+       function(err)
+       {res.end('File is uploaded');
+       }
+);
+return;
+*/
+
  function startUpload(folder)
  {
+console.error ('START_UPLOAD');//??
   return new Promise((resolve,
                       reject
                      ) => {
@@ -333,7 +391,8 @@ console.error('FINISH_UPLOAD');//??
                                }
 
                             let lastCreated=null,
-                                errors=[];
+                                errors=[],
+                                files=req.files;
                             // get the last created from all the files uploaded...
                             //
                             // TO DO:
@@ -345,14 +404,14 @@ console.error('FINISH_UPLOAD');//??
                             //
                             // 3) future version: check for glare
                             //
-                            for (var index=0; index<req.files.length; index++)
-                                {let file=req.files[index];
+                            for (var index=0; index<files.length; index++)
+                                {let date_created=metaCreated(files[index]);
 
                                  if (index===0)
-                                    lastCreated=file.created;
+                                    lastCreated=date_created;
 
                                  else if (file.created>lastCreated)
-                                         lastCreated=file.created;
+                                         lastCreated=date_created;
 
                                  // check for duplicate fieldnames
                                  // (duplicate "name" html attribute
@@ -361,29 +420,33 @@ console.error('FINISH_UPLOAD');//??
                                       subindex<files.length;
                                       subindex++
                                      )
-                                     if (files[index].type===files[subindex].type&&
-                                         files[index].side===files[subindex].side
-                                        )
-                                        {
-let message=`Duplicate type+side: ${files[index].type}-${files[index].side}`;
-                                         console.error (message);
-                                         reject (res.status(400).json({data: false,
-                                                                       message: message
-                                                                      }
-                                                                     )
-                                                );
-                                         return; // finishUpload
-                                        }
-if (!(files[index].type in countries[country_code].backSide))
-   errors.push (`type ${files[index].type} not found for country ${country_code}`);
+                                     {let doc_type=metaType(files[index]),
+                                          doc_side=metaSide(files[index]);
 
-else if (files[index].side==='back'&&
-         !countries[country_code].backSide[files[index].type]
+                                      if (doc_type===metaType(files[subindex])&&
+                                          doc_side===metaSide(files[subindex])
+                                         )
+                                         {
+let message=`Duplicate type+side: ${doc_type}-${doc_side}`;
+                                          console.error (message);
+                                          reject (res.status(400).json({data: false,
+                                                                        message: message
+                                                                       }
+                                                                      )
+                                                 );
+                                          return; // finishUpload
+                                         }
+if (!(doc_type in countries.backSide[country_code]))
+   errors.push (`type ${doc_type} not found for country ${country_code}`);
+
+else if (doc_side==='back'&&
+         !countries.backSide[country_code][doc_type]
         )
         errors.push (
-`attempt to submit a backside for type ${files[index].type}, country ${country_code}`
+`attempt to submit a back side for type ${doc_type}, country ${country_code}`
                     );
-                                } // for (var index=0; index<req.files.length; index++)
+                                     } // for (var subindex...
+                                } // for (var index...
 
                             if (errors.length>0)
                                {for (var error=0; error<errors.length; error++)
@@ -400,7 +463,7 @@ else if (files[index].side==='back'&&
 //
 // insert into kyc_bundle
 //
-//	email, date_updated=lastCreated
+//	id, key:email, date_updated=lastCreated
 //
                             for (var index=0;
                                  index<req.files;
@@ -411,10 +474,11 @@ else if (files[index].side==='back'&&
 //
 // insert into kyc_files
 //
-//	kyc_bundle_id=id(kyc_bundle),
-//	type=file.type,
-//	side=file.side,
-//	date_created=file.created,
+//      id,
+//	key:kyc_bundle_id=id(kyc_bundle),
+//	key:type=doc_type,
+//	side=doc_side,
+//	date_created=created,
 //	path=file.path
                                 } // for (var index=0; index<req.files.length; index++)
 
@@ -425,7 +489,8 @@ else if (files[index].side==='back'&&
                                     );
                            } // function finishUpload(err, some)
 
-                           resolve (upload.start(folder,
+console.error ('resolve (multer.upload.any()), ...');//??
+                           resolve (multer.start(onfido_id,
                                                  req, res,
                                                  finishUpload
                                                 )
@@ -460,7 +525,9 @@ if (!err &&
        )
        {country_code=user.address_country.toUpperCase();
         if (country_code in countries.backSide)
+{console.error(`startUpload(${process.env.IMAGE_STAGING_FOLDER+'/'+onfido_id}`);//??
            return startUpload(process.env.IMAGE_STAGING_FOLDER+'/'+onfido_id);
+}
 
         let message=`bad country code: ${country_code}`;
         console.error (message);
@@ -503,5 +570,6 @@ module.exports = {
   getCheck,
   postWebhook,
   getStatus,
-  postImage
+  postImage //??,
+//??  multer
 };
