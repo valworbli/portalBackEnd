@@ -348,7 +348,8 @@ console.error ('POST_IMAGE');//??
 
  function metaType(multer_file_object)
  // filename: type-side_timestamp
- {let filename_parts=filename(multer_file_object.path).split('-');
+ {let name=filename(multer_file_object.path),
+      filename_parts=name.split('-');
 
   if (filename_parts.length!==2)
      return '';
@@ -358,7 +359,8 @@ console.error ('POST_IMAGE');//??
 
  function metaSide(multer_file_object)
  // filename: type-side_timestamp
- {let filename_parts=filename(multer_file_object.path).split('-');
+ {let name=filename(multer_file_object.path),
+      filename_parts=name.split('-');
 
   if (filename_parts.length!==2)
      return '';
@@ -372,11 +374,13 @@ console.error ('POST_IMAGE');//??
 
  function metaCreated(multer_file_object)
  // filename: type-side_timestamp
- {let filename_parts=filename(multer_file_object.path).split('_');
+ {let name=filename(multer_file_object.path),
+      filename_parts=name.split('-');
 
   if (filename_parts.length!==2)
      return null;
 
+  filename_parts=filename_parts[1].split('_');
   let created=new Date(Number(filename_parts[1]));
   return isNaN(created)?null:created;
  } // function metaCreated(multer_file_object)
@@ -452,24 +456,40 @@ console.error('MULTER_FILENAME');//?
       errors=[],
       files=req.files;
 
+console.error ('FINISH_UPLOAD');//??
+console.error ('#files='+files.length);
+
   if (multer_err_message!==undefined)
      {post_fail (400, multer_err_message);
       return; // finishUpload
      }
 
   function database_err(err)
-  {console.error (err);
-   throw new Error('Error accessing database...');
+  {post_fail (400, err, 'Error accessing database...');
   }
 
   function show_posted_to_date ()
   {
-   res.status(200)
-      .json({data: true,
-             message: 'TO DO: list of previously posted documents...',
-             posted: []
-            }
-           );
+   kyc_bundle.findOne({email})
+             .then((result) => {let kyc_bundle_id=result._id;
+                                kyc_files.find({kyc_bundle_id})
+                                         .then((results) => {let posted=[];
+for (var index=0; index<results.length; index++)
+    {let kyc_file=results[index];
+     posted.push (kyc_file.type+'-'+kyc_file.side);
+    }
+res.status(200)
+   .json({data: true,
+          message: 'documents submitted to date...',
+          posted: posted
+         }
+        );
+                                                            } // (results) =>
+                                              ) // then
+                                         .catch (database_err);
+                               } // (result) =>
+                  ) // then
+             .catch (database_err);
   } // function show_posted_to_date ()
 
   function upsert_kyc_files(kyc_bundle_result)
@@ -525,7 +545,14 @@ console.error('MULTER_FILENAME');//?
            date_created=metaCreated(files[index]);
 
        if (index===0) // first one...
+{
+console.error('files[0]:');
+console.error(files[0]);
+
+console.error('first; date_created:');//??
+console.error(date_created);
           date_updated=date_created;
+}
 
        else if (date_created>date_updated)
                date_updated=date_created;
@@ -568,6 +595,7 @@ console.error('MULTER_FILENAME');//?
   // We could have done the model updating earlier,
   // but I would rather see all that validation successfully accomplished
   // before having a side effect on it...
+console.error ('findOneAndUpdate; date_updated='+date_updated);//??
   kyc_bundle.findOneAndUpdate({email: email}, 
                               {$set: {email: email,
                                       date_updated: date_updated
