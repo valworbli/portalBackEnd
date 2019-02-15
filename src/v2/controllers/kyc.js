@@ -546,6 +546,11 @@ res.status(200)
 
   function upsert_kyc_bundle ()
   {
+   if (files.length===0)
+      {show_posted_to_date ();
+       return;
+      }
+
    kyc_bundle.findOneAndUpdate({email: email}, 
                                {$set: {email: email,
                                        date_updated: date_updated
@@ -611,11 +616,6 @@ res.status(200)
   if (errors.length>0)
      {post_fail (400, errors.join('\n'));
       return; // finishUpload
-     }
-
-  if (files.length===0)
-     {show_posted_to_date ();
-      return;
      }
 
   // We could have done the model updating earlier,
