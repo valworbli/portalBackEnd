@@ -320,7 +320,25 @@ function postImages(req, res)
 {var email=null,
      onfido_id=null,
      country_code=null,
-     bad_file_previously_encountered=false;
+     bad_file_previously_encountered=false,
+     USER_PROPS=['name_first',
+                 'name_last',
+                 'address_building_name',
+                 'address_building_number',
+                 'address_country',
+                 'address_flat_number',
+                 'address_one',
+                 'address_state',
+                 'address_town',
+                 'address_two',
+                 'address_zip',
+                 'date_birth',
+                 'gender',
+                 'phone_code',
+                 'phone_mobile'
+                ], // USER_PROPS
+     post_user={};
+
 
 console.error ('POST_IMAGE');//??
 
@@ -521,11 +539,27 @@ res.status(200)
    kyc_files.bulkWrite(updateOnes,
                        {ordered : false} // faster...
                       )
-            .then ((bulk_result) => {show_posted_to_date ();
-                                    } // (result) =>
-                  ) // then
-            .catch (database_err);
+            .then((bulk_result) => {show_posted_to_date ();
+                                   } // (result) =>
+                 ) // then
+            .catch(database_err);
   } // function upsert_kyc_files(kyc_bundle_result)
+
+  function upsert_kyc_bundle ()
+  {
+   kyc_bundle.findOneAndUpdate({email: email}, 
+                               {$set: {email: email,
+                                       date_updated: date_updated
+                                      }
+                               }, // $set
+                               {upsert: true,
+                                new: true,
+                                runValidators: true
+                               }
+                              )
+             .then(upsert_kyc_files)
+             .catch(database_err);
+  } // function upsert_kyc_bundle ()
 
   //
   // TO DO:
@@ -545,14 +579,7 @@ res.status(200)
            date_created=metaCreated(files[index]);
 
        if (index===0) // first one...
-{
-console.error('files[0]:');
-console.error(files[0]);
-
-console.error('first; date_created:');//??
-console.error(date_created);
           date_updated=date_created;
-}
 
        else if (date_created>date_updated)
                date_updated=date_created;
@@ -595,19 +622,22 @@ console.error(date_created);
   // We could have done the model updating earlier,
   // but I would rather see all that validation successfully accomplished
   // before having a side effect on it...
-console.error ('findOneAndUpdate; date_updated='+date_updated);//??
-  kyc_bundle.findOneAndUpdate({email: email}, 
-                              {$set: {email: email,
-                                      date_updated: date_updated
-                                     }
-                              }, // $set
-                              {upsert: true,
-                               new: true,
-                               runValidators: true
-                              }
-                             )
-            .then (upsert_kyc_files)
-            .catch (database_err);
+
+  for (var index=0; index<USER_PROPS.length; index++)
+      {let prop=USER_PROPS[index];
+       if (prop in req.body)
+          post_user[prop]=req.body[prop];
+      }
+
+  if (Object.keys(post_user).length===0) // no user fields posted...
+     upsert_kyc_bundle ();
+
+  else userModel.findOneAndUpdate({email},
+                                  {$set: post_user},
+                                  {upsert: true}
+                                 )
+                .then(upsert_kyc_bundle)
+                .catch(database_err);
  } // function finishUpload(multer_err, some)
 
  function getUserInfo(err, user)
