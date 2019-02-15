@@ -325,7 +325,6 @@ function postImages(req, res)
                  'name_last',
                  'address_building_name',
                  'address_building_number',
-                 'address_country',
                  'address_flat_number',
                  'address_one',
                  'address_state',
