@@ -470,7 +470,7 @@ console.error('MULTER_FILENAME');//?
              posted: []
             }
            );
-  }
+  } // function show_posted_to_date ()
 
   function upsert_kyc_files(kyc_bundle_result)
   {let kyc_bundle_id=kyc_bundle_result._id,
@@ -502,13 +502,6 @@ console.error('MULTER_FILENAME');//?
                        {ordered : false} // faster...
                       )
             .then ((bulk_result) => {show_posted_to_date ();
-xxx
-res.status(200) // SUCCESS!
-                                        .json(
-{data: true,
- message: 'TBD' // TO DO...
-}
-                                             );
                                     } // (result) =>
                   ) // then
             .catch (database_err);
