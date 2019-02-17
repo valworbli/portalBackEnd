@@ -511,7 +511,7 @@ console.error ('POST_IMAGE');//??
                      NAME_ATTRIBUTE_DELIMITER.TIMESTAMP+
                      // use an epoch offset filename suffix
                      // to insure that files are not overwritten...
-                     created.getTime()+
+                     created.getTime()+ // timestamp...
                      '.'+extension
                     );
  } // function multerFilename(req, file, multer_next)
@@ -525,7 +525,7 @@ console.error ('POST_IMAGE');//??
       kyc_bundle_id=null;
 
 console.error ('FINISH_UPLOAD');//??
-console.error ('#files='+files.length);
+console.error ('#files='+files.length);//??
 
   if (multerErr!==undefined)
      {postFail (400,
@@ -713,7 +713,7 @@ console.error ('#files='+files.length);
 
    else if (isEqual)
            {postFail (400,
-`duplicate files: ${metaTypeSide(files[postedFilesIndex])}, ${metaTypeSide(files[postedFilesSubindex])}`
+`duplicate images: ${metaTypeSide(files[postedFilesIndex])}, ${metaTypeSide(files[postedFilesSubindex])}`
                      );
             return; // comparePostedFiles
            }
@@ -737,13 +737,9 @@ console.error ('#files='+files.length);
   //
   // TO DO:
   //
-  // 1) check for duplicate images among files uploaded
+  // 1) check for excess brightness
   //
-  // 2) check for duplicate images among any files PREVIOUSLY uploaded
-  //
-  // 3) check for excess brightness
-  //
-  // 4) future version: check for glare
+  // 2) future version: check for glare
   //
   // get the last created from all the files uploaded...
   for (var index=0; index<files.length; index++)
