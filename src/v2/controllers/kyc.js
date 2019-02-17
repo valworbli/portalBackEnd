@@ -12,6 +12,7 @@ const countries=require('../models/countries');
 const id=require('../models/id');
 const kyc_bundle=require('../models/kyc_bundle');
 const kyc_files=require('../models/kyc_files');
+const filecompare=require('filecompare');
 
 const LEADING_DOT=/^\./;
 
@@ -317,31 +318,39 @@ function getStatus(req, res) {
  * @property {string} req.headers.authorization - The bearer token.
  */
 function postImages(req, res)
-{var email=null,
+{const USER_PROPS=['name_first',
+                   'name_last',
+                   'address_building_name',
+                   'address_building_number',
+                   'address_flat_number',
+                   'address_one',
+                   'address_state',
+                   'address_town',
+                   'address_two',
+                   'address_zip',
+                   'date_birth',
+                   'gender',
+                   'phone_code',
+                   'phone_mobile'
+                 ], // USER_PROPS
+     NAME_ATTRIBUTE_DELIMITER={// used as an (optional) suffix
+                               // to document id types...
+                               ID_SIDE: '-',
+
+                               // used for a timestamp suffix to filenames...
+                               TIMESTAMP: ':'
+                              },
+     MALFORMED=null;
+
+ var email=null,
      onfido_id=null,
      country_code=null,
-     bad_file_previously_encountered=false,
-     USER_PROPS=['name_first',
-                 'name_last',
-                 'address_building_name',
-                 'address_building_number',
-                 'address_flat_number',
-                 'address_one',
-                 'address_state',
-                 'address_town',
-                 'address_two',
-                 'address_zip',
-                 'date_birth',
-                 'gender',
-                 'phone_code',
-                 'phone_mobile'
-                ], // USER_PROPS
-     post_user={};
-
+     badFilePreviouslyEncountered=false,
+     postUser={};
 
 console.error ('POST_IMAGE');//??
 
- function post_fail (status, message, user_message)
+ function postFail (status, message, user_message)
  // if user_message is omitted, message is used...
  {
   console.error (message);
@@ -352,60 +361,99 @@ console.error ('POST_IMAGE');//??
                                   )
                           }
                          );
- } // function post_fail (status, message, user_message)
+ } // function postFail (status, message, user_message)
 
  function filename(filePath)
- {let basename=path.basename(filePath);
-  let lastDot=basename.lastIndexOf('.');
+ {let basename=path.basename(filePath),
+      lastDot=basename.lastIndexOf('.');
+
   if (lastDot>=0)
      return basename.substring(0, lastDot);
 
   return basename;
  } // function filename(filePath)
 
- function metaType(multer_file_object)
- // filename: type-side_timestamp
- {let name=filename(multer_file_object.path),
-      filename_parts=name.split('-');
+ function nameType(attribute)
+ // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+ {let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
 
-  if (filename_parts.length!==2)
-     return '';
+  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+     return MALFORMED; // nameType
 
-  return filename_parts[0];
- } // function metaType(multer_file_object)
+  nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE); // before the (possible) colon...
 
- function metaSide(multer_file_object)
- // filename: type-side_timestamp
- {let name=filename(multer_file_object.path),
-      filename_parts=name.split('-');
+  if (nameParts.length>2) // side suffix can be elective (length=1...)
+     return MALFORMED; // nameType
 
-  if (filename_parts.length!==2)
-     return '';
+  return nameParts[0]; // before the id type delimiter...
+ } // function nameType(attribute)
 
-  filename_parts=filename_parts[1].split('_');
-  if (filename_parts.length!==2)
-     return '';
+ function metaType(pathObject)
+ {return nameType(filename(pathObject.path));
+ }
 
-  return filename_parts[0];
- } // function metaSide(multer_file_object)
+ function nameSide(attribute)
+ // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+ {let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
 
- function metaCreated(multer_file_object)
- // filename: type-side_timestamp
- {let name=filename(multer_file_object.path),
-      filename_parts=name.split('-');
+  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+     return MALFORMED; // nameSide
 
-  if (filename_parts.length!==2)
-     return null;
+  nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE);
 
-  filename_parts=filename_parts[1].split('_');
-  let created=new Date(Number(filename_parts[1]));
-  return isNaN(created)?null:created;
- } // function metaCreated(multer_file_object)
+  if (nameParts.length>2) // side suffix can be elective (length=1...)
+     return MALFORMED; // nameSide
+
+  if (nameParts.length===1) // no type delimiter, i.e., no side suffix...
+     return 'front'; // nameSide
+
+  return nameParts[1]; // after the type delimiter...
+ } // function nameSide(attribute)
+
+ function metaSide(pathObject)
+ // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+ {return nameSide(filename(pathObject.path));
+ }
+
+ function nameTypeSide(attribute)
+ // Note that the side suffix might not be furnished...
+ {let type=nameType(attribute),
+      side=nameSide(attribute);
+
+  if (type===MALFORMED||side===MALFORMED)
+     return MALFORMED;
+
+  return type+NAME_ATTRIBUTE_DELIMITER.ID_SIDE+side;
+ } // function nameTypeSide(attribute)
+
+ // In this function we can always count on the side suffix being furnished...
+ function metaTypeSide(pathObject)
+ // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+ {let name=filename(pathObject.path),
+      nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+     return MALFORMED; // metaType
+
+  return nameParts[0]; // before the (possible) timestamp delimiter...
+ } // function metaTypeSide(pathObject)
+
+ function metaCreated(pathObject)
+ // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+ {let name=filename(pathObject.path),
+      nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+  if (nameParts.length!==2)
+     return MALFORMED; // metaCreated
+
+  let created=new Date(Number(nameParts[1])); // after the timestamp delimiter...
+  return isNaN(created)?MALFORMED:created;
+ } // function metaCreated(pathObject)
 
  function fileFilter (req, file, multer_next)
  {var index, type, side;
 
-  if (bad_file_previously_encountered)
+  if (badFilePreviouslyEncountered)
      return multer_next('bad file previously encountered...');
 
   let extension=path.extname(file.originalname
@@ -421,98 +469,124 @@ console.error ('POST_IMAGE');//??
 
   if (index>=images.length)
      {let message=`Image extension not allowed: ${extension}`;
-      bad_file_previously_encountered=true;
+      badFilePreviouslyEncountered=true;
       return multer_next(message);
      }
 
   let type_side=file.fieldname.toLowerCase(),
-      dash=type_side.indexOf('-');
+      sideDelimiter=type_side.indexOf(NAME_ATTRIBUTE_DELIMITER.ID_SIDE);
 
-  if (dash>=0)
-     {type=type_side.substring(0, dash);
-      side=type_side.substring(dash+1);
+  if (sideDelimiter>=0)
+     {type=type_side.substring(0, sideDelimiter);
+      side=type_side.substring(sideDelimiter+1);
      }
 
   else {type=type_side;
         side='front';
-       } // dash<0
+       } // sideDelimiter<0
 
   if (!id.TYPES.includes(type))
      {let message=`bad image type: ${type}`;
-      bad_file_previously_encountered=true;
+      badFilePreviouslyEncountered=true;
       return multer_next (message);
      }
 
   if (!id.SIDES.includes(side))
      {let message=`bad side specification: ${side}`;
-      bad_file_previously_encountered=true;
+      badFilePreviouslyEncountered=true;
       return multer_next(message);
      }
 
   return multer_next(null, true);
  } // function fileFilter (req, file, multer_next)
 
- function multer_filename(req, file, multer_next)
+ function multerFilename(req, file, multer_next)
  {let extension=path.extname(file.originalname
                             ).replace(LEADING_DOT, ''
                                      ).toLowerCase(),
       created=new Date();
 
-console.error('MULTER_FILENAME');//?
   return multer_next(null,
-                     file.fieldname.toLowerCase()+'_'+
+                     nameTypeSide(file.fieldname)+
+                     NAME_ATTRIBUTE_DELIMITER.TIMESTAMP+
                      // use an epoch offset filename suffix
                      // to insure that files are not overwritten...
                      created.getTime()+
                      '.'+extension
                     );
- } // function multer_filename(req, file, multer_next)
+ } // function multerFilename(req, file, multer_next)
 
- function finishUpload(multer_err_message)
- {let date_updated=null,
+ function finishUpload(multerErr)
+ {var postedFilesIndex,
+      postedFilesSubindex; // used for recursive scope...
+  let date_updated=null,
       errors=[],
-      files=req.files;
+      files=req.files,
+      kyc_bundle_id=null;
 
 console.error ('FINISH_UPLOAD');//??
 console.error ('#files='+files.length);
 
-  if (multer_err_message!==undefined)
-     {post_fail (400, multer_err_message);
+  if (multerErr!==undefined)
+     {postFail (400,
+                ((typeof multerErr==='string')
+                 ?multerErr
+                 :multerErr.message
+                )
+               );
       return; // finishUpload
      }
 
-  function database_err(err)
-  {post_fail (400, err, 'Error accessing database...');
+  function databaseErr (err)
+  {postFail (400, err, 'Error accessing database...');
   }
 
-  function show_posted_to_date ()
+  function showPostedToDate ()
   {
-   kyc_bundle.findOne({email})
-             .then((result) => {let kyc_bundle_id=result._id;
-                                kyc_files.find({kyc_bundle_id})
-                                         .then((results) => {let posted=[];
-for (var index=0; index<results.length; index++)
-    {let kyc_file=results[index];
-     posted.push (kyc_file.type+'-'+kyc_file.side);
-    }
-res.status(200)
-   .json({data: true,
-          message: 'documents submitted to date...',
-          posted: posted
-         }
-        );
-                                                            } // (results) =>
-                                              ) // then
-                                         .catch (database_err);
-                               } // (result) =>
-                  ) // then
-             .catch (database_err);
-  } // function show_posted_to_date ()
+   function getPostedResults (results)
+   {let posted=[];
+
+    for (var index=0; index<results.length; index++)
+        {let kyc_file=results[index];
+         posted.push (kyc_file.type+
+                      NAME_ATTRIBUTE_DELIMITER.ID_SIDE+
+                      kyc_file.side
+                     );
+        } // for (var index=0; index<results.length; index++)
+
+    res.status(200)
+       .json({data: true,
+              message: 'documents submitted to date...',
+              posted: posted
+             }
+            );
+   } // getPostedResults
+
+   function getPostedFiles ()
+   {kyc_files.find({kyc_bundle_id})
+             .then(getPostedResults)
+             .catch (databaseErr);
+   }
+
+   function getPostedBundleId (result)
+   {kyc_bundle_id=result._id;
+    getPostedFiles ();
+   }
+
+   if (kyc_bundle_id===null)
+      kyc_bundle.findOne({email})
+                .then(getPostedBundleId)
+                .catch (databaseErr);
+
+   // we already have kyc_bundle_id from an earlier step
+   // (an optimization; no need to query the database twice...)
+   else getPostedFiles ();
+  } // function showPostedToDate
 
   function upsert_kyc_files(kyc_bundle_result)
-  {let kyc_bundle_id=kyc_bundle_result._id,
-       updateOnes=[];
+  {let updateOnes=[];
 
+   kyc_bundle_id=kyc_bundle_result._id;
    for (var index=0; index<files.length; index++)
        {let file=files[index],
             doc_type=metaType(files[index]),
@@ -538,19 +612,14 @@ res.status(200)
    kyc_files.bulkWrite(updateOnes,
                        {ordered : false} // faster...
                       )
-            .then((bulk_result) => {show_posted_to_date ();
-                                   } // (result) =>
-                 ) // then
-            .catch(database_err);
+            .then((bulk_result) => {showPostedToDate ();
+                                   }
+                 )
+            .catch(databaseErr);
   } // function upsert_kyc_files(kyc_bundle_result)
 
   function upsert_kyc_bundle ()
   {
-   if (files.length===0)
-      {show_posted_to_date ();
-       return;
-      }
-
    kyc_bundle.findOneAndUpdate({email: email}, 
                                {$set: {email: email,
                                        date_updated: date_updated
@@ -562,8 +631,108 @@ res.status(200)
                                }
                               )
              .then(upsert_kyc_files)
-             .catch(database_err);
-  } // function upsert_kyc_bundle ()
+             .catch(databaseErr);
+  } // function upsert_kyc_bundle
+
+  function checkPriorFiles ()
+  {
+   function checkPriorFilesResults (kyc_files_results)
+   {var priorFilesIndex=(-1); // it gets incremented to zero the first time in...
+
+    function comparePostedFilesWithPrior (isEqual) // recursive...
+    {
+     if (isEqual)
+        {postFail (400,
+`duplicate image; already submitted as: ${metaTypeSide(kyc_files_results[priorFilesIndex])}`
+                  );
+         return; // comparePostedFilesWithPrior
+        } // if (isEqual)
+
+     priorFilesIndex++;
+     if (priorFilesIndex>=kyc_files_results.length)
+        {postedFilesIndex++; priorFilesIndex=0;
+        }
+
+     if (postedFilesIndex>=files.length) // done...
+        {upsert_kyc_bundle ();
+         return; // comparePostedFilesWithPrior
+        }
+
+     if (metaTypeSide(files[postedFilesIndex])===
+         metaTypeSide(kyc_files_results[priorFilesIndex])
+        )
+        // skip it, it's OK for an identical image to be resubmitted
+        // (by saying it's not equal, we get it to proceed to the next...)
+        comparePostedFilesWithPrior (false); // recurse...
+
+     else filecompare (files[postedFilesIndex].path,
+                       kyc_files_results[priorFilesIndex].path,
+                       comparePostedFilesWithPrior // recurse...
+                      );
+    } // function comparePostedFilesWithPrior (isEqual)
+
+    if (kyc_files_results.length===0)
+       {upsert_kyc_bundle (); // go on to adding the kyc_files...
+        return; // checkPriorFilesResults
+       }
+
+    postedFilesIndex=0; // reset for comparePostedFilesWithPrior...
+    comparePostedFilesWithPrior (false); // kick off the recursive check...
+   } // function checkPriorFilesResults (kyc_files_results)
+
+   function get_kyc_bundle_id (result)
+   {
+    if (result===null) // no prior entries; skip checking for identicals...
+       {upsert_kyc_bundle ();
+        return;
+       }
+
+    kyc_bundle_id=result._id;
+    kyc_files.find({kyc_bundle_id: kyc_bundle_id})
+             .then(checkPriorFilesResults)
+             .catch(databaseErr);
+   } //  function get_kyc_bundle_id (result)
+
+   kyc_bundle.findOne({email})
+             .then(get_kyc_bundle_id)
+             .catch (databaseErr);
+  } // function checkPriorFiles
+
+  function comparePostedFiles (isEqual) // recursive...
+  // look for identical images among what was just posted...
+  {
+   if (isEqual===undefined) // first time...
+      if (files.length===0)
+         {showPostedToDate (); // done...
+          return; // comparePostedFiles
+         }
+
+      else {postedFilesIndex=0;
+            postedFilesSubindex=postedFilesIndex+1;
+           } // files.length!==0
+
+   else if (isEqual)
+           {postFail (400,
+`duplicate files: ${metaTypeSide(files[postedFilesIndex])}, ${metaTypeSide(files[postedFilesSubindex])}`
+                     );
+            return; // comparePostedFiles
+           }
+
+   if (postedFilesSubindex>=files.length)
+      {postedFilesIndex++;
+       if (postedFilesIndex>=files.length-1) // done...
+          {checkPriorFiles ();
+           return; // comparePostedFiles
+          }
+
+       postedFilesSubindex=postedFilesIndex+1;
+      } // if (postedFilesSubindex>=files.length)
+
+   filecompare (files[postedFilesIndex].path,
+                files[postedFilesSubindex].path,
+                comparePostedFiles // recurse...
+               );
+  } // function comparePostedFiles (isEqual)
 
   //
   // TO DO:
@@ -594,9 +763,9 @@ res.status(200)
            if (doc_type===metaType(files[subindex])&&
                doc_side===metaSide(files[subindex])
               )
-              {post_fail (400,
-                          `Duplicate type+side: ${doc_type}-${doc_side}`
-                         );
+              {postFail (400,
+                         `Duplicate type+side: ${doc_type}-${doc_side}`
+                        );
                return; // finishUpload
               }
 
@@ -614,7 +783,7 @@ res.status(200)
       } // for (var index=0; index<files.length; index++)
 
   if (errors.length>0)
-     {post_fail (400, errors.join('\n'));
+     {postFail (400, errors.join('\n'));
       return; // finishUpload
      }
 
@@ -625,18 +794,20 @@ res.status(200)
   for (var index=0; index<USER_PROPS.length; index++)
       {let prop=USER_PROPS[index];
        if (prop in req.body)
-          post_user[prop]=req.body[prop];
+          postUser[prop]=req.body[prop];
       }
 
-  if (Object.keys(post_user).length===0) // no user fields posted...
-     upsert_kyc_bundle ();
+  if (Object.keys(postUser).length===0) // no user fields posted...
+     comparePostedFiles ();
 
   else userModel.findOneAndUpdate({email},
-                                  {$set: post_user},
+                                  {$set: postUser},
                                   {upsert: true}
                                  )
-                .then(upsert_kyc_bundle)
-                .catch(database_err);
+                .then((result) => {comparePostedFiles ();
+                                  }
+                     )
+                .catch(databaseErr);
  } // function finishUpload(multer_err, some)
 
  function getUserInfo(err, user)
@@ -659,21 +830,21 @@ res.status(200)
 console.error(`multer.start('${onfido_id}')`);//??
                    multer.start (onfido_id,
                                  fileFilter,
-                                 multer_filename,
+                                 multerFilename,
                                  req, res,
                                  finishUpload
                                 );
                    return; // getUserInfo
                   } // if (country_code in countries.backSide)
 
-               post_fail (400, `bad country code: ${country_code}`);
+               postFail (400, `bad country code: ${country_code}`);
                return; // getUserInfo
               } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
           } // if (err!==null)
-  post_fail (400,
-             `user ${email} not found`,
-             'User not found...'
-            );
+  postFail (400,
+            `user ${email} not found`,
+            'User not found...'
+           );
  } // function getUserInfo(err, user)
 
  function getEmail(jwt_data)
@@ -692,7 +863,7 @@ console.error(`multer.start('${onfido_id}')`);//??
           return; // getEmail
          } // if ((typeof email)==='string'&&...
      } // if (jwt_data!==null&&...
-  post_fail (400, 'Bad request...');
+  postFail (400, 'Bad request...');
  } // function getEmail(jwt_data)
 
  try {const bearer=req.headers.authorization.split(' ');
@@ -700,12 +871,12 @@ console.error(`multer.start('${onfido_id}')`);//??
 
       jwt.jwtDecode(token)
          .then(getEmail)
-         .catch((err) => {post_fail (400, err.message);
+         .catch((err) => {postFail (400, err.message);
                          }
                );
      }
  catch (err)
-       {post_fail (400, 'kyc post image');
+       {postFail (400, 'kyc post image');
        }
 } // function postImages(req, res)
 
