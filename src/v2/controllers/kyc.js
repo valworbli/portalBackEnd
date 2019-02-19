@@ -7,6 +7,7 @@ const logger = require('../components/logger')(module);
 const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
 const path=require('path');
+const fs=require('fs');
 const multer=require('../components/multer');
 const countries=require('../models/countries');
 const id=require('../models/id');
@@ -311,13 +312,118 @@ function getStatus(req, res) {
   }
 }
 
-/**
- * Post Images
- * @param {string} req - The incoming request.
- * @param {string} res - The outcoming response.
- * @property {string} req.headers.authorization - The bearer token.
- */
-function postImages(req, res)
+const FILE_SCHEME=/^file:/,
+      S3_SCHEME=/^s3:/;
+
+const NAME_ATTRIBUTE_DELIMITER={// used as an (optional) suffix
+                               // to document id types...
+                               ID_SIDE: '-',
+
+                               // used for a timestamp suffix to filenames...
+                               TIMESTAMP: ':'
+                              },
+     MALFORMED=null;
+
+function filename(filePath)
+{let basename=path.basename(filePath.replace(FILE_SCHEME, '')),
+     lastDot=basename.lastIndexOf('.');
+
+ if (lastDot>=0)
+    return basename.substring(0, lastDot);
+
+ return basename;
+} // function filename(filePath)
+
+function nameType(attribute)
+// filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+{
+ if (attribute===null)
+    return MALFORMED;
+
+ let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+ if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+    return MALFORMED; // nameType
+
+ nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE);
+
+ if (nameParts.length>2) // side suffix can be elective (length=1...)
+    return MALFORMED; // nameType
+
+ return nameParts[0]; // before the id type delimiter...
+} // function nameType(attribute)
+
+function metaType(pathObject)
+{return nameType(filename(pathObject.path));
+}
+
+function nameSide(attribute)
+// filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+{
+ if (attribute===null)
+    return MALFORMED;
+
+ let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+ if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+    return MALFORMED; // nameSide
+
+ nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE);
+
+ if (nameParts.length>2) // side suffix can be elective (length=1...)
+    return MALFORMED; // nameSide
+
+ if (nameParts.length===1) // no type delimiter, i.e., no side suffix...
+    return 'front'; // nameSide
+
+ return nameParts[1]; // after the type delimiter...
+} // function nameSide(attribute)
+
+function metaSide(pathObject)
+// filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+{return nameSide(filename(pathObject.path));
+}
+
+function nameTypeSide(attribute)
+// Note that the side suffix might not be furnished...
+{let type=nameType(attribute),
+     side=nameSide(attribute);
+
+ if (type===MALFORMED||side===MALFORMED)
+    return MALFORMED;
+
+ return type+NAME_ATTRIBUTE_DELIMITER.ID_SIDE+side;
+} // function nameTypeSide(attribute)
+
+// In this function we will always count on the side suffix being furnished...
+function metaTypeSide(pathObject)
+// filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+{let name=filename(pathObject.path),
+     nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+ if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
+    return MALFORMED; // metaType
+
+ return nameParts[0]; // before the (possible) timestamp delimiter...
+} // function metaTypeSide(pathObject)
+
+function metaCreated(pathObject)
+// filename: type{type_delimiter}side{timestamp_delimiter}timestamp
+{let name=filename(pathObject.path),
+     nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
+
+ if (nameParts.length!==2)
+    return MALFORMED; // metaCreated
+
+ let created=new Date(Number(nameParts[1])); // after the timestamp delimiter...
+ return isNaN(created)?MALFORMED:created;
+} // function metaCreated(pathObject)
+
+// * Post Dossier
+// * @param {string} req - The incoming request.
+// * @param {string} res - The outcoming response.
+// * @property {string} req.headers.authorization - The bearer token.
+function postDossier(req, res)
 {const USER_PROPS=['name_first',
                    'name_last',
                    'address_building_name',
@@ -332,15 +438,7 @@ function postImages(req, res)
                    'gender',
                    'phone_code',
                    'phone_mobile'
-                 ], // USER_PROPS
-     NAME_ATTRIBUTE_DELIMITER={// used as an (optional) suffix
-                               // to document id types...
-                               ID_SIDE: '-',
-
-                               // used for a timestamp suffix to filenames...
-                               TIMESTAMP: ':'
-                              },
-     MALFORMED=null;
+                  ]; // USER_PROPS
 
  var email=null,
      onfido_id=null,
@@ -350,111 +448,28 @@ function postImages(req, res)
 
 console.error ('POST_IMAGE');//??
 
- function postFail (status, message, user_message)
- // if user_message is omitted, message is used...
+ function postFail (status, message, userMessage)
+ // if userMessage is omitted, message is used...
  {
   console.error (message);
   res.status(status).json({data: false,
-                           error: ((user_message===undefined)
+                           error: ((userMessage===undefined)
                                    ?message
-                                   :user_message
+                                   :userMessage
                                   )
                           }
                          );
- } // function postFail (status, message, user_message)
+ } // function postFail (status, message, userMessage)
 
- function filename(filePath)
- {let basename=path.basename(filePath),
-      lastDot=basename.lastIndexOf('.');
-
-  if (lastDot>=0)
-     return basename.substring(0, lastDot);
-
-  return basename;
- } // function filename(filePath)
-
- function nameType(attribute)
- // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
- {let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
-
-  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
-     return MALFORMED; // nameType
-
-  nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE); // before the (possible) colon...
-
-  if (nameParts.length>2) // side suffix can be elective (length=1...)
-     return MALFORMED; // nameType
-
-  return nameParts[0]; // before the id type delimiter...
- } // function nameType(attribute)
-
- function metaType(pathObject)
- {return nameType(filename(pathObject.path));
+ function databaseErr (err)
+ {postFail (400, err, 'Error accessing database...');
  }
 
- function nameSide(attribute)
- // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
- {let nameParts=attribute.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
-
-  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
-     return MALFORMED; // nameSide
-
-  nameParts=nameParts[0].split(NAME_ATTRIBUTE_DELIMITER.ID_SIDE);
-
-  if (nameParts.length>2) // side suffix can be elective (length=1...)
-     return MALFORMED; // nameSide
-
-  if (nameParts.length===1) // no type delimiter, i.e., no side suffix...
-     return 'front'; // nameSide
-
-  return nameParts[1]; // after the type delimiter...
- } // function nameSide(attribute)
-
- function metaSide(pathObject)
- // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
- {return nameSide(filename(pathObject.path));
- }
-
- function nameTypeSide(attribute)
- // Note that the side suffix might not be furnished...
- {let type=nameType(attribute),
-      side=nameSide(attribute);
-
-  if (type===MALFORMED||side===MALFORMED)
-     return MALFORMED;
-
-  return type+NAME_ATTRIBUTE_DELIMITER.ID_SIDE+side;
- } // function nameTypeSide(attribute)
-
- // In this function we can always count on the side suffix being furnished...
- function metaTypeSide(pathObject)
- // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
- {let name=filename(pathObject.path),
-      nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
-
-  if (nameParts.length>2) // timestamp suffix can be elective (length=1...)
-     return MALFORMED; // metaType
-
-  return nameParts[0]; // before the (possible) timestamp delimiter...
- } // function metaTypeSide(pathObject)
-
- function metaCreated(pathObject)
- // filename: type{type_delimiter}side{timestamp_delimiter}timestamp
- {let name=filename(pathObject.path),
-      nameParts=name.split(NAME_ATTRIBUTE_DELIMITER.TIMESTAMP);
-
-  if (nameParts.length!==2)
-     return MALFORMED; // metaCreated
-
-  let created=new Date(Number(nameParts[1])); // after the timestamp delimiter...
-  return isNaN(created)?MALFORMED:created;
- } // function metaCreated(pathObject)
-
- function fileFilter (req, file, multer_next)
+ function fileFilter (req, file, multerNext)
  {var index, type, side;
 
   if (badFilePreviouslyEncountered)
-     return multer_next('bad file previously encountered...');
+     return multerNext('bad file previously encountered...');
 
   let extension=path.extname(file.originalname
                             ).replace(LEADING_DOT, ''
@@ -470,7 +485,7 @@ console.error ('POST_IMAGE');//??
   if (index>=images.length)
      {let message=`Image extension not allowed: ${extension}`;
       badFilePreviouslyEncountered=true;
-      return multer_next(message);
+      return multerNext(message);
      }
 
   let type_side=file.fieldname.toLowerCase(),
@@ -488,25 +503,25 @@ console.error ('POST_IMAGE');//??
   if (!id.TYPES.includes(type))
      {let message=`bad image type: ${type}`;
       badFilePreviouslyEncountered=true;
-      return multer_next (message);
+      return multerNext(message);
      }
 
   if (!id.SIDES.includes(side))
      {let message=`bad side specification: ${side}`;
       badFilePreviouslyEncountered=true;
-      return multer_next(message);
+      return multerNext(message);
      }
 
-  return multer_next(null, true);
- } // function fileFilter (req, file, multer_next)
+  return multerNext(null, true);
+ } // function fileFilter (req, file, multerNext)
 
- function multerFilename(req, file, multer_next)
+ function multerFilename(req, file, multerNext)
  {let extension=path.extname(file.originalname
                             ).replace(LEADING_DOT, ''
                                      ).toLowerCase(),
       created=new Date();
 
-  return multer_next(null,
+  return multerNext(null,
                      nameTypeSide(file.fieldname)+
                      NAME_ATTRIBUTE_DELIMITER.TIMESTAMP+
                      // use an epoch offset filename suffix
@@ -514,7 +529,7 @@ console.error ('POST_IMAGE');//??
                      created.getTime()+ // timestamp...
                      '.'+extension
                     );
- } // function multerFilename(req, file, multer_next)
+ } // function multerFilename(req, file, multerNext)
 
  function finishUpload(multerErr)
  {var postedFilesIndex,
@@ -536,10 +551,6 @@ console.error ('#files='+files.length);//??
                );
       return; // finishUpload
      }
-
-  function databaseErr (err)
-  {postFail (400, err, 'Error accessing database...');
-  }
 
   function showPostedToDate ()
   {
@@ -589,19 +600,19 @@ console.error ('#files='+files.length);//??
    kyc_bundle_id=kyc_bundle_result._id;
    for (var index=0; index<files.length; index++)
        {let file=files[index],
-            doc_type=metaType(files[index]),
-            doc_side=metaSide(files[index]),
+            idType=metaType(files[index]),
+            idSide=metaSide(files[index]),
             date_created=metaCreated(files[index]);
 
         updateOnes.push ({updateOne: {filter: {kyc_bundle_id: kyc_bundle_id,
-                                               type: doc_type,
-                                               side: doc_side
+                                               type: idType,
+                                               side: idSide
                                               }, // filter
                                       update: {$set: {kyc_bundle_id: kyc_bundle_id,
-                                                      type: doc_type,
-                                                      side: doc_side,
+                                                      type: idType,
+                                                      side: idSide,
                                                       date_created: date_created,
-                                                      path: file.path
+                                                      path: 'file:'+file.path
                                                      } // $set
                                               }, // update
                                       upsert: true
@@ -688,7 +699,11 @@ console.error ('#files='+files.length);//??
        }
 
     kyc_bundle_id=result._id;
-    kyc_files.find({kyc_bundle_id: kyc_bundle_id})
+    kyc_files.find({$and: [{kyc_bundle_id: kyc_bundle_id},
+                           {path: {$not: S3_SCHEME}}
+                          ]
+                   }
+                  )
              .then(checkPriorFilesResults)
              .catch(databaseErr);
    } //  function get_kyc_bundle_id (result)
@@ -743,8 +758,8 @@ console.error ('#files='+files.length);//??
   //
   // get the last created from all the files uploaded...
   for (var index=0; index<files.length; index++)
-      {let doc_type=metaType(files[index]),
-           doc_side=metaSide(files[index]),
+      {let idType=metaType(files[index]),
+           idSide=metaSide(files[index]),
            date_created=metaCreated(files[index]);
 
        if (index===0) // first one...
@@ -756,25 +771,25 @@ console.error ('#files='+files.length);//??
        // check for duplicate fieldnames
        // (duplicate "name" html attribute on the input tags...)
        for (var subindex=index+1; subindex<files.length; subindex++)
-           if (doc_type===metaType(files[subindex])&&
-               doc_side===metaSide(files[subindex])
+           if (idType===metaType(files[subindex])&&
+               idSide===metaSide(files[subindex])
               )
               {postFail (400,
-                         `Duplicate type+side: ${doc_type}-${doc_side}`
+                         `Duplicate type+side: ${idType}-${idSide}`
                         );
                return; // finishUpload
               }
 
-       if (!(doc_type in countries.backSide[country_code]))
+       if (!(idType in countries.backSide[country_code].accepted))
           errors.push (
-`type ${doc_type} not found for country ${country_code}`
+`type ${idType} not found for country ${country_code}`
                       );
 
-       else if (doc_side==='back'&&
-                !countries.backSide[country_code][doc_type]
+       else if (idSide==='back'&&
+                !countries.backSide[country_code].accepted[idType]
                )
                errors.push (
-`attempt to submit a back side for type ${doc_type}, country ${country_code}`
+`attempt to submit a back side for type ${idType}, country ${country_code}`
                            );
       } // for (var index=0; index<files.length; index++)
 
@@ -804,7 +819,7 @@ console.error ('#files='+files.length);//??
                                   }
                      )
                 .catch(databaseErr);
- } // function finishUpload(multer_err, some)
+ } // function finishUpload(multerErr, some)
 
  function getUserInfo(err, user)
  {
@@ -843,13 +858,13 @@ console.error(`multer.start('${onfido_id}')`);//??
            );
  } // function getUserInfo(err, user)
 
- function getEmail(jwt_data)
+ function getEmail(jwtData)
  {
-  if (jwt_data!==null&&
-      (typeof jwt_data)==='object'&&
-      'email' in jwt_data
+  if (jwtData!==null&&
+      (typeof jwtData)==='object'&&
+      'email' in jwtData
      )
-     {email=jwt_data.email;
+     {email=jwtData.email;
       if ((typeof email)==='string'&&
           email.length>0
          )
@@ -858,9 +873,9 @@ console.error(`multer.start('${onfido_id}')`);//??
                            ); // userModel.findOne
           return; // getEmail
          } // if ((typeof email)==='string'&&...
-     } // if (jwt_data!==null&&...
+     } // if (jwtData!==null&&...
   postFail (400, 'Bad request...');
- } // function getEmail(jwt_data)
+ } // function getEmail(jwtData)
 
  try {const bearer=req.headers.authorization.split(' ');
       const token=bearer[1];
@@ -872,14 +887,269 @@ console.error(`multer.start('${onfido_id}')`);//??
                );
      }
  catch (err)
-       {postFail (400, 'kyc post image');
+       {postFail (400, 'kyc post dossier');
        }
-} // function postImages(req, res)
+} // function postDossier(req, res)
+
+const NO_IMG=new Buffer('\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00'+
+                        '\x80\x00\x00\xff\xff\xff\x00\x00\x00\x2c'+
+                        '\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02'+
+                        '\x02\x44\x01\x00\x3b'
+                       ); // NO_IMG
+
+function getImage(req, res)
+{var email=null,
+     onfido_id=null,
+     country_code=null,
+     id=null,
+     type=null,
+     side=null;
+
+ function postFail (status, message, userMessage)
+ // if userMessage is omitted, message is used...
+ {
+  console.error (message);
+  res.status(status).json({data: false,
+                           error: ((userMessage===undefined)
+                                   ?message
+                                   :userMessage
+                                  )
+                          }
+                         );
+ } // function postFail (status, message, userMessage)
+
+ function databaseErr (err)
+ {postFail (400, err, 'Error accessing database...');
+ }
+
+ function emptyGIF ()
+ {res.writeHead (200, {'Content-Type': 'image/gif'});
+  res.end (NO_IMG, 'binary'); // inline...
+ }
+
+ function readFile (imgPath)
+ {
+  function getSrc (err, src)
+  {let extension=path.extname(imgPath
+                             ).replace(LEADING_DOT, '');
+   if (err===null)
+      {res.writeHead (200, {'Content-Type': 'image/'+extension});
+       res.end (src);
+       return; // getSrc
+      } // if (err===null)
+
+   if (err.code==='ENOENT')
+      if (imgPath===process.env.IMG_NOT_SUBMITTED_PATH)
+         {emptyGIF (); // fallback...
+          return; // getSrc
+         } // beats "Internal Error"!
+   readFile (process.env.IMG_NOT_SUBMITTED_PATH);
+  } // function getSrc (err, src)
+
+  fs.readFile (imgPath, getSrc);
+ } // function readFile (path)
+
+ function notSubmitted ()
+ {
+  if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
+     {emptyGIF (); // fallback...
+      return; // notSubmitted
+     } // if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
+
+  readFile (process.env.IMG_NOT_SUBMITTED_PATH);
+ } // function notSubmitted ()
+
+ function getFileResult(kyc_file)
+ {
+  if (kyc_file===null)
+     {notSubmitted ();
+      return;
+     }
+
+  readFile (kyc_file.path.replace(FILE_SCHEME, ''));
+ } // function getFileResult(kyc_file)
+
+ function get_kyc_bundle_id (result)
+ {
+  if (result===null) // no prior entries; skip checking for identicals...
+     {notSubmitted ();
+      return;
+     }
+
+  kyc_bundle_id=result._id;
+  kyc_files.findOne({$and: [{kyc_bundle_id: kyc_bundle_id,
+                             type: type,
+                             side: side
+                            },
+                            {path: {$not: S3_SCHEME}}
+                           ]
+                    }
+                   )
+           .then(getFileResult)
+           .catch(databaseErr);
+ } // function get_kyc_bundle_id (result)
+
+ function getUserInfo(err, user)
+ {
+  if (err!==null)
+     console.error (err);
+
+  else if (user!==null&&
+           (typeof user)==='object'&&
+           'onfido_id' in user
+          )
+          {onfido_id=user.onfido_id;
+
+           if ((typeof onfido_id)==='string'&&
+               onfido_id.length>0
+              )
+              {country_code=user.address_country.toUpperCase();
+               if (country_code in countries.backSide) // i.e., a valid country...
+                  {id=req.query.id;
+                   type=nameType(id);
+                   if (type===MALFORMED)
+                      {postFail (400, `bad document type: ${type}`);
+                       return; // getUserInfo
+                      }
+                   side=nameSide(id);
+                   if (type===MALFORMED)
+                      {postFail (400, `bad document side: ${side}`);
+                       return; // getUserInfo
+                      }
+                   kyc_bundle.findOne({email})
+                             .then(get_kyc_bundle_id)
+                             .catch (databaseErr);
+                   return; // getUserInfo
+                  } // if (country_code in countries.backSide)
+
+               postFail (400, `bad country code: ${country_code}`);
+               return; // getUserInfo
+              } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
+          } // if (user!==null&&(typeof user)==='object'&&'onfido_id' in user)
+  postFail (400,
+            `user ${email} not found`,
+            'User not found...'
+           );
+ } // function getUserInfo(err, user)
+
+ function getEmail(jwtData)
+ {
+  if (jwtData!==null&&
+      (typeof jwtData)==='object'&&
+      'email' in jwtData
+     )
+     {email=jwtData.email;
+      if ((typeof email)==='string'&&
+          email.length>0
+         )
+         {userModel.findOne({email},
+                            getUserInfo
+                           ); // userModel.findOne
+          return; // getEmail
+         } // if ((typeof email)==='string'&&...
+     } // if (jwtData!==null&&...
+  postFail (400, 'Bad request...');
+ } // function getEmail(jwtData)
+
+ try {const bearer=req.headers.authorization.split(' ');
+      const token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then(getEmail)
+         .catch((err) => {postFail (400, err.message);
+                         }
+               );
+     }
+ catch (err)
+       {postFail (400, 'get image');
+       }
+} // function getImage(req, res)
+
+function getRequirements(req, res)
+{var email=null,
+     country_code=null;
+
+ function postFail (status, message, userMessage)
+ // if userMessage is omitted, message is used...
+ {
+  console.error (message);
+  res.status(status).json({data: false,
+                           error: ((userMessage===undefined)
+                                   ?message
+                                   :userMessage
+                                  )
+                          }
+                         );
+ } // function postFail (status, message, userMessage)
+
+ function getUserInfo(err, user)
+ {
+  if (err!==null)
+     console.error (err);
+
+  else if (user!==null&&
+           (typeof user)==='object'
+          )
+          {country_code=user.address_country.toUpperCase();
+           if (country_code in countries.backSide) // i.e., a valid country...
+              {res.status(200)
+                  .json({data: true,
+                         message: 'document requirements '+
+                                  '(true=backside required...)',
+                         accepted: countries.backSide[country_code].accepted
+                        }
+                       );
+               return; // getUserInfo
+              } // if (country_code in countries.backSide)
+
+           postFail (400, `bad country code: ${country_code}`);
+           return; // getUserInfo
+          } // if (user!==null&&(typeof user)==='object')
+  postFail (400,
+            `user ${email} not found`,
+            'User not found...'
+           );
+ } // function getUserInfo(err, user)
+
+ function getEmail(jwtData)
+ {
+  if (jwtData!==null&&
+      (typeof jwtData)==='object'&&
+      'email' in jwtData
+     )
+     {email=jwtData.email;
+      if ((typeof email)==='string'&&
+          email.length>0
+         )
+         {userModel.findOne({email},
+                            getUserInfo
+                           ); // userModel.findOne
+          return; // getEmail
+         } // if ((typeof email)==='string'&&...
+     } // if (jwtData!==null&&...
+  postFail (400, 'Bad request...');
+ } // function getEmail(jwtData)
+
+ try {const bearer=req.headers.authorization.split(' ');
+      const token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then(getEmail)
+         .catch((err) => {postFail (400, err.message);
+                         }
+               );
+     }
+ catch (err)
+       {postFail (400, 'get requirements');
+       }
+} // function getRequirements(req, res)
 
 module.exports={postApplicant,
                 getApplicant,
                 getCheck,
                 postWebhook,
                 getStatus,
-                postImages
+                postDossier,
+                getImage,
+                getRequirements
                };

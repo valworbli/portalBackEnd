@@ -15,6 +15,8 @@ router.route('/status/').get(
     kycController.getStatus);
 router.route('/webhook/').post(
     kycController.postWebhook);
-router.route('/images/').post(kycController.postImages);
+router.route('/dossier/').post(kycController.postDossier);
+router.route('/img/').get(kycController.getImage);
+router.route('/requirements/').get(kycController.getRequirements);
 
 module.exports = router;
