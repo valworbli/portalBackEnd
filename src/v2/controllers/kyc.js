@@ -905,7 +905,7 @@ function getImage(req, res)
      type=null,
      side=null;
 
- function postFail (status, message, userMessage)
+ function getFail (status, message, userMessage)
  // if userMessage is omitted, message is used...
  {
   console.error (message);
@@ -916,10 +916,10 @@ function getImage(req, res)
                                   )
                           }
                          );
- } // function postFail (status, message, userMessage)
+ } // function getFail (status, message, userMessage)
 
  function databaseErr (err)
- {postFail (400, err, 'Error accessing database...');
+ {getFail (400, err, 'Error accessing database...');
  }
 
  function emptyGIF ()
@@ -930,20 +930,53 @@ function getImage(req, res)
  function readFile (imgPath)
  {
   function getSrc (err, src)
-  {let extension=path.extname(imgPath
-                             ).replace(LEADING_DOT, '');
+  {
    if (err===null)
-      {res.writeHead (200, {'Content-Type': 'image/'+extension});
-       res.end (src);
+      {let format=(('format' in req.query)
+                   ?req.query.format
+                   :'inline' // default...
+                  ),
+           extension=path.extname(imgPath
+                                 ).replace(LEADING_DOT, '');
+       switch (format)
+              {case 'html': res.send (
+`<html>
+<body>
+<img src="data:image/${extension};base64,${src.toString('base64')}" />
+</body>
+</html>`
+                                     );
+                     break; // case 'html'
+
+               case 'inline':
+                    res.writeHead (200,
+                                   {'Content-Type': 'image/'+extension}
+                                  );
+                    res.end (src);
+                    break; // case 'inline'
+
+               default: getFail (400,
+                                 'Unknown format: ${format}...',
+                                 'Unknown format...'
+                                );
+              } // switch (format)
        return; // getSrc
       } // if (err===null)
 
+/*
+   // Fallback for if it does not exist:
+   //
+   // 1) IMG_NOT_SUBMITTED_PATH
+   // 2) 1 X 1 gif...
+   //
    if (err.code==='ENOENT')
       if (imgPath===process.env.IMG_NOT_SUBMITTED_PATH)
          {emptyGIF (); // fallback...
           return; // getSrc
          } // beats "Internal Error"!
    readFile (process.env.IMG_NOT_SUBMITTED_PATH);
+*/
+   getFail (400, err);
   } // function getSrc (err, src)
 
   fs.readFile (imgPath, getSrc);
@@ -951,12 +984,15 @@ function getImage(req, res)
 
  function notSubmitted ()
  {
+  getFail (404, 'Not submitted yet...');
+/*
   if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
      {emptyGIF (); // fallback...
       return; // notSubmitted
      } // if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
 
   readFile (process.env.IMG_NOT_SUBMITTED_PATH);
+*/
  } // function notSubmitted ()
 
  function getFileResult(kyc_file)
@@ -1008,12 +1044,12 @@ function getImage(req, res)
                   {id=req.query.id;
                    type=nameType(id);
                    if (type===MALFORMED)
-                      {postFail (400, `bad document type: ${type}`);
+                      {getFail (400, `bad document type: ${type}`);
                        return; // getUserInfo
                       }
                    side=nameSide(id);
                    if (type===MALFORMED)
-                      {postFail (400, `bad document side: ${side}`);
+                      {getFail (400, `bad document side: ${side}`);
                        return; // getUserInfo
                       }
                    kyc_bundle.findOne({email})
@@ -1022,14 +1058,14 @@ function getImage(req, res)
                    return; // getUserInfo
                   } // if (country_code in countries.backSide)
 
-               postFail (400, `bad country code: ${country_code}`);
+               getFail (400, `bad country code: ${country_code}`);
                return; // getUserInfo
               } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
           } // if (user!==null&&(typeof user)==='object'&&'onfido_id' in user)
-  postFail (400,
-            `user ${email} not found`,
-            'User not found...'
-           );
+  getFail (400,
+           `user ${email} not found`,
+           'User not found...'
+          );
  } // function getUserInfo(err, user)
 
  function getEmail(jwtData)
@@ -1048,7 +1084,7 @@ function getImage(req, res)
           return; // getEmail
          } // if ((typeof email)==='string'&&...
      } // if (jwtData!==null&&...
-  postFail (400, 'Bad request...');
+  getFail (400, 'Bad request...');
  } // function getEmail(jwtData)
 
  try {const bearer=req.headers.authorization.split(' ');
@@ -1056,12 +1092,12 @@ function getImage(req, res)
 
       jwt.jwtDecode(token)
          .then(getEmail)
-         .catch((err) => {postFail (400, err.message);
+         .catch((err) => {getFail (400, err.message);
                          }
                );
      }
  catch (err)
-       {postFail (400, 'get image');
+       {getFail (400, 'get image');
        }
 } // function getImage(req, res)
 
@@ -1069,7 +1105,7 @@ function getRequirements(req, res)
 {var email=null,
      country_code=null;
 
- function postFail (status, message, userMessage)
+ function getFail (status, message, userMessage)
  // if userMessage is omitted, message is used...
  {
   console.error (message);
@@ -1080,7 +1116,7 @@ function getRequirements(req, res)
                                   )
                           }
                          );
- } // function postFail (status, message, userMessage)
+ } // function getFail (status, message, userMessage)
 
  function getUserInfo(err, user)
  {
@@ -1102,13 +1138,13 @@ function getRequirements(req, res)
                return; // getUserInfo
               } // if (country_code in countries.backSide)
 
-           postFail (400, `bad country code: ${country_code}`);
+           getFail (400, `bad country code: ${country_code}`);
            return; // getUserInfo
           } // if (user!==null&&(typeof user)==='object')
-  postFail (400,
-            `user ${email} not found`,
-            'User not found...'
-           );
+  getFail (400,
+          `user ${email} not found`,
+          'User not found...'
+         );
  } // function getUserInfo(err, user)
 
  function getEmail(jwtData)
@@ -1127,7 +1163,7 @@ function getRequirements(req, res)
           return; // getEmail
          } // if ((typeof email)==='string'&&...
      } // if (jwtData!==null&&...
-  postFail (400, 'Bad request...');
+  getFail (400, 'Bad request...');
  } // function getEmail(jwtData)
 
  try {const bearer=req.headers.authorization.split(' ');
@@ -1135,12 +1171,12 @@ function getRequirements(req, res)
 
       jwt.jwtDecode(token)
          .then(getEmail)
-         .catch((err) => {postFail (400, err.message);
+         .catch((err) => {getFail (400, err.message);
                          }
                );
      }
  catch (err)
-       {postFail (400, 'get requirements');
+       {getFail (400, 'get requirements');
        }
 } // function getRequirements(req, res)
 
