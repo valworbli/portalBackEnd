@@ -952,7 +952,7 @@ function getImage(req, res)
                     res.writeHead (200,
                                    {'Content-Type': 'image/'+extension}
                                   );
-                    res.end (src);
+                    res.end (src, 'binary');
                     break; // case 'inline'
 
                default: getFail (400,
