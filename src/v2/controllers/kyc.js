@@ -424,7 +424,15 @@ function metaCreated(pathObject)
 // * @param {string} res - The outcoming response.
 // * @property {string} req.headers.authorization - The bearer token.
 function postDossier(req, res)
-{const USER_PROPS=['name_first',
+{// These user properties coexist in a form
+ // with id image file uploading fields
+ // (named "passport-back", "driving_license", etc.)
+ // Should these fields one day collide with any of those file fields
+ // (a.k.a., "name pollution"...), we could use a qualifying prefix
+ // in the input name attributes of them (like "user:"...)
+ //
+ // For now, they do not; keep it simple...
+ const USER_PROPS=['name_first',
                    'name_last',
                    'address_building_name',
                    'address_building_number',
