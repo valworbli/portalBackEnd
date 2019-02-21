@@ -930,88 +930,39 @@ function getImage(req, res)
  {getFail (400, err, 'Error accessing database...');
  }
 
- function emptyGIF ()
- {res.writeHead (200, {'Content-Type': 'image/gif'});
-  res.end (NO_IMG, 'binary'); // inline...
- }
+ function getFileResult (kyc_file)
+ {var imgPath=null;
 
- function readFile (imgPath)
- {
-  function getSrc (err, src)
+  function notSubmitted ()
   {
-   if (err===null)
-      {let format=(('format' in req.query)
-                   ?req.query.format
-                   :'inline' // default...
-                  ),
-           extension=path.extname(imgPath
-                                 ).replace(LEADING_DOT, '');
-       switch (format)
-              {case 'html': res.send (
-`<html>
-<body>
-<img src="data:image/${extension};base64,${src.toString('base64')}" />
-</body>
-</html>`
-                                     );
-                     break; // case 'html'
+   function emptyGIF ()
+   // possible fallback function we can use someday...
+   {res.writeHead (200, {'Content-Type': 'image/gif'});
+    res.end (NO_IMG, 'binary'); // inline...
+   } // function emptyGIF ()
 
-               case 'inline':
-                    res.writeHead (200,
-                                   {'Content-Type': 'image/'+extension}
-                                  );
-                    res.end (src, 'binary');
-                    break; // case 'inline'
+   if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
+      getFail (404, 'Not submitted yet...');
 
-               default: getFail (400,
-                                 'Unknown format: ${format}...',
-                                 'Unknown format...'
-                                );
-              } // switch (format)
-       return; // getSrc
-      } // if (err===null)
+   else res.sendFile (path.resolve(process.env.IMG_NOT_SUBMITTED_PATH));
+  } // function notSubmitted ()
 
-/*
-   // Fallback for if it does not exist:
-   //
-   // 1) IMG_NOT_SUBMITTED_PATH
-   // 2) 1 X 1 gif...
-   //
-   if (err.code==='ENOENT')
-      if (imgPath===process.env.IMG_NOT_SUBMITTED_PATH)
-         {emptyGIF (); // fallback...
-          return; // getSrc
-         } // beats "Internal Error"!
-   readFile (process.env.IMG_NOT_SUBMITTED_PATH);
-*/
-   getFail (400, err);
-  } // function getSrc (err, src)
+  function pathExists (exists)
+  {
+   if (exists)
+      res.sendFile (path.resolve(imgPath));
 
-  fs.readFile (imgPath, getSrc);
- } // function readFile (path)
+   else getFail (404, 'Image not found...');
+  } // function pathExists(err)
 
- function notSubmitted ()
- {
-  getFail (404, 'Not submitted yet...');
-/*
-  if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
-     {emptyGIF (); // fallback...
-      return; // notSubmitted
-     } // if (process.env.IMG_NOT_SUBMITTED_PATH===undefined)
-
-  readFile (process.env.IMG_NOT_SUBMITTED_PATH);
-*/
- } // function notSubmitted ()
-
- function getFileResult(kyc_file)
- {
   if (kyc_file===null)
      {notSubmitted ();
-      return;
+      return; // getFileResult
      }
 
-  readFile (kyc_file.path.replace(FILE_SCHEME, ''));
- } // function getFileResult(kyc_file)
+  imgPath=kyc_file.path.replace(FILE_SCHEME, '');
+  fs.exists (imgPath, pathExists);
+ } // function getFileResult (kyc_file)
 
  function get_kyc_bundle_id (result)
  {
