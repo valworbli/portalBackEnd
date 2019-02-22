@@ -662,7 +662,7 @@ console.error ('#files='+files.length);//??
     {
      if (isEqual)
         {postFail (400,
-`duplicate image; already submitted as: ${metaTypeSide(kyc_files_results[priorFilesIndex])}`
+`duplicate image; ${metaTypeSide(files[postedFilesIndex])} already submitted as: ${metaTypeSide(kyc_files_results[priorFilesIndex])}`
                   );
          return; // comparePostedFilesWithPrior
         } // if (isEqual)
@@ -685,7 +685,7 @@ console.error ('#files='+files.length);//??
         comparePostedFilesWithPrior (false); // recurse...
 
      else filecompare (files[postedFilesIndex].path,
-                       kyc_files_results[priorFilesIndex].path,
+                       kyc_files_results[priorFilesIndex].path.replace(FILE_SCHEME, ''),
                        comparePostedFilesWithPrior // recurse...
                       );
     } // function comparePostedFilesWithPrior (isEqual)
@@ -741,6 +741,7 @@ console.error ('#files='+files.length);//??
             return; // comparePostedFiles
            }
 
+   postedFilesSubindex++;
    if (postedFilesSubindex>=files.length)
       {postedFilesIndex++;
        if (postedFilesIndex>=files.length-1) // done...
