@@ -1096,11 +1096,13 @@ function getRequirements(req, res)
           )
           {country_code=user.address_country.toUpperCase();
            if (country_code in countries.backSide) // i.e., a valid country...
-              {res.status(200)
+              {let accepted=countries.backSide[country_code].accepted;
+               accepted.selfie=false; // no backside...
+               res.status(200)
                   .json({data: true,
                          message: 'document requirements '+
                                   '(true=backside required...)',
-                         accepted: countries.backSide[country_code].accepted
+                         accepted: accepted
                         }
                        );
                return; // getUserInfo
