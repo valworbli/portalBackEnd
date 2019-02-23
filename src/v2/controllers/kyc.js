@@ -419,6 +419,21 @@ function metaCreated(pathObject)
  return isNaN(created)?MALFORMED:created;
 } // function metaCreated(pathObject)
 
+function accepted(idType, country_code, idSide)
+{
+ if (idSide===undefined)
+    idSide='front'; // default...
+
+ return (idType==='selfie'&&idSide==='front')||
+        (idType in countries.backSide[country_code].accepted&&
+         (idSide==='front'||
+          (idSide==='back'&&
+           countries.backSide[country_code].accepted[idType]
+          )
+         )
+        );
+} // function accepted(idType, country_code, idSide)
+
 // * Post Dossier
 // * @param {string} req - The incoming request.
 // * @param {string} res - The outcoming response.
@@ -789,17 +804,10 @@ console.error ('#files='+files.length);//??
                return; // finishUpload
               }
 
-       if (!(idType in countries.backSide[country_code].accepted))
+       if (!accepted(idType, country_code, idSide))
           errors.push (
-`type ${idType} not found for country ${country_code}`
+`id type ${idType}, (side ${idSide}) not found for country ${country_code}`
                       );
-
-       else if (idSide==='back'&&
-                !countries.backSide[country_code].accepted[idType]
-               )
-               errors.push (
-`attempt to submit a back side for type ${idType}, country ${country_code}`
-                           );
       } // for (var index=0; index<files.length; index++)
 
   if (errors.length>0)
