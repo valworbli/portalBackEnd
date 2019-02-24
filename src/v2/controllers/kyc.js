@@ -420,15 +420,16 @@ function metaCreated(pathObject)
 } // function metaCreated(pathObject)
 
 function accepted(idType, country_code, idSide)
-{
+{let country=countries.backSide[country_code];
+
  if (idSide===undefined)
     idSide='front'; // default...
 
  return (idType==='selfie'&&idSide==='front')||
-        (idType in countries.backSide[country_code].accepted&&
+        (idType in country.accepted&&
          (idSide==='front'||
           (idSide==='back'&&
-           countries.backSide[country_code].accepted[idType]
+           country.accepted[idType]
           )
          )
         );
@@ -1096,12 +1097,15 @@ function getRequirements(req, res)
           )
           {country_code=user.address_country.toUpperCase();
            if (country_code in countries.backSide) // i.e., a valid country...
-              {let accepted=countries.backSide[country_code].accepted;
+              {let country=countries.backSide[country_code],
+                   accepted=country.accepted;
+
                accepted.selfie=false; // no backside...
                res.status(200)
                   .json({data: true,
                          message: 'document requirements '+
                                   '(true=backside required...)',
+                         country_name: country.name,
                          accepted: accepted
                         }
                        );
