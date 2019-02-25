@@ -18,7 +18,7 @@ const TYPES=[
              "immigration_status_document",
              "birth_adoption_certificate",
              "selfie"
-            ] // TYPES
+            ]; // TYPES
 
 const SIDES=["front", "back"];
 

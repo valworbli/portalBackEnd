@@ -312,6 +312,10 @@ function getStatus(req, res) {
   }
 }
 
+function toCamelCase(identifier)
+{return identifier.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+}
+
 const FILE_SCHEME=/^file:/,
       S3_SCHEME=/^s3:/;
 
@@ -458,7 +462,10 @@ function postDossier(req, res)
                    'address_town',
                    'address_two',
                    'address_zip',
-                   'date_birth',
+//??                   'date_birth',
+                   'date_birth_day',
+                   'date_birth_month',
+                   'date_birth_year',
                    'gender',
                    'phone_code',
                    'phone_mobile'
@@ -824,6 +831,12 @@ console.error ('#files='+files.length);//??
       {let prop=USER_PROPS[index];
        if (prop in req.body)
           postUser[prop]=req.body[prop];
+
+       else {let camelCaseProp=toCamelCase(prop);
+
+             if (camelCaseProp in req.body)
+                postUser[prop]=req.body[camelCaseProp];
+            } // !(prop in req.body)
       }
 
   if (Object.keys(postUser).length===0) // no user fields posted...
