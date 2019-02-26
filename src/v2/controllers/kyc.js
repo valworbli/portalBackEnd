@@ -839,7 +839,7 @@ console.error ('#files='+files.length);//??
 
                 if (camelCaseProp in req.body)
                    postUser[prop]=req.body[camelCaseProp];
-               } // !(prop in req.body)
+               } // ACCEPT_CAMEL_CASE_FOR_DATABASE
       } // for (var index=0; index<USER_PROPS.length; index++)
 
   if (Object.keys(postUser).length===0) // no user fields posted...
