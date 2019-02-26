@@ -312,10 +312,6 @@ function getStatus(req, res) {
   }
 }
 
-function toCamelCase(identifier)
-{return identifier.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
-}
-
 const FILE_SCHEME=/^file:/,
       S3_SCHEME=/^s3:/;
 
@@ -327,6 +323,12 @@ const NAME_ATTRIBUTE_DELIMITER={// used as an (optional) suffix
                                TIMESTAMP: ':'
                               },
      MALFORMED=null;
+
+const ACCEPT_CAMEL_CASE_FOR_DATABASE=true;
+
+function toCamelCase(identifier)
+{return identifier.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+}
 
 function filename(filePath)
 {let basename=path.basename(filePath.replace(FILE_SCHEME, '')),
@@ -832,12 +834,13 @@ console.error ('#files='+files.length);//??
        if (prop in req.body)
           postUser[prop]=req.body[prop];
 
-       else {let camelCaseProp=toCamelCase(prop);
+       else if (ACCEPT_CAMEL_CASE_FOR_DATABASE)
+               {let camelCaseProp=toCamelCase(prop);
 
-             if (camelCaseProp in req.body)
-                postUser[prop]=req.body[camelCaseProp];
-            } // !(prop in req.body)
-      }
+                if (camelCaseProp in req.body)
+                   postUser[prop]=req.body[camelCaseProp];
+               } // !(prop in req.body)
+      } // for (var index=0; index<USER_PROPS.length; index++)
 
   if (Object.keys(postUser).length===0) // no user fields posted...
      comparePostedFiles ();
