@@ -125,10 +125,10 @@ COL: {name: "Colombia",
 COM: {name: "Comoros",
       accepted: {passport: false}
      },
-COG: {name: "Congo (Democratic Republic of the)",
+COG: {name: "Congo",
       accepted: {passport: false}
      },
-COG: {name: "Congo (Democratic Republic of the)",
+COD: {name: "Congo (Democratic Republic of the)",
       accepted: {passport: false}
      },
 CRI: {name: "Costa Rica",
