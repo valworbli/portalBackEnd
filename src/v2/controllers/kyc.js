@@ -8,12 +8,14 @@ const onfidoWebhookModel = require('../models/onfidoWebhook.js');
 
 const path=require('path');
 const fs=require('fs');
+const fs_extra=require('fs-extra');
 const multer=require('../components/multer');
 const countries=require('../models/countries');
 const id=require('../models/id');
 const kyc_bundle=require('../models/kyc_bundle');
 const kyc_files=require('../models/kyc_files');
 const filecompare=require('filecompare');
+const AWS=require('aws-sdk');
 
 const LEADING_DOT=/^\./;
 
@@ -312,6 +314,90 @@ function getStatus(req, res) {
   }
 }
 
+function getRequirements(req, res)
+{var email=null,
+     country_code=null;
+
+ function getFail (status, message, userMessage)
+ // if userMessage is omitted, message is used...
+ {
+  console.error (message);
+  res.status(status).json({data: false,
+                           error: ((userMessage===undefined)
+                                   ?message
+                                   :userMessage
+                                  )
+                          }
+                         );
+ } // function getFail (status, message, userMessage)
+
+ function find_user(err, user)
+ {
+  if (err!==null)
+     console.error (err);
+
+  else if (user!==null&&
+           (typeof user)==='object'
+          )
+          {country_code=user.address_country.toUpperCase();
+           if (country_code in countries.backSide) // i.e., a valid country...
+              {let country=countries.backSide[country_code],
+                   accepted=country.accepted;
+
+               accepted.selfie=false; // no backside...
+               res.status(200)
+                  .json({data: true,
+                         message: 'document requirements '+
+                                  '(true=backside required...)',
+                         country_name: country.name,
+                         accepted: accepted
+                        }
+                       );
+               return; // find_user
+              } // if (country_code in countries.backSide)
+
+           getFail (400, `bad country code: ${country_code}`);
+           return; // find_user
+          } // if (user!==null&&(typeof user)==='object')
+  getFail (400,
+          `user ${email} not found`,
+          'User not found...'
+         );
+ } // function find_user(err, user)
+
+ function getEmail(jwtData)
+ {
+  if (jwtData!==null&&
+      (typeof jwtData)==='object'&&
+      'email' in jwtData
+     )
+     {email=jwtData.email;
+      if ((typeof email)==='string'&&
+          email.length>0
+         )
+         {userModel.findOne({email},
+                            find_user
+                           ); // userModel.findOne
+          return; // getEmail
+         } // if ((typeof email)==='string'&&...
+     } // if (jwtData!==null&&...
+  getFail (400, 'Bad request...');
+ } // function getEmail(jwtData)
+
+ try {const bearer=req.headers.authorization.split(' '),
+            token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then(getEmail)
+         .catch((err) => {getFail (400, err.message);
+                         }
+               );
+     }
+ catch (err)
+       {getFail (400, 'get requirements');
+       }
+} // function getRequirements(req, res)
+
 const FILE_SCHEME=/^file:/,
       S3_SCHEME=/^s3:/;
 
@@ -464,7 +550,14 @@ function postDossier(req, res)
                    'address_town',
                    'address_two',
                    'address_zip',
-//??                   'date_birth',
+// TO DO?
+//
+// The date_birth fields below map to previously defined properties
+// in the User collection;
+// perhaps they should be consolidated on the user interface end
+// and retained as a SINGLE date value (date_birth) in the User collection?
+//
+//                   'date_birth',
                    'date_birth_day',
                    'date_birth_month',
                    'date_birth_year',
@@ -479,7 +572,7 @@ function postDossier(req, res)
      badFilePreviouslyEncountered=false,
      postUser={};
 
-console.error ('POST_IMAGE');//??
+console.error ('/dossier');//??
 
  function postFail (status, message, userMessage)
  // if userMessage is omitted, message is used...
@@ -590,13 +683,13 @@ console.error ('#files='+files.length);//??
    function getPostedResults (results)
    {let posted=[];
 
-    for (var index=0; index<results.length; index++)
+    for (let index=0; index<results.length; index++)
         {let kyc_file=results[index];
          posted.push (kyc_file.type+
                       NAME_ATTRIBUTE_DELIMITER.ID_SIDE+
                       kyc_file.side
                      );
-        } // for (var index=0; index<results.length; index++)
+        } // for (let index=0; index<results.length; index++)
 
     res.status(200)
        .json({data: true,
@@ -631,7 +724,7 @@ console.error ('#files='+files.length);//??
   {let updateOnes=[];
 
    kyc_bundle_id=kyc_bundle_result._id;
-   for (var index=0; index<files.length; index++)
+   for (let index=0; index<files.length; index++)
        {let file=files[index],
             idType=metaType(files[index]),
             idSide=metaSide(files[index]),
@@ -652,7 +745,7 @@ console.error ('#files='+files.length);//??
                                      } // updateOne
                          }
                         ); // updateOnes.push
-       } // for (var index=0; index<files.length; index++)
+       } // for (let index=0; index<files.length; index++)
    kyc_files.bulkWrite(updateOnes,
                        {ordered : false} // faster...
                       )
@@ -724,11 +817,11 @@ console.error ('#files='+files.length);//??
     comparePostedFilesWithPrior (false); // kick off the recursive check...
    } // function checkPriorFilesResults (kyc_files_results)
 
-   function get_kyc_bundle_id (result)
+   function find_kyc_bundle_id (result)
    {
     if (result===null) // no prior entries; skip checking for identicals...
        {upsert_kyc_bundle ();
-        return;
+        return; // find_kyc_bundle_id
        }
 
     kyc_bundle_id=result._id;
@@ -739,10 +832,10 @@ console.error ('#files='+files.length);//??
                   )
              .then(checkPriorFilesResults)
              .catch(databaseErr);
-   } //  function get_kyc_bundle_id (result)
+   } // function find_kyc_bundle_id (result)
 
    kyc_bundle.findOne({email})
-             .then(get_kyc_bundle_id)
+             .then(find_kyc_bundle_id)
              .catch (databaseErr);
   } // function checkPriorFiles
 
@@ -791,7 +884,7 @@ console.error ('#files='+files.length);//??
   // 2) future version: check for glare
   //
   // get the last created from all the files uploaded...
-  for (var index=0; index<files.length; index++)
+  for (let index=0; index<files.length; index++)
       {let idType=metaType(files[index]),
            idSide=metaSide(files[index]),
            date_created=metaCreated(files[index]);
@@ -804,7 +897,7 @@ console.error ('#files='+files.length);//??
 
        // check for duplicate fieldnames
        // (duplicate "name" html attribute on the input tags...)
-       for (var subindex=index+1; subindex<files.length; subindex++)
+       for (let subindex=index+1; subindex<files.length; subindex++)
            if (idType===metaType(files[subindex])&&
                idSide===metaSide(files[subindex])
               )
@@ -818,7 +911,7 @@ console.error ('#files='+files.length);//??
           errors.push (
 `id type ${idType}, (side ${idSide}) not found for country ${country_code}`
                       );
-      } // for (var index=0; index<files.length; index++)
+      } // for (let index=0; index<files.length; index++)
 
   if (errors.length>0)
      {postFail (400, errors.join('\n'));
@@ -829,7 +922,7 @@ console.error ('#files='+files.length);//??
   // but I would rather see all that validation successfully accomplished
   // before having a side effect on it...
 
-  for (var index=0; index<USER_PROPS.length; index++)
+  for (let index=0; index<USER_PROPS.length; index++)
       {let prop=USER_PROPS[index];
        if (prop in req.body)
           postUser[prop]=req.body[prop];
@@ -840,7 +933,7 @@ console.error ('#files='+files.length);//??
                 if (camelCaseProp in req.body)
                    postUser[prop]=req.body[camelCaseProp];
                } // ACCEPT_CAMEL_CASE_FOR_DATABASE
-      } // for (var index=0; index<USER_PROPS.length; index++)
+      } // for (let index=0; index<USER_PROPS.length; index++)
 
   if (Object.keys(postUser).length===0) // no user fields posted...
      comparePostedFiles ();
@@ -855,7 +948,7 @@ console.error ('#files='+files.length);//??
                 .catch(databaseErr);
  } // function finishUpload(multerErr, some)
 
- function getUserInfo(err, user)
+ function find_user(err, user)
  {
   if (err!==null)
      console.error (err);
@@ -879,18 +972,18 @@ console.error(`multer.start('${onfido_id}')`);//??
                                  req, res,
                                  finishUpload
                                 );
-                   return; // getUserInfo
+                   return; // find_user
                   } // if (country_code in countries.backSide)
 
                postFail (400, `bad country code: ${country_code}`);
-               return; // getUserInfo
+               return; // find_user
               } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
           } // if (err!==null)
   postFail (400,
             `user ${email} not found`,
             'User not found...'
            );
- } // function getUserInfo(err, user)
+ } // function find_user(err, user)
 
  function getEmail(jwtData)
  {
@@ -903,7 +996,7 @@ console.error(`multer.start('${onfido_id}')`);//??
           email.length>0
          )
          {userModel.findOne({email},
-                            getUserInfo
+                            find_user
                            ); // userModel.findOne
           return; // getEmail
          } // if ((typeof email)==='string'&&...
@@ -911,8 +1004,8 @@ console.error(`multer.start('${onfido_id}')`);//??
   postFail (400, 'Bad request...');
  } // function getEmail(jwtData)
 
- try {const bearer=req.headers.authorization.split(' ');
-      const token=bearer[1];
+ try {const bearer=req.headers.authorization.split(' '),
+            token=bearer[1];
 
       jwt.jwtDecode(token)
          .then(getEmail)
@@ -957,8 +1050,7 @@ function getImage(req, res)
  }
 
  function getFileResult (kyc_file)
- {var imgPath=null;
-
+ {
   function notSubmitted ()
   {
    function emptyGIF ()
@@ -973,28 +1065,19 @@ function getImage(req, res)
    else res.sendFile (path.resolve(process.env.IMG_NOT_SUBMITTED_PATH));
   } // function notSubmitted ()
 
-  function pathExists (exists)
-  {
-   if (exists)
-      res.sendFile (path.resolve(imgPath));
-
-   else getFail (404, 'Image not found...');
-  } // function pathExists(err)
-
   if (kyc_file===null)
      {notSubmitted ();
       return; // getFileResult
      }
 
-  imgPath=kyc_file.path.replace(FILE_SCHEME, '');
-  fs.exists (imgPath, pathExists);
+  res.sendFile (path.resolve(kyc_file.path.replace(FILE_SCHEME, '')));
  } // function getFileResult (kyc_file)
 
- function get_kyc_bundle_id (result)
+ function find_kyc_bundle_id (result)
  {
   if (result===null) // no prior entries; skip checking for identicals...
      {notSubmitted ();
-      return;
+      return; // find_kyc_bundle_id
      }
 
   kyc_bundle_id=result._id;
@@ -1008,9 +1091,9 @@ function getImage(req, res)
                    )
            .then(getFileResult)
            .catch(databaseErr);
- } // function get_kyc_bundle_id (result)
+ } // function find_kyc_bundle_id (result)
 
- function getUserInfo(err, user)
+ function find_user(err, user)
  {
   if (err!==null)
      console.error (err);
@@ -1030,28 +1113,28 @@ function getImage(req, res)
                    type=nameType(id);
                    if (type===MALFORMED)
                       {getFail (400, `bad document type: ${type}`);
-                       return; // getUserInfo
+                       return; // find_user
                       }
                    side=nameSide(id);
                    if (type===MALFORMED)
                       {getFail (400, `bad document side: ${side}`);
-                       return; // getUserInfo
+                       return; // find_user
                       }
                    kyc_bundle.findOne({email})
-                             .then(get_kyc_bundle_id)
+                             .then(find_kyc_bundle_id)
                              .catch (databaseErr);
-                   return; // getUserInfo
+                   return; // find_user
                   } // if (country_code in countries.backSide)
 
                getFail (400, `bad country code: ${country_code}`);
-               return; // getUserInfo
+               return; // find_user
               } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
           } // if (user!==null&&(typeof user)==='object'&&'onfido_id' in user)
   getFail (400,
            `user ${email} not found`,
            'User not found...'
           );
- } // function getUserInfo(err, user)
+ } // function find_user(err, user)
 
  function getEmail(jwtData)
  {
@@ -1064,7 +1147,7 @@ function getImage(req, res)
           email.length>0
          )
          {userModel.findOne({email},
-                            getUserInfo
+                            find_user
                            ); // userModel.findOne
           return; // getEmail
          } // if ((typeof email)==='string'&&...
@@ -1072,8 +1155,8 @@ function getImage(req, res)
   getFail (400, 'Bad request...');
  } // function getEmail(jwtData)
 
- try {const bearer=req.headers.authorization.split(' ');
-      const token=bearer[1];
+ try {const bearer=req.headers.authorization.split(' '),
+            token=bearer[1];
 
       jwt.jwtDecode(token)
          .then(getEmail)
@@ -1086,9 +1169,73 @@ function getImage(req, res)
        }
 } // function getImage(req, res)
 
-function getRequirements(req, res)
+const S3=new AWS.S3({accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
+                     secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY
+                    }
+                   );
+
+function rm(fullPath)
+// Asterisk(s) are only honored in the filename part;
+// to delete a folder (recursively), a trailing slash MUST be used.
+//
+// We could pull in the glob module;
+// but since our pattern-matching needs are simple,
+// let's just use this and skip that external dependency.
+//
+// Note that we are NOT _checking_ error callbacks;
+// this is presently a simple best-effort removal of files
+// (though errors ARE logged...)
+{var folder,
+     filename=null,
+     wildcard=null;
+
+ function rmDir (folder)
+ {fs_extra.remove (folder);
+ } // function rmDir (folder)
+
+ function rmFilenames (err, filenames)
+ {
+  function rmFilename (filename)
+  {
+   if (wildcard===null||
+       wildcard.test(filename)
+      )
+      fs.unlink (folder+filename); // best effort...
+  } // function rmFilename (filename)
+
+  if (err===null)
+     filenames.forEach (rmFilename);
+
+  else console.error (err); // best effort...
+ } // function rmFilenames (err, filenames)
+
+ if (fullPath.endsWith('/'))
+    folder=fullPath;
+
+ else {let basename=path.basename(fullPath);
+
+       folder=fullPath.substring(0, fullPath.length-basename.length);
+       if (basename.indexOf('*')>=0)
+          wildcard=new RegExp(basename.replace('*', '.*'));
+
+       else filename=basename;
+      } // !fullPath.endsWith('/')
+
+ if (filename===null&&wildcard===null)
+    rmDir (folder);
+
+ else if (wildcard==null)
+         fs.unlink (fullPath); // best effort...
+
+ else fs.readdir (folder, rmFilenames);
+}// function rm(fullPath)
+
+function commit(req, res)
 {var email=null,
-     country_code=null;
+     onfido_id=null,
+     kyc_bundle_id=null;
+
+console.error ('/commit');//??
 
  function getFail (status, message, userMessage)
  // if userMessage is omitted, message is used...
@@ -1103,39 +1250,187 @@ function getRequirements(req, res)
                          );
  } // function getFail (status, message, userMessage)
 
- function getUserInfo(err, user)
+ function databaseErr (err)
+ {getFail (400, err, 'Error accessing database...');
+ }
+
+ function uploadFiles (kyc_files_results)
+ {let committed=[],
+      failed=[];
+
+  function find_kyc_files_s3 ()
+  {
+   function respond(kyc_files_results)
+   {let prior=[];
+
+    for (let index=0; index<kyc_files_results.length; index++)
+        {let type_side=kyc_files_results[index].type+'-'+
+                       kyc_files_results[index].side;
+
+         if (!committed.includes(type_side))
+            prior.push (type_side);
+        } // for (let index=0; index<kyc_files_results.length; index++)
+
+    res.status(200)
+       .json({data: true,
+              message: 'documents archived to date...',
+              committed: committed,
+              failed: failed,
+              prior: prior
+             }
+            );
+   } // function respond(kyc_files_results)
+
+   if (kyc_bundle_id===null)
+      respond ([]);
+
+   else kyc_files.find({$and: [{kyc_bundle_id: kyc_bundle_id},
+                               {path: S3_SCHEME}
+                              ]
+                       }
+                      )
+                 .then(respond)
+                 .catch(databaseErr);
+  } // find_kyc_files_s3
+
+  function update_kyc_bundle_s3 ()
+  {let now=new Date();
+
+   kyc_bundle.findOneAndUpdate({email: email}, 
+                               {$set: {archive_location: 's3://'+
+                                                         process.env.AWS_S3_BUCKET_IMAGES+'/'+
+                                                         onfido_id,
+                                       date_updated: now
+                                      }
+                               } // $set
+                              )
+             .then((result) => {find_kyc_files_s3 ();
+                               }
+                  )
+             .catch(databaseErr);
+  } // function update_kyc_bundle_s3 ()
+
+  function upsert_kyc_files_s3 ()
+  {
+   if (committed.length===0)
+      find_kyc_files_s3 ();
+
+   let updateOnes=[];
+
+   for (let index=0; index<committed.length; index++)
+       {let type=nameType(committed[index]),
+            side=nameSide(committed[index]),
+            s3Path='s3://'+
+                   process.env.AWS_S3_BUCKET_IMAGES+'/'+
+                   onfido_id+'/'+
+                   type+'-'+side;
+
+        updateOnes.push ({updateOne: {filter: {kyc_bundle_id: kyc_bundle_id,
+                                               type: type,
+                                               side: side
+                                              }, // filter
+                                      update: {$set: {path: s3Path}}
+                                     } // updateOne
+                         }
+                        ); // updateOnes.push
+       } // for (let index=0; index<files.length; index++)
+
+   kyc_files.bulkWrite(updateOnes,
+                       {ordered : false} // faster...
+                      )
+            .then((bulk_result) => {update_kyc_bundle_s3 ();
+                                   }
+                 )
+            .catch(databaseErr);
+  } // function upsert_kyc_files_s3 ()
+
+  function uploadFile (kyc_file)
+  {let imgPath=kyc_file.path.replace(FILE_SCHEME, ''),
+       stream=fs.createReadStream(imgPath);
+
+   function fileUploaded (err)
+   {let type_side=kyc_file.type+'-'+kyc_file.side;
+
+console.error('fileUploaded:');//??
+console.error(err);//??
+    stream.destroy (); // close...
+    if (err===null)
+       {committed.push (type_side);
+        // Presently we are leaving the user folders when they become empty;
+        // it might help with forensic troubleshooting at a later date.
+        // But if we wanted those folders to go away upon being emptied,
+        // a check could be spliced in around here...
+        rm (process.env.IMAGE_STAGING_FOLDER+'/'+
+            onfido_id+'/'+
+            type_side+NAME_ATTRIBUTE_DELIMITER.TIMESTAMP+'*'
+           );
+       } // if (err===null)
+
+    else {failed.push (type_side);
+          console.error (err);
+         } // err!==null
+
+    // last one?
+    if (committed.length+failed.length===kyc_files_results.length)
+       upsert_kyc_files_s3 ();
+   } // function fileUploaded(err)
+
+   S3.upload({Bucket: process.env.AWS_S3_BUCKET_IMAGES,
+              Key: onfido_id+'/'+kyc_file.type+'-'+kyc_file.side,
+              Body: stream
+             },
+             fileUploaded
+            );
+  } // function uploadFile (kyc_file)
+
+  if (kyc_files_results.length===0)
+     find_kyc_files_s3 ();
+
+  else kyc_files_results.forEach (uploadFile);
+ } // function uploadFiles (kyc_files_results)
+
+ function find_kyc_bundle_id (result)
+ {
+  if (result===null)
+     {uploadFiles ([]);
+      return; // find_kyc_bundle_id
+     }
+
+  kyc_bundle_id=result._id;
+  kyc_files.find({$and: [{kyc_bundle_id: kyc_bundle_id},
+                         {path: {$not: S3_SCHEME}}
+                        ]
+                 }
+                )
+           .then(uploadFiles)
+           .catch(databaseErr);
+ } // function find_kyc_bundle_id (result)
+
+ function find_user(err, user)
  {
   if (err!==null)
      console.error (err);
 
   else if (user!==null&&
-           (typeof user)==='object'
+           (typeof user)==='object'&&
+           'onfido_id' in user
           )
-          {country_code=user.address_country.toUpperCase();
-           if (country_code in countries.backSide) // i.e., a valid country...
-              {let country=countries.backSide[country_code],
-                   accepted=country.accepted;
+          {onfido_id=user.onfido_id;
 
-               accepted.selfie=false; // no backside...
-               res.status(200)
-                  .json({data: true,
-                         message: 'document requirements '+
-                                  '(true=backside required...)',
-                         country_name: country.name,
-                         accepted: accepted
-                        }
-                       );
-               return; // getUserInfo
-              } // if (country_code in countries.backSide)
-
-           getFail (400, `bad country code: ${country_code}`);
-           return; // getUserInfo
-          } // if (user!==null&&(typeof user)==='object')
+           if ((typeof onfido_id)==='string'&&
+               onfido_id.length>0
+              )
+              {kyc_bundle.findOne({email})
+                         .then(find_kyc_bundle_id)
+                         .catch (databaseErr);
+               return; // find_user
+              } // if ((typeof onfido_id)==='string'&&onfido_id.length>0)
+          } // if (err!==null)
   getFail (400,
-          `user ${email} not found`,
-          'User not found...'
-         );
- } // function getUserInfo(err, user)
+           `user ${email} not found`,
+           'User not found...'
+          );
+ } // function find_user(err, user)
 
  function getEmail(jwtData)
  {
@@ -1148,7 +1443,7 @@ function getRequirements(req, res)
           email.length>0
          )
          {userModel.findOne({email},
-                            getUserInfo
+                            find_user
                            ); // userModel.findOne
           return; // getEmail
          } // if ((typeof email)==='string'&&...
@@ -1156,8 +1451,8 @@ function getRequirements(req, res)
   getFail (400, 'Bad request...');
  } // function getEmail(jwtData)
 
- try {const bearer=req.headers.authorization.split(' ');
-      const token=bearer[1];
+ try {const bearer=req.headers.authorization.split(' '),
+            token=bearer[1];
 
       jwt.jwtDecode(token)
          .then(getEmail)
@@ -1166,16 +1461,17 @@ function getRequirements(req, res)
                );
      }
  catch (err)
-       {getFail (400, 'get requirements');
+       {getFail (400, 'kyc get commit');
        }
-} // function getRequirements(req, res)
+} // function commit(req, res)
 
 module.exports={postApplicant,
                 getApplicant,
                 getCheck,
                 postWebhook,
                 getStatus,
+                getRequirements,
                 postDossier,
                 getImage,
-                getRequirements
+                commit
                };
