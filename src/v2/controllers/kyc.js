@@ -1465,6 +1465,83 @@ console.error(err);//??
        }
 } // function commit(req, res)
 
+function getUpdatedOnfidoStatus(req, res)
+// generates a new token
+// based on a possibly changed onfido_status in the Users collection...
+{
+ function getFail (status, message, userMessage)
+ // if userMessage is omitted, message is used...
+ {
+  console.error (message);
+  res.status(status).json({data: false,
+                           error: ((userMessage===undefined)
+                                   ?message
+                                   :userMessage
+                                  )
+                          }
+                         );
+ } // function getFail (status, message, userMessage)
+
+ function find_user(err, user)
+ {
+  if (err!==null)
+     console.error (err);
+
+  else if (user!==null&&
+           (typeof user)==='object'
+          )
+          {let newjwt=jwt.jwtSign({email: user.email,
+                                   onfido_status: user.onfido_status,
+                                   onfido_id: user.onfido_id
+                                  }
+                                 );
+           res.status(200).json({data: true,
+                                 token: newjwt,
+                                 onfido_status: user.onfido_status,
+                                 onfido_id: user.onfido_id
+                                }
+                               );
+           return; // find_user
+          } // if (user!==null&&(typeof user)==='object')
+  getFail (400,
+          `user ${email} not found`,
+          'User not found...'
+         );
+ } // function find_user(err, user)
+
+ function getEmail(jwtData)
+ {
+  if (jwtData!==null&&
+      (typeof jwtData)==='object'&&
+      'email' in jwtData
+     )
+     {email=jwtData.email;
+      if ((typeof email)==='string'&&
+          email.length>0
+         )
+         {userModel.findOne({email},
+                            find_user
+                           ); // userModel.findOne
+          return; // getEmail
+         } // if ((typeof email)==='string'&&...
+     } // if (jwtData!==null&&...
+  getFail (400, 'Bad request...');
+ } // function getEmail(jwtData)
+
+ try {const bearer=req.headers.authorization.split(' '),
+            token=bearer[1];
+
+      jwt.jwtDecode(token)
+         .then(getEmail)
+         .catch((err) => {getFail (400, err.message);
+                         }
+               );
+     }
+ catch (err)
+       {getFail (400, 'get updated onfido_status');
+       }
+} // function getUpdatedOnfidoStatus(req, res)
+
 module.exports={postApplicant,
                 getApplicant,
                 getCheck,
@@ -1473,5 +1550,6 @@ module.exports={postApplicant,
                 getRequirements,
                 postDossier,
                 getImage,
-                commit
+                commit,
+                getUpdatedOnfidoStatus
                };

@@ -1,6 +1,8 @@
 const fetch = require('./fetch.js');
 const logger = require('../components/logger')(module);
 
+const userModel=require('../models/user.js');
+
 /**
  * Create Applicant
  * @param {object} token - Data from the email_token collection
@@ -111,8 +113,35 @@ function checkImages(onfidoId) {
   }
 }
 
+function getOnfido(email)
+// returns a thenable that is passed a JavaScript object with
+// the user's onfido_id and onfido_status (for a user with that email...)
+{
+ function find_user(resolve, reject)
+ {
+  userModel.findOne({email})
+           .then((err, user) => {
+                                 if (err===null)
+                                    resolve ({onfido_id: user.onfido_id,
+                                              onfido_status: user.onfido_status
+                                             }
+                                            );
+
+                                 else reject (err);
+                                }
+                );
+ } // function find_user(resolve, reject)
+
+ try {return new Promise(find_user);
+     }
+ catch (err)
+       {console.error (`get_onfido: ${err}`);
+       }
+} // function getOnfido(email)
+
 module.exports = {
   createApplicant,
   updateApplicant,
   checkImages,
+  getOnfido
 };
