@@ -1,5 +1,6 @@
 FROM node:10
-RUN groupadd -r nodejs && useradd -m -r -g -s /bin/bash nodejs nodejs
+RUN groupadd -r nodejs && useradd -m -r -g nodejs -s /bin/bash nodejs
+RUN mkdir -p /usr/src/app && chown -R nodejs. /usr/src/app
 USER nodejs
 WORKDIR /usr/src/app
 COPY package*.json ./
