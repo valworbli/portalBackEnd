@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+
+  portalbackend:
+    ports:
+      - '9229:9229'
+    environment:
+      NODE_ENV: production
+      API_ENDPOINT: 'http://localhost:9000'
+    command:
+      bash -c "npm install && npm start"

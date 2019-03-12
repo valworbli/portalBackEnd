@@ -7,10 +7,10 @@ const routes = require('./router.js');
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (process.env.CORS_WHITELIST.indexOf(origin) !== -1) {
+    if (!origin || process.env.CORS_WHITELIST.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback('Not allowed by CORS');
+      callback('Not allowed by CORS: ' + JSON.stringify(origin));
     }
   },
   allowedHeaders: [

@@ -1,0 +1,41 @@
+version: "3"
+
+services:
+
+  portalbackend:
+    links:
+      - portalbackend-mongo
+    ports:
+      - '9229:9229'
+      - '5000:5000'
+    command:
+      bash -c "npm install && npm run dev"
+      # bash -c "npm run import"
+      # bash -c "npm run test"
+
+# The production environment uses a third party MongoDB service
+# so start the MongoDB container only in development mode
+  portalbackend-mongo:
+    image: mongo
+    container_name: portalbackend-mongo
+    restart: always
+    # volumes:
+    #   - ../data/db:/tmp/data/db
+    #   - ../data/configdb:/tmp/data/configdb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: backend
+      MONGO_INITDB_ROOT_PASSWORD: backend!backend!!!
+    # command: --dbpath /tmp/data/db
+
+  portalbackend-mongo-express:
+    image: mongo-express
+    container_name: portalbackend-mongo-express
+    restart: always
+    links:
+      - portalbackend-mongo
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: portalbackend-mongo
+      ME_CONFIG_MONGODB_ADMINUSERNAME: backend
+      ME_CONFIG_MONGODB_ADMINPASSWORD: backend!backend!!!
