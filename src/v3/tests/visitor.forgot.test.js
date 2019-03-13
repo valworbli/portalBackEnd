@@ -44,7 +44,7 @@ describe('## Visitor', () => {
     before(function(done) {
       if (mongoose.connection.readyState === 0) {
         mustDisconnect = true;
-        mongoose.connect(`mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}`,
+        mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`,
             {useNewUrlParser: true}, function(err) {
               expect(err).to.be.null;
               _saveDefUser(done);

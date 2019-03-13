@@ -4,9 +4,44 @@ node_js:
 cache:
   directories:
   - node_modules
-services: mongodb
+os: linux
+dist: xenial
+services:
+- mongodb
 script:
 - npm run test
 before_install:
-- openssl aes-256-cbc -K $encrypted_8794bff736b3_key -iv $encrypted_8794bff736b3_iv
-  -in .env.enc -out .env -d
+# Travis runs Ubuntu up to 16.04, so if you are on Ubuntu 18.04
+# encode with:
+#  ENV_PASS=yOuR_PasS openssl enc -e -aes-256-cbc -md md5 -salt -pass env:ENV_PASS -in .env -out .env.enc
+# (prefix the above command with a space to avoid saving it in the shell history)
+# see https://askubuntu.com/questions/1067762/unable-to-decrypt-text-files-with-openssl-on-ubuntu-18-04
+- openssl aes-256-cbc -d -pass pass:${ENV_PASS} -in .env.enc -out .env
+deploy:
+- provider: s3
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key: $AWS_SECRET_ACCESS_KEY
+  local_dir: dpl_cd_upload
+  key: latest.zip
+  bundle_type: zip
+  skip_cleanup: true
+  on:
+    repo: worbli/portalBackEnd
+  bucket: $S3_DEV_API_BUCKET_NAME
+  region: us-west-2
+- provider: codedeploy
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key: $AWS_SECRET_ACCESS_KEY
+  bucket: $S3_DEV_API_BUCKET_NAME
+  key: latest.zip
+  bundle_type: zip
+  application: $AWS_CODE_DEPLOY_APPLICATION
+  deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
+  on:
+    repo: worbli/portalBackEnd
+  region: us-west-2
+  wait_until_deployed: true
+before_deploy:
+- zip -r latest *
+- mkdir -p dpl_cd_upload
+- mv latest.zip dpl_cd_upload/latest.zip

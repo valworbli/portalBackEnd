@@ -22,9 +22,9 @@ services:
     # volumes:
     #   - ../data/db:/tmp/data/db
     #   - ../data/configdb:/tmp/data/configdb
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: backend
-      MONGO_INITDB_ROOT_PASSWORD: backend!backend!!!
+    # environment:
+    #   MONGO_INITDB_ROOT_USERNAME: fakeUser
+    #   MONGO_INITDB_ROOT_PASSWORD: fakePass!
     # command: --dbpath /tmp/data/db
 
   portalbackend-mongo-express:
@@ -37,5 +37,5 @@ services:
       - 8081:8081
     environment:
       ME_CONFIG_MONGODB_SERVER: portalbackend-mongo
-      ME_CONFIG_MONGODB_ADMINUSERNAME: backend
-      ME_CONFIG_MONGODB_ADMINPASSWORD: backend!backend!!!
+      # ME_CONFIG_MONGODB_ADMINUSERNAME: fakeUser
+      # ME_CONFIG_MONGODB_ADMINPASSWORD: fakePass!
