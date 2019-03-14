@@ -133,21 +133,6 @@ describe('## Visitor', () => {
           .catch(done);
     });
 
-    it('should return 400 because agreed_marketing is missing', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .send({
-            ...defParams,
-            agreedMarketing: undefined,
-          })
-          .expect(HttpStatus.BAD_REQUEST)
-          .then((res) => {
-            done();
-          })
-          .catch(done);
-    });
-
     it('should return 400 because agreed_terms is test', (done) => {
       request(app)
           .post(testUrl)

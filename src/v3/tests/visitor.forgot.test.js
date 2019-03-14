@@ -1,5 +1,5 @@
 const HttpStatus = require('http-status-codes');
-const Const = require('../defs/const.js');
+const Const = require('../defs/const');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;

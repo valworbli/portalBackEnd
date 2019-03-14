@@ -7,7 +7,7 @@ module.exports = {
       password: Joi.string().regex(
           /^(?=.*[a-z])(?=.*\d|.*[!@#$%^&*])(?=.*[A-Z])(?:.{8,})$/).required(),
       agreedTerms: Joi.boolean().valid(true).required(),
-      agreedMarketing: Joi.boolean().required(),
+      agreedMarketing: Joi.boolean(),
       // token: Joi.string().length(32).required(),
     },
   },
