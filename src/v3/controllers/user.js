@@ -1,6 +1,7 @@
 const Users = require('../models/users');
 const HttpStatus = require('http-status-codes');
 const logger = require('../components/logger')(module);
+const jwt = require('../components/jwt');
 
 /**
  * GET user/profile
@@ -61,9 +62,7 @@ function getVerify(req, res) {
  */
 function postVerify(req, res) {
   try {
-    const bearer = req.headers.authorization ?
-      req.headers.authorization.split(' ') : undefined;
-    const token = bearer ? bearer[1] : undefined;
+    const token = jwt.jwtExtract(req);
     if (token) {
       Users.verifyUser(req.connection.remoteAddress, token)
           .then(function(user) {
