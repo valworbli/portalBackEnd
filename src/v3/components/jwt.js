@@ -111,9 +111,6 @@ function existingActiveJwt(email, token) {
  */
 function jwtExtract(req) {
   try {
-    // eslint-disable-next-line no-console
-    console.log('jwtExtract: req auth header is '
-      + JSON.stringify(req.headers.authorization));
     const bearer = req.headers.authorization ?
       req.headers.authorization.split(' ') : null;
     const token = bearer ? bearer[1] : null;

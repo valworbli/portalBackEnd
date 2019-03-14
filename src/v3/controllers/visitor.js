@@ -2,6 +2,7 @@ const Users = require('../models/users');
 const HttpStatus = require('http-status-codes');
 const logger = require('../components/logger')(module);
 const emailSES = require('../components/email');
+const jwt = require('../components/jwt');
 
 /**
  * POST visitor/signin
@@ -9,7 +10,22 @@ const emailSES = require('../components/email');
  * @param {string} res - The outcoming response.
  */
 function postSignin(req, res) {
+  const email = req.body.email;
+  const plaintextPassword = req.body.password;
 
+  Users.authenticateUser(email, plaintextPassword)
+      .then(function(user) {
+        if (user.verify_token) {
+          res.status(HttpStatus.CONFLICT)
+              .json({data: false, error: 'Please verify your email first'});
+        } else {
+          const token = jwt.jwtWithExpiry({email}, '72h');
+          res.status(HttpStatus.OK).json({data: true, token});
+        }
+      }).catch((err) => {
+        logger.error('Error authenticating the user: ' + JSON.stringify(err));
+        res.status(HttpStatus.UNAUTHORIZED).json({data: false, error: err});
+      });
 }
 
 /**

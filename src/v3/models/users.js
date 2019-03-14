@@ -4,6 +4,29 @@ const bigInt = require('big-integer');
 const crypto = require('crypto');
 
 /**
+ * authenticateUser
+ * @param {string} email - the user's email
+ * @param {string} plainPassword - the user's password
+ * @return {Promise} a Promise with the user or an error
+ */
+function authenticateUser(email, plainPassword) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({email: email}, function(err, user) {
+      if (err) reject(err);
+
+      if (user) {
+        user.comparePassword(plainPassword, function(err, isMatch) {
+          if (err || !isMatch) reject(err);
+          else resolve(user);
+        });
+      } else {
+        reject('Authentication error!');
+      }
+    });
+  });
+}
+
+/**
  * checkUpdateUser
  * @param {string} email - the user's email
  * @param {string} password - the user's password
@@ -124,6 +147,7 @@ function checkForgotToken(token) {
 }
 
 module.exports = {
+  authenticateUser,
   checkUpdateUser,
   verifyUser,
   prepareForgotToken,
