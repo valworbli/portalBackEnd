@@ -8,10 +8,10 @@ services:
     restart: always
     volumes:
       - .:/usr/src/app
-    ports:
-      - '9020:9020'
-    environment:
-      API_PORT: 9020
+    # ports:
+    #   - '9020:9020'
+    # environment:
+      # API_PORT: 9020
     working_dir: /usr/src/app
 
   portalfrontend:
@@ -27,3 +27,17 @@ services:
     working_dir: /home/node/app
     command:
       sh -c "npm install && node_modules/.bin/polymer build && pm2-runtime start ecosystem.config.js"
+
+  portalbackend-nginx:
+    image: nginx
+    container_name: portalbackend-nginx
+    restart: always
+    links:
+      - portalbackend
+    ports:
+      - 9020:80
+      - 80:80
+      # - 443:443
+    volumes:
+      - ./conf:/etc/nginx/conf.d
+      # - /etc/ssl:/etc/ssl
