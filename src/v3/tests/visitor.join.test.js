@@ -26,6 +26,7 @@ describe('## Visitor', () => {
   let mustDisconnect = false;
 
   describe(`# POST ${testUrl}`, () => {
+    let defUser = {};
     defParams = {
       email: 'test2@example.com',
       password: 'bozoPass!',
@@ -41,6 +42,15 @@ describe('## Visitor', () => {
       } else {
         done();
       }
+    });
+
+    beforeEach(function(done) {
+      Users.findOne({email: defParams.email}, function(err, user) {
+        if (!err && user) {
+          defUser = user;
+        }
+        done();
+      });
     });
 
     after(function(done) {
@@ -67,6 +77,49 @@ describe('## Visitor', () => {
           .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 409 as the user exists but isn\'t verified', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .send(defParams)
+          .expect(HttpStatus.CONFLICT)
+          .then((res) => {
+            expect({data: false});
+            expect(res.error).to.be.not.null;
+            done();
+          })
+          .catch(done);
+    });
+
+    it('verifies the user - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/user/verify/')
+          .auth()
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${defUser.verify_token}`)
+          .send()
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 412 as the user exists but isn\'t verified', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .send(defParams)
+          .expect(HttpStatus.PRECONDITION_FAILED)
+          .then((res) => {
+            expect({data: false});
+            expect(res.error).to.be.not.null;
             done();
           })
           .catch(done);

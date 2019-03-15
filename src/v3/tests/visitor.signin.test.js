@@ -83,7 +83,7 @@ describe('## Visitor', () => {
           .catch(done);
     });
 
-    it('verify the user - should return 200 and data true', (done) => {
+    it('verifies the user - should return 200 and data true', (done) => {
       request(app)
           .post('/api/v3/user/verify/')
           .auth()
@@ -98,7 +98,7 @@ describe('## Visitor', () => {
           .catch(done);
     });
 
-    it('should return 200 and data true', (done) => {
+    it('actual log in - should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')

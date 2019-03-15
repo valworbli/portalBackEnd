@@ -16,7 +16,7 @@ function authenticateUser(email, plainPassword) {
 
       if (user) {
         user.comparePassword(plainPassword, function(err, isMatch) {
-          if (err || !isMatch) reject(err);
+          if (err || !isMatch) reject('Authentication error!');
           else resolve(user);
         });
       } else {
@@ -37,20 +37,16 @@ function authenticateUser(email, plainPassword) {
 function checkUpdateUser(email, password, agreedTerms, agreedMarketing) {
   return new Promise(function(resolve, reject) {
     Users.findOne({email: email}, function(err, user) {
-      if (err) reject(err);
+      if (err) reject({err});
 
       if (user) {
-        if (user.onfido_status === Const.ONFIDO_STATUS_UNVERIFIED) {
-          Users.updateOne({email: email},
-              {
-                agreed_terms: agreedTerms,
-                agreed_marketing: agreedMarketing,
-              }, (function(err) {
-                if (err) reject(err);
-                else resolve(user);
-              }));
+        if (user.verify_token) {
+          resolve({user: user, isNew: false});
         } else {
-          reject(`User ${email} has already been verified.`);
+          reject({
+            verified: true,
+            err: `User ${email} has already been verified.`,
+          });
         }
       } else {
         const securityCode = bigInt(
@@ -65,8 +61,8 @@ function checkUpdateUser(email, password, agreedTerms, agreedMarketing) {
           security_code: securityCode,
         });
         newUser.save(function(err, user) {
-          if (err) reject(err);
-          else resolve(newUser);
+          if (err) reject({err});
+          else resolve({user: newUser, isNew: true});
         });
       }
     });

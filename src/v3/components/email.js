@@ -71,7 +71,7 @@ function sendEmail(email, newjwt, template, firstName) {
                   </br></br></br>
                     <p>Welcome to WORBLI!</p>
                     <p>Click the button below to confirm your email.</p>
-                    <a href="${url}/user/verify?token=${newjwt}">
+                    <a href="${url}/verify?token=${newjwt}">
                       <button type="button" 
                       style="cursor: pointer; 
                       outline: none; 
@@ -91,8 +91,8 @@ function sendEmail(email, newjwt, template, firstName) {
                     please copy the address below to the 
                     browser address bar to confirm.
                     </p>
-                    <a href="${url}/user/verify?token=${newjwt}">
-                    ${url}/user/verify?token=${newjwt}
+                    <a href="${url}/verify?token=${newjwt}">
+                    ${url}/verify?token=${newjwt}
                     </a></br></br></br>
                     <p>If this activity is not your own operation, 
                     please contact us immediately via support@worbli.io</p>
@@ -156,7 +156,7 @@ function sendEmail(email, newjwt, template, firstName) {
                   </br></br></br>
                     <p>Password Reset!</p>
                     <p>Click the button below to reset your password.</p>
-                    <a href="${url}/visitor/forgot/?token=${newjwt}">
+                    <a href="${url}/set/?token=${newjwt}">
                       <button type="button" 
                         style="cursor: pointer; 
                         outline: none; 
@@ -176,8 +176,8 @@ function sendEmail(email, newjwt, template, firstName) {
                     <p>Or copy the link below and paste it 
                     in a browser's address bar:
                     </p>
-                    <a href="${url}/visitor/forgot/?token=${newjwt}">
-                    ${url}/visitor/forgot/?token=${newjwt}
+                    <a href="${url}/set/?token=${newjwt}">
+                    ${url}/set/?token=${newjwt}
                     </a></br></br></br>
                     <p>If you did not request a password reset then 
                     please contact us immediately at support@worbli.io</p>
@@ -288,8 +288,8 @@ function sendEmail(email, newjwt, template, firstName) {
           },
           Subject: {Charset: 'UTF-8', Data: title},
         },
-        Source: 'do-not-reply@worbli.io',
-        ReplyToAddresses: ['do-not-reply@worbli.io'],
+        Source: 'WORBLI <do-not-reply@worbli.io>',
+        ReplyToAddresses: ['WORBLI <do-not-reply@worbli.io>'],
       };
       const sendPromise = new AWS.SES({
         apiVersion: '2010-12-01',
