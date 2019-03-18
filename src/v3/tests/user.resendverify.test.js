@@ -122,7 +122,7 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 400 because both the email is missing', (done) => {
+    it('should return 400 because the email is missing', (done) => {
       request(app)
           .put(testUrl)
           .set('Accept', 'application/json')

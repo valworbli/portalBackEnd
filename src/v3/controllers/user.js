@@ -27,7 +27,32 @@ function getState(req, res) {
  * @param {string} res - The outgoing response.
  */
 function postProfile(req, res) {
+  const {email, password, newPassword} = req.body;
 
+  Users.authenticateUser(email, password)
+      .then(function(user) {
+        if (user.verify_token) {
+          res.status(HttpStatus.CONFLICT)
+          // eslint-disable-next-line max-len
+              .json({data: false, error: 'Please verify your email - check your mailbox for activation instructions.'});
+        } else {
+          const token = jwt.jwtWithExpiry({email}, '72h');
+          if (user.reset_token) {
+            user.reset_token = undefined;
+          }
+
+          user.password = newPassword;
+          user.save(function(err, user) {
+            res.status(HttpStatus.OK).json({data: true, jwt: token});
+          });
+        }
+      }).catch((err) => {
+        logger.error('Error authenticating the user: ' + JSON.stringify(err));
+        res.status(HttpStatus.UNAUTHORIZED)
+            .json({
+              data: false,
+              error: 'Invalid email address or password. Please try again.'});
+      });
 }
 
 /**
