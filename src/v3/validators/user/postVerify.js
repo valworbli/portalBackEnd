@@ -1,11 +1,10 @@
+const Const = require('../../defs/const');
 const Joi = require('joi');
-const regex =
-/^Bearer [a-zA-Z0-9]{32}$/;
 
 module.exports = {
   validate: {
-    headers: {
-      authorization: Joi.string().regex(regex)
+    body: {
+      token: Joi.string().length(Const.VERIFY_TOKEN_LENGTH)
           .error(() => 'Invalid token').required(),
     },
   },

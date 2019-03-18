@@ -71,7 +71,7 @@ function sendEmail(email, newjwt, template, firstName) {
                   </br></br></br>
                     <p>Welcome to WORBLI!</p>
                     <p>Click the button below to confirm your email.</p>
-                    <a href="${url}/verify?token=${newjwt}">
+                    <a href="${url}/verify/?token=${newjwt}">
                       <button type="button" 
                       style="cursor: pointer; 
                       outline: none; 
@@ -91,8 +91,8 @@ function sendEmail(email, newjwt, template, firstName) {
                     please copy the address below to the 
                     browser address bar to confirm.
                     </p>
-                    <a href="${url}/verify?token=${newjwt}">
-                    ${url}/verify?token=${newjwt}
+                    <a href="${url}/verify/?token=${newjwt}">
+                    ${url}/verify/?token=${newjwt}
                     </a></br></br></br>
                     <p>If this activity is not your own operation, 
                     please contact us immediately via support@worbli.io</p>
@@ -150,7 +150,7 @@ function sendEmail(email, newjwt, template, firstName) {
                   width="100%">
                 <tr>
                   <td><b>Reset your password</b></td>
-                </tr>  
+                </tr>
                 <tr>
                   <td>
                   </br></br></br>

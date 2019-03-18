@@ -71,8 +71,7 @@ describe('## User', () => {
           .post(testUrl)
           .auth()
           .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${defUser.verify_token}`)
-          .send()
+          .send({token: defUser.verify_token})
           .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: true});
@@ -85,8 +84,7 @@ describe('## User', () => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .set('Authorization', `Bearer WRONGTOKEN`)
-          .send()
+          .send({token: 'WRONGTOKEN'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             expect({data: false});

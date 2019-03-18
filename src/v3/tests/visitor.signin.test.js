@@ -88,8 +88,7 @@ describe('## Visitor', () => {
           .post('/api/v3/user/verify/')
           .auth()
           .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${defUser.verify_token}`)
-          .send()
+          .send({token: defUser.verify_token})
           .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: true});
