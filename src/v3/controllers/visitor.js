@@ -21,7 +21,7 @@ function postSignin(req, res) {
               .json({data: false, error: 'Please verify your email - check your mailbox for activation instructions.'});
         } else {
           const token = jwt.jwtWithExpiry({email}, '72h');
-          res.status(HttpStatus.OK).json({data: true, token});
+          res.status(HttpStatus.OK).json({data: true, jwt: token});
         }
       }).catch((err) => {
         logger.error('Error authenticating the user: ' + JSON.stringify(err));
@@ -154,19 +154,9 @@ function postForgotToken(req, res) {
   }
 }
 
-/**
- * POST visitor/password
- * @param {string} req - The incoming request.
- * @param {string} res - The outcoming response.
- */
-function postPassword(req, res) {
-
-}
-
 module.exports = {
   postSignin,
   postJoin,
   postForgot,
   postForgotToken,
-  postPassword,
 };

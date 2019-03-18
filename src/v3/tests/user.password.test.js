@@ -16,12 +16,13 @@ chai.config.includeStack = true;
 
 const baseTestUrl = '/api/v3/user/';
 const defUser = new Users({
-  email: 'test3@example.com',
+  email: 'test7@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
   onfido_status: Const.ONFIDO_STATUS_UNVERIFIED,
   verify_token: 'cc2b039697793f4f38aa908f07fd2974',
+  reset_token: 'cc2b039697793f4f38aa908f07fd2974',
 });
 
 const _saveDefUser = function(done) {
@@ -33,7 +34,7 @@ const _saveDefUser = function(done) {
 };
 
 describe('## User', () => {
-  const testUrl = baseTestUrl + 'verify/';
+  const testUrl = baseTestUrl + 'password/';
 
   describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -66,12 +67,26 @@ describe('## User', () => {
       });
     });
 
-    it('should return 200 and data true', (done) => {
+    it('verifies the user - should return 200 and data true', (done) => {
       request(app)
-          .post(testUrl)
+          .post('/api/v3/user/verify/')
           .auth()
           .set('Accept', 'application/json')
           .send({token: defUser.verify_token})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 200 and data true', (done) => {
+      request(app)
+          .put(testUrl)
+          .auth()
+          .set('Accept', 'application/json')
+          .send({password: 'newBozoPass!@#$', token: defUser.reset_token})
           .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: true});
@@ -81,12 +96,40 @@ describe('## User', () => {
           .catch(done);
     });
 
+    it('logs in with the new pass - should return 200 and true', (done) => {
+      request(app)
+          .post('/api/v3/visitor/signin/')
+          .set('Accept', 'application/json')
+          .send({email: defUser.email, password: 'newBozoPass!@#$'})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect(res.jwt).to.be.not.null;
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
     it('should return 400 because token is invalid', (done) => {
       request(app)
-          .post(testUrl)
+          .put(testUrl)
           .set('Accept', 'application/json')
-          .send({token: 'WRONGTOKEN'})
+          .send({token: 'WRONGTOKEN', password: '394uxm349furxm'})
           .expect(HttpStatus.BAD_REQUEST)
+          .then((res) => {
+            expect({data: false});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 401 because token is not the one in the DB', (done) => {
+      request(app)
+          .put(testUrl)
+          .set('Accept', 'application/json')
+          .send({token: '11111111111111111111111111111111',
+            password: '394uxm349furxm'})
+          .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
             expect({data: false});
             done();
@@ -96,11 +139,24 @@ describe('## User', () => {
 
     it('should return 400 because token is missing', (done) => {
       request(app)
-          .post(testUrl)
+          .put(testUrl)
           .set('Accept', 'application/json')
-          .send()
+          .send({password: '394uxm349furxm'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 400 because password is invalid', (done) => {
+      request(app)
+          .put(testUrl)
+          .set('Accept', 'application/json')
+          .send({token: defUser.reset_token})
+          .expect(HttpStatus.BAD_REQUEST)
+          .then((res) => {
+            expect({data: false});
             done();
           })
           .catch(done);

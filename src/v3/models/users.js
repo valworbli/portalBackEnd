@@ -89,7 +89,36 @@ function verifyUser(ip, token) {
           else resolve(user);
         });
       } else {
-        reject('No such token exists!');
+        reject('No such VERIFY token exists!');
+      }
+    });
+  });
+}
+
+/**
+ * resetUser
+ * @param {object} ip - the ip of the visitor
+ * @param {string} token - the verification token
+ * @param {string} newPassword - the new password for the user
+ * @return {Promise} a Promise with the user or an error
+ */
+function resetUser(ip, token, newPassword) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({reset_token: token}, function(err, user) {
+      if (err) reject({reason: 'error', error: err});
+
+      if (user) {
+        user.reset_token = '';
+        user.reset_on = Date.now();
+        user.reset_from_ip = ip;
+        user.password = newPassword;
+        user.save(function(err, user) {
+          if (err) reject({reason: 'dbfailure', error: err});
+          else resolve(user);
+        });
+      } else {
+        reject({reason: 'authentication',
+          error: 'No such RESET token exists!'});
       }
     });
   });
@@ -148,4 +177,5 @@ module.exports = {
   verifyUser,
   prepareForgotToken,
   checkForgotToken,
+  resetUser,
 };

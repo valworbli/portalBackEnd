@@ -7,7 +7,6 @@ const postSignin = require('../validators/visitor/postSignin.js');
 const postJoin = require('../validators/visitor/postJoin.js');
 const postForgot = require('../validators/visitor/postForgot.js');
 const postForgotToken = require('../validators/visitor/postForgotToken.js');
-const postPassword = require('../validators/visitor/postPassword.js');
 
 router.route('/signin/').post(validate(postSignin.validate),
     visitorController.postSignin);
@@ -17,7 +16,5 @@ router.route('/forgot/').post(validate(postForgot.validate),
     visitorController.postForgot);
 router.route('/forgottoken/').post(validate(postForgotToken.validate),
     visitorController.postForgotToken);
-router.route('/password/').post(validate(postPassword.validate),
-    visitorController.postPassword);
 
 module.exports = router;
