@@ -1,7 +1,9 @@
 const Users = require('../models/users');
+const dbUsers = require('../models/schemas/users');
 const HttpStatus = require('http-status-codes');
 const logger = require('../components/logger')(module);
 const jwt = require('../components/jwt');
+const emailSES = require('../components/email');
 
 /**
  * GET user/profile
@@ -84,6 +86,52 @@ function postVerify(req, res) {
 }
 
 /**
+ * POST user/verify
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outgoing response.
+ */
+function postResendVerify(req, res) {
+  try {
+    const {email} = req.body;
+    dbUsers.findOne({email: email}, function(err, user) {
+      if (err) {
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .json({data: false,
+              error: 'Internal error, please try again later'});
+      } else {
+        if (user) {
+          if (user.verify_token) {
+            emailSES.sendEmail(user.email, user.verify_token, 'register')
+                .then((data) => {
+                  const receipt = JSON.stringify(data);
+                  logger.info(
+                      // eslint-disable-next-line max-len
+                      `Re-sent a VERIFY email to user ${user.email}, receipt ID: ${receipt}`);
+                  res.status(HttpStatus.OK).json( {data: true} );
+                }).catch((err) => {
+                  // eslint-disable-next-line max-len
+                  logger.error(`FAILED to resend a VERIFY email to ${user.email}: ${err}`);
+                  res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                      .json({data: false, error: err});
+                });
+          } else {
+            res.status(HttpStatus.PRECONDITION_FAILED)
+            // eslint-disable-next-line max-len
+                .json({data: false, error: 'The email address has already been verified'});
+          }
+        } else {
+          res.status(HttpStatus.UNAUTHORIZED)
+              .json({data: false, error: 'Please check the email address'});
+        }
+      }
+    });
+  } catch (err) {
+    logger.error(`postResendVerify: ${err}`);
+    res.status(HttpStatus.BAD_REQUEST).json({data: false});
+  }
+}
+
+/**
  * PUT visitor/password
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
@@ -125,4 +173,5 @@ module.exports = {
   getVerify,
   postVerify,
   putPassword,
+  postResendVerify,
 };
