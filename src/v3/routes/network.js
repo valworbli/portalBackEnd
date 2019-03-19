@@ -2,13 +2,14 @@ const express = require('express');
 const validate = require('express-validation');
 const networkController = require('../controllers/network.js');
 const router = new express.Router();
+const jwtAuthenticator = require('../components/jwtAuthenticator');
 
 const postAccount = require('../validators/network/postAccount.js');
 const getCheck = require('../validators/network/getCheck.js');
 
-router.route('/account/').get(validate(postAccount.validate),
+router.route('/account/').post(validate(postAccount.validate),
     networkController.postAccount);
-router.route('/check/').post(validate(getCheck.validate),
-    networkController.getCheck);
+router.route('/check/').get(validate(getCheck.validate),
+    jwtAuthenticator({}), networkController.getCheck);
 
 module.exports = router;
