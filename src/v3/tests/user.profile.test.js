@@ -45,7 +45,6 @@ describe('## User', () => {
             {useNewUrlParser: true}, function(err) {
               expect(err).to.be.null;
               _saveDefUser(done);
-              logger.info(`Successfully logged in ${defUser.email}`);
             });
       } else {
         _saveDefUser(done);
@@ -103,8 +102,7 @@ describe('## User', () => {
           // .auth()
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({email: defUser.email,
-            password: 'bozoPass!',
+          .send({password: 'bozoPass!',
             newPassword: 'someNewPass!!!'})
           .expect(HttpStatus.OK)
           .then((res) => {
@@ -129,45 +127,12 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 401 because the email is not in the DB', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({email: 'zozo@bozo.com',
-            password: 'bogusPass',
-            newPassword: 'newBogusPass'})
-          .expect(HttpStatus.UNAUTHORIZED)
-          .then((res) => {
-            expect({data: false});
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 400 because the email is missing', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({password: 'bogusPass',
-            newPassword: 'newBogusPass'})
-          .expect(HttpStatus.BAD_REQUEST)
-          .then((res) => {
-            expect({data: false});
-            done();
-          })
-          .catch(done);
-    });
-
     // eslint-disable-next-line max-len
     it('should return 400 because the token is missing', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .send({email: defUser.email,
-            password: defUser.password,
+          .send({password: defUser.password,
             newPassword: 'newBogusPass'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
@@ -183,8 +148,7 @@ describe('## User', () => {
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({email: 'zozo@bozo.com',
-            newPassword: 'newBogusPass'})
+          .send({newPassword: 'newBogusPass'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             expect({data: false});
@@ -194,13 +158,12 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 400 because the email is missing', (done) => {
+    it('should return 400 because the new password is missing', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({email: 'zozo@bozo.com',
-            password: 'bogusPass'})
+          .send({password: 'bogusPass'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             expect({data: false});

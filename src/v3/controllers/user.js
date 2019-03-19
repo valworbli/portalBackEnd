@@ -27,7 +27,8 @@ function getState(req, res) {
  * @param {string} res - The outgoing response.
  */
 function postProfile(req, res) {
-  const {email, password, newPassword} = req.body;
+  const email = req.worbliUser.email;
+  const {password, newPassword} = req.body;
 
   Users.authenticateUser(email, password)
       .then(function(user) {

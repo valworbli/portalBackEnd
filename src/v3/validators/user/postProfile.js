@@ -12,7 +12,7 @@ module.exports = {
       // password: Joi.string().regex(
       // eslint-disable-next-line max-len
       //     /^(?=.*[a-z])(?=.*\d|.*[!@#$%^&*])(?=.*[A-Z])(?:.{8,})$/).required(),
-      email: Joi.string().lowercase().email({minDomainAtoms: 2}).required(),
+      // email: Joi.string().lowercase().email({minDomainAtoms: 2}).required(),
       password: Joi.string().required(),
       newPassword: Joi.string().required(),
     },

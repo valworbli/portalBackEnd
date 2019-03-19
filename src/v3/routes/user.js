@@ -2,6 +2,7 @@ const express = require('express');
 const validate = require('express-validation');
 const userController = require('../controllers/user.js');
 const router = new express.Router();
+const jwtAuthenticator = require('../components/jwtAuthenticator');
 
 const getProfile = require('../validators/user/getProfile.js');
 const getState = require('../validators/user/getState.js');
@@ -16,7 +17,7 @@ router.route('/profile/').get(validate(getProfile.validate),
 router.route('/state/').get(validate(getState.validate),
     userController.getState);
 router.route('/profile/').post(validate(postProfile.validate),
-    userController.postProfile);
+    jwtAuthenticator({}), userController.postProfile);
 router.route('/verify/').get(validate(getVerify.validate),
     userController.getVerify);
 router.route('/verify/').post(validate(postVerify.validate),
