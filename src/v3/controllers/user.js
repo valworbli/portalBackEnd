@@ -11,8 +11,14 @@ const emailSES = require('../components/email');
  * @param {string} res - The outgoing response.
  */
 function getProfile(req, res) {
-
+  const email = req.worbliUser.email;
+  Users.getUserProfile(email).then(function(profile) {
+    res.status(HttpStatus.OK).json({...profile, data: true});
+  }).catch(function(err) {
+    res.status(HttpStatus.BAD_REQUEST).json({data: true, error: err});
+  });
 }
+
 /**
  * GET user/state
  * @param {string} req - The incoming request.

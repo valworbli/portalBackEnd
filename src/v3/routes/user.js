@@ -13,7 +13,7 @@ const putPassword = require('../validators/user/putPassword.js');
 const postResendVerify = require('../validators/user/postResendVerify.js');
 
 router.route('/profile/').get(validate(getProfile.validate),
-    userController.getProfile);
+    jwtAuthenticator({}), userController.getProfile);
 router.route('/state/').get(validate(getState.validate),
     userController.getState);
 router.route('/profile/').post(validate(postProfile.validate),

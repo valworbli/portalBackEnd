@@ -4,6 +4,25 @@ const bigInt = require('big-integer');
 const crypto = require('crypto');
 
 /**
+ * getUserProfile
+ * @param {string} email - the user's email
+ * @return {Promise} a Promise with the user or an error
+ */
+function getUserProfile(email) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({email: email}, function(err, user) {
+      if (err) reject(err);
+
+      if (user) {
+        resolve({email: user.email});
+      } else {
+        reject('Authentication error!');
+      }
+    });
+  });
+}
+
+/**
  * authenticateUser
  * @param {string} email - the user's email
  * @param {string} plainPassword - the user's password
@@ -220,4 +239,5 @@ module.exports = {
   checkForgotToken,
   resetUser,
   createNetworkAccount,
+  getUserProfile,
 };
