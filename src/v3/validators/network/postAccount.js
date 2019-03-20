@@ -10,7 +10,7 @@ module.exports = {
     },
     body: {
       accountName: Joi.string().lowercase().regex(
-          /^(?!.*?worbli)[a-z][a-z1-5]{5,11}$/).required(),
+          /^(?!.*?worbli)[a-z1-5]{6,12}$/).required(),
       publicKeyActive: Joi.string().regex(/^EOS[A-Za-z0-9]{50}$/).required(),
       publicKeyOwner: Joi.string().regex(/^EOS[A-Za-z0-9]{50}$/).required(),
     },

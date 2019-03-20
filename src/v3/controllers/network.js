@@ -112,7 +112,7 @@ function postAccount(req, res) {
  * @property {string} accountName - The Worbli account name to check.
  */
 function getCheck(req, res) {
-  const {accountName} = req.body;
+  const {accountName} = req.params;
 
   logger.info('getCheck CHECKING ' + JSON.stringify(accountName));
   logger.info(JSON.stringify(rpc));
@@ -125,7 +125,7 @@ function getCheck(req, res) {
           res.status(HttpStatus.INTERNAL_SERVER_ERROR)
               .json({data: false, error: err});
         } else {
-          res.status(HttpStatus.NOT_FOUND).json({data: false});
+          res.status(HttpStatus.OK).json({data: false});
         }
       });
 }

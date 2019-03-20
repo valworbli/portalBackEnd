@@ -8,8 +8,9 @@ module.exports = {
       authorization: Joi.string().regex(regex)
           .error(() => 'Invalid token').required(),
     },
-    body: {
-      accountName: Joi.string().required(),
+    params: {
+      accountName: Joi.string()
+          .regex(/^(?!.*?worbli)[a-z1-5]{6,12}$/).required(),
     },
   },
 };

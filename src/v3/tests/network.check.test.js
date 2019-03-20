@@ -36,7 +36,7 @@ describe('## User', () => {
   const testUrl = baseTestUrl + 'check/';
   let jwtToken = '';
 
-  describe(`# POST ${testUrl}`, () => {
+  describe(`# GET ${testUrl}`, () => {
     let mustDisconnect = false;
     before(function(done) {
       if (mongoose.connection.readyState === 0) {
@@ -98,10 +98,10 @@ describe('## User', () => {
 
     it('should return 200 and data true', (done) => {
       request(app)
-          .get(testUrl)
+          .get(testUrl + 'chainriftcom')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({accountName: 'chainriftcom'})
+          .send()
           .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: true});
@@ -110,13 +110,13 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 404 and data false', (done) => {
+    it('should return 200 and data false', (done) => {
       request(app)
-          .get(testUrl)
+          .get(testUrl + 'nonexisting')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({accountName: 'nonexisting'})
-          .expect(HttpStatus.NOT_FOUND)
+          .send()
+          .expect(HttpStatus.OK)
           .then((res) => {
             expect({data: false});
             done();
@@ -127,9 +127,9 @@ describe('## User', () => {
     // eslint-disable-next-line max-len
     it('should return 400 because the token is missing', (done) => {
       request(app)
-          .get(testUrl)
+          .get(testUrl + 'nonexisting')
           .set('Accept', 'application/json')
-          .send({accountName: 'nonexisting'})
+          .send()
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             expect({data: false});
@@ -139,13 +139,13 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 400 because the accountName is missing', (done) => {
+    it('should return 404 because the accountName is missing', (done) => {
       request(app)
           .get(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .send()
-          .expect(HttpStatus.BAD_REQUEST)
+          .expect(HttpStatus.NOT_FOUND)
           .then((res) => {
             expect({data: false});
             done();

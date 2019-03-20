@@ -9,7 +9,7 @@ const getCheck = require('../validators/network/getCheck.js');
 
 router.route('/account/').post(validate(postAccount.validate),
     jwtAuthenticator({}), networkController.postAccount);
-router.route('/check/').get(validate(getCheck.validate),
+router.route('/check/:accountName').get(validate(getCheck.validate),
     jwtAuthenticator({}), networkController.getCheck);
 
 module.exports = router;
