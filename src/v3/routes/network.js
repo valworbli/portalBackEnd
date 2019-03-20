@@ -8,7 +8,7 @@ const postAccount = require('../validators/network/postAccount.js');
 const getCheck = require('../validators/network/getCheck.js');
 
 router.route('/account/').post(validate(postAccount.validate),
-    networkController.postAccount);
+    jwtAuthenticator({}), networkController.postAccount);
 router.route('/check/').get(validate(getCheck.validate),
     jwtAuthenticator({}), networkController.getCheck);
 

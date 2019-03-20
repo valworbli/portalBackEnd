@@ -171,6 +171,47 @@ function checkForgotToken(token) {
   });
 }
 
+/**
+ * checkForgotToken
+ * @param {string} email - the email of the user
+ * @param {string} accountName - the name of the network account
+ * @return {Promise} a Promise with the updated user, or an error
+ */
+function createNetworkAccount(email, accountName) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({email: email}, function(err, user) {
+      if (err) reject({internal: true, error: err});
+
+      if (user) {
+        if (user.worbli_account_name) {
+          reject({internal: false,
+            error: 'Every user is limited to 1 (one) Worbli account.'});
+        } else if (user.onfido_status !== Const.ONFIDO_STATUS_APPROVED) {
+          reject({internal: false,
+            // eslint-disable-next-line max-len
+            error: 'Your profile must be verified before you can create a network account.'});
+        } else {
+          user.onfido_status = Const.ONFIDO_STATUS_NAMED;
+          user.worbli_account_name = accountName;
+          user.save(function(err, user) {
+            if (err) {
+              reject({internal: true,
+                error: 'Internal error, please try again later.'});
+            } else {
+              resolve(user);
+            }
+          });
+        }
+      } else {
+        // TODO: This should never happen
+        // so we consider this an internal error...
+        // eslint-disable-next-line max-len
+        reject({internal: true, error: 'Internal error, please try again later'});
+      }
+    });
+  });
+}
+
 module.exports = {
   authenticateUser,
   checkUpdateUser,
@@ -178,4 +219,5 @@ module.exports = {
   prepareForgotToken,
   checkForgotToken,
   resetUser,
+  createNetworkAccount,
 };
