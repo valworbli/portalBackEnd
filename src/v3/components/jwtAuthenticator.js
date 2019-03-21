@@ -1,4 +1,5 @@
 const HttpStatus = require('http-status-codes');
+const Users = require('../models/schemas/users');
 const jwt = require('./jwt');
 
 // middleware that is specific to this router
@@ -12,7 +13,18 @@ module.exports = function(options) {
       }
 
       req.worbliUser = jwtToken;
-      next();
+      if (options.getDBID) {
+        Users.findOne({email: req.worbliUser.email}, function(err, user) {
+          if (err || !user) {
+            throw (new Error('User DB ID could not be retrieved.'));
+          } else {
+            req.worbliUser._id = '' + user._id;
+          }
+          next();
+        });
+      } else {
+        next();
+      }
     } catch (err) {
       res.status(HttpStatus.UNAUTHORIZED)
       // eslint-disable-next-line max-len
