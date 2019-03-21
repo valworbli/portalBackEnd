@@ -152,6 +152,24 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
+    it('should return 400 as the account name is already taken in the DB', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({accountName: 'moomoonow',
+            // eslint-disable-next-line max-len
+            publicKeyActive: 'EOSfj49942rxm249rxm2049rx240294xm0249rxm2094rx24r34x9',
+            // eslint-disable-next-line max-len
+            publicKeyOwner: 'EOSfj49942rxm249rxm2049rx240294xm0249rxm2094rx24r3f3f'})
+          .expect(HttpStatus.BAD_REQUEST)
+          .then((res) => {
+            expect({data: false});
+            done();
+          }).catch(done);
+    });
+
+    // eslint-disable-next-line max-len
     it('should return 400 because the token is missing', (done) => {
       request(app)
           .post(testUrl)

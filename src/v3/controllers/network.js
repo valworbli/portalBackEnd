@@ -21,11 +21,16 @@ const sqs = new AWS.SQS({apiVersion: '2012-11-05'});
 function _checkAccountName(accountName) {
   return new Promise(function(resolve, reject) {
     try {
-      rpc.get_account(accountName)
-          .then((data) => {
-            resolve();
+      Users.getByNetworkAccount(accountName)
+          .then(() => {
+            rpc.get_account(accountName)
+                .then((data) => {
+                  resolve();
+                }).catch((err) => {
+                  reject(undefined);
+                });
           }).catch((err) => {
-            reject(undefined);
+            reject(err);
           });
     } catch (err) {
       logger.error('getCheck ' + JSON.stringify(err));
@@ -55,7 +60,6 @@ function postAccount(req, res) {
         }).catch(function(err) {
           Users.createNetworkAccount(email, accountName)
               .then(function(user) {
-                // res.status(HttpStatus.OK).json({data: true});
                 try {
                   sqs.sendMessage({
                     MessageBody: JSON.stringify({

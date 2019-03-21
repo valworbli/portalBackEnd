@@ -8,7 +8,7 @@ const usersSchema = new mongoose.Schema({
   agreed_terms: {type: Boolean, required: true},
   agreed_marketing: {type: Boolean},
   password: {type: String, required: true},
-  worbli_account_name: {type: String, index: true},
+  worbli_account_name: {type: String, index: true, unique: true},
   name_first: {type: String},
   name_middle: {type: String},
   name_last: {type: String},

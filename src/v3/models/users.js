@@ -191,6 +191,25 @@ function checkForgotToken(token) {
 }
 
 /**
+ * getByNetworkAccount
+ * @param {string} accountName - the user's worbli account name
+ * @return {Promise} a Promise with the user or an error
+ */
+function getByNetworkAccount(accountName) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({worbli_account_name: accountName}, function(err, user) {
+      if (err) reject(err);
+
+      if (user) {
+        reject(user);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
+/**
  * checkForgotToken
  * @param {string} email - the email of the user
  * @param {string} accountName - the name of the network account
@@ -238,6 +257,7 @@ module.exports = {
   prepareForgotToken,
   checkForgotToken,
   resetUser,
+  getByNetworkAccount,
   createNetworkAccount,
   getUserProfile,
 };
