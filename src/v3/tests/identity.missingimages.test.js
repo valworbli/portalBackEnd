@@ -16,7 +16,7 @@ chai.config.includeStack = true;
 
 const baseTestUrl = '/api/v3/identity/';
 const defUser = new Users({
-  email: 'test14@example.com',
+  email: 'test15@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
@@ -37,10 +37,10 @@ const _saveDefUser = function(done) {
 };
 
 describe('## User', () => {
-  const testUrl = baseTestUrl + 'image/';
+  const testUrl = baseTestUrl + 'missingimages/';
   let jwtToken = '';
 
-  describe(`# POST ${testUrl}`, () => {
+  describe(`# GET ${testUrl}`, () => {
     let mustDisconnect = false;
     before(function(done) {
       if (mongoose.connection.readyState === 0) {
@@ -106,13 +106,28 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 200 and completed false', (done) => {
+    it('should return 200 and data true', (done) => {
+      request(app)
+          .get(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            expect({completed: true});
+            expect({missingDocuments: []});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('should return 200 and data true', (done) => {
       Users.updateOne(
           {email: defUser.email},
           {$set: {'identity_images.uploaded_documents': [],
             'identity_images.completed': false}}, function(err, user) {
             request(app)
-                .post(testUrl)
+                .get(testUrl)
                 .set('Accept', 'application/json')
                 .set('Authorization', `Bearer ${jwtToken}`)
                 .attach('BGR_selfie', 'src/samples/images/sampleID-front.jpg')
@@ -128,9 +143,9 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 401 because the token is missing', (done) => {
+    it('should return 400 because the token is missing', (done) => {
       request(app)
-          .post(testUrl)
+          .get(testUrl)
           .set('Accept', 'application/json')
           .send()
           .expect(HttpStatus.BAD_REQUEST)
@@ -144,24 +159,11 @@ describe('## User', () => {
     // eslint-disable-next-line max-len
     it('should return 401 because the token is malformed', (done) => {
       request(app)
-          .post(testUrl)
+          .get(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
           .send()
           .expect(HttpStatus.UNAUTHORIZED)
-          .then((res) => {
-            expect({data: false});
-            done();
-          })
-          .catch(done);
-    });
-
-    it('should return 500 and data false', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .expect(HttpStatus.INTERNAL_SERVER_ERROR)
           .then((res) => {
             expect({data: false});
             done();

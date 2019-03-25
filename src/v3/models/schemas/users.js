@@ -3,6 +3,60 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
 
+const identityImagesSchema = new mongoose.Schema({
+  completed: {type: Boolean, index: true},
+  uploaded_documents: {type: Array},
+  country: {type: String, index: true},
+});
+
+identityImagesSchema.methods.pushDocumentUnique = function(docName) {
+  if (!this.uploaded_documents.includes(docName)) {
+    this.uploaded_documents.push(docName);
+  }
+};
+
+identityImagesSchema.methods.verify = function(accepted) {
+  const missingDocuments = [];
+  let docType = undefined;
+
+  this.uploaded_documents.forEach((element) => {
+    if (element !== Const.ID_SELFIE && !docType) {
+      if (element.endsWith(Const.ID_REVERSE_SUFFIX)) {
+        docType = element.substring(
+            0, element.length - Const.ID_REVERSE_SUFFIX.length - 1
+        );
+      } else {
+        docType = element;
+      }
+    }
+  });
+
+  if (!this.uploaded_documents.includes(Const.ID_SELFIE)) {
+    missingDocuments.push(Const.ID_SELFIE);
+  }
+
+  if (!docType) {
+    missingDocuments.push(Const.ID_IDENTITY);
+  } else {
+    // check the uploaded vs the required documents
+    const backRequired = accepted[docType];
+    if (!this.uploaded_documents.includes(docType)) {
+      missingDocuments.push(docType);
+    }
+    if (backRequired.constructor !== Boolean) {
+      return {error: 'Malformed request submitted!'};
+    }
+    if (backRequired) {
+      const docTypeReverse = docType + '_' + Const.ID_REVERSE_SUFFIX;
+      if (!this.uploaded_documents.includes(docTypeReverse)) {
+        missingDocuments.push(docTypeReverse);
+      }
+    }
+  }
+
+  return {missingDocuments: missingDocuments};
+};
+
 const usersSchema = new mongoose.Schema({
   email: {type: String, required: true, index: true, unique: true},
   agreed_terms: {type: Boolean, required: true},
@@ -35,6 +89,7 @@ const usersSchema = new mongoose.Schema({
   reset_requested_from_ip: {type: String},
   reset_on: {type: Date},
   reset_from_ip: {type: String},
+  identity_images: identityImagesSchema,
 });
 
 usersSchema.pre('save', function(next) {
@@ -67,6 +122,12 @@ usersSchema.methods.comparePassword = function(passw, cb) {
       if (cb) cb(null, isMatch);
     }
   });
+};
+
+usersSchema.methods.initIDImages = function() {
+  if (!this.identity_images) {
+    this.identity_images = {completed: false, uploaded_documents: []};
+  }
 };
 
 module.exports = mongoose.models.users ||
