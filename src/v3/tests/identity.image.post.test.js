@@ -128,7 +128,7 @@ describe('## User', () => {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 401 because the token is missing', (done) => {
+    it('should return 400 because the token is missing', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')

@@ -12,8 +12,6 @@ async function postImage(req, res) {
     const {user} = req.worbliUser;
     let countryPrefix = undefined;
 
-    // insert all the uploaded files' fieldnames
-    // in the user.identity_images array
     user.initIDImages();
 
     req.files.forEach((element) => {
@@ -26,7 +24,12 @@ async function postImage(req, res) {
       user.identity_images.pushDocumentUnique(docName);
     });
 
-    user.identity_images.completed = false;
+    // eslint-disable-next-line max-len
+    if (user.identity_images && (user.identity_images.country !== countryPrefix)) {
+      user.initIDImages(true);
+    } else {
+      user.identity_images.completed = false;
+    }
 
     // get the record for that country from MongoDB's worbli.identity_documents
     const countryInfo = await IDDocs.findOne({code: countryPrefix}).exec();

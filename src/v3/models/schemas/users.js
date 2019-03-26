@@ -124,8 +124,8 @@ usersSchema.methods.comparePassword = function(passw, cb) {
   });
 };
 
-usersSchema.methods.initIDImages = function() {
-  if (!this.identity_images) {
+usersSchema.methods.initIDImages = function(force=false) {
+  if (!this.identity_images || force) {
     this.identity_images = {completed: false, uploaded_documents: []};
   }
 };

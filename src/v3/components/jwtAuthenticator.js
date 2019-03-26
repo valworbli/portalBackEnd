@@ -11,8 +11,6 @@ module.exports = function(options) {
       if (!jwtToken) {
         throw (new Error('Token could not be decoded.'));
       }
-      // eslint-disable-next-line max-len
-      // const jwtToken = jwt.jwtDecode('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImZ0cGRAZnRwZC5iaXoiLCJpYXQiOjE1NTM1MDMyNzAsImV4cCI6MTU1Mzc2MjQ3MH0.whejiTlq_IyGnryfu2dg00jyfCghH_5x4d-RSCCEInk');
 
       req.worbliUser = jwtToken;
       if (options.getDBID || options.getUser) {
