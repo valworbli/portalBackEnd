@@ -29,6 +29,7 @@ deploy:
   skip_cleanup: true
   on: 
     repo: worbli/portalBackEnd
+    branch: develop_v3
   bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
   region: us-west-2
 - provider: codedeploy
@@ -41,6 +42,7 @@ deploy:
   deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
   on:
     repo: worbli/portalBackEnd
+    branch: develop_v3
   region: us-west-2
   wait_until_deployed: true
 before_deploy:
