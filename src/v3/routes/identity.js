@@ -20,7 +20,7 @@ router.route('/image/').post(validate(postImage.validate),
 router.route('/application/').get(validate(getApplication.validate),
     identityController.getApplication);
 router.route('/application/').post(validate(postApplication.validate),
-    identityController.postApplication);
+    jwtAuthenticator({getUser: true}), identityController.postApplication);
 router.route('/documents/').post(validate(getDocuments.validate),
     identityController.getDocuments);
 router.route('/missingimages/').get(validate(getMissingImages.validate),

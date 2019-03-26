@@ -108,8 +108,35 @@ function getImage(req, res) {
  * @param {string} res - The outcoming response.
  */
 function postApplication(req, res) {
+  const {user} = req.worbliUser;
 
+  const {country, firstName, middleName,
+    lastName, day, month, year, gender} = req.body;
+
+  // eslint-disable-next-line max-len
+  if (!firstName || !middleName || !lastName || !country || !day || !month || !year || !gender) {
+    res.status(HttpStatus.BAD_REQUEST).json({data: false,
+    // eslint-disable-next-line max-len
+      error: 'Fields are missing from the request, please submit complete data'});
+  } else {
+    user.name_first = firstName;
+    user.name_middle = middleName;
+    user.name_last = lastName;
+    user.address_country = country;
+    user.date_birth = new Date(year, month-1, day, 0, 0, 0, 0);
+    user.gender = gender;
+
+    user.save(function(err, user) {
+      if (err) {
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({data: false,
+          error: 'Error saving the user\'s details, please try again later.'});
+      } else {
+        res.status(HttpStatus.OK).json({data: true});
+      }
+    });
+  }
 }
+
 /**
  * GET identity/application
  * @param {string} req - The incoming request.

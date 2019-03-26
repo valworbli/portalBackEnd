@@ -8,5 +8,15 @@ module.exports = {
       authorization: Joi.string().regex(regex)
           .error(() => 'Invalid token').required(),
     },
+    body: {
+      firstName: Joi.string().required(),
+      middleName: Joi.string().required(),
+      lastName: Joi.string().required(),
+      country: Joi.string().required(),
+      day: Joi.number().required(),
+      month: Joi.number().required(),
+      year: Joi.number().required(),
+      gender: Joi.string().required(),
+    },
   },
 };
