@@ -28,7 +28,7 @@ deploy:
   bundle_type: zip
   skip_cleanup: true
   on: 
-    repo: valworbli/apitestdeploy
+    repo: worbli/portalBackEnd
   bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
   region: us-west-2
 - provider: codedeploy
@@ -40,7 +40,7 @@ deploy:
   application: $AWS_CODE_DEPLOY_APPLICATION
   deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
   on:
-    repo: valworbli/apitestdeploy
+    repo: worbli/portalBackEnd
   region: us-west-2
   wait_until_deployed: true
 before_deploy:
