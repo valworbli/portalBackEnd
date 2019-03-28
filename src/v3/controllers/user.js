@@ -118,11 +118,11 @@ function postVerify(req, res) {
 }
 
 /**
- * POST user/verify
+ * PUT user/verify
  * @param {string} req - The incoming request.
  * @param {string} res - The outgoing response.
  */
-function postResendVerify(req, res) {
+function putResendVerify(req, res) {
   try {
     const {email} = req.body;
     dbUsers.findOne({email: email}, function(err, user) {
@@ -205,5 +205,5 @@ module.exports = {
   getVerify,
   postVerify,
   putPassword,
-  postResendVerify,
+  putResendVerify,
 };
