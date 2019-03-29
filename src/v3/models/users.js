@@ -76,7 +76,7 @@ function checkUpdateUser(email, password, agreedTerms, agreedMarketing) {
           password: password,
           agreed_terms: agreedTerms,
           agreed_marketing: agreedMarketing,
-          onfido_status: Const.ONFIDO_STATUS_UNVERIFIED,
+          onfido_status: Const.ONFIDO_STATUS_NONE,
           security_code: securityCode,
         });
         newUser.save(function(err, user) {
@@ -229,7 +229,6 @@ function createNetworkAccount(email, accountName) {
             // eslint-disable-next-line max-len
             error: 'Your profile must be verified before you can create a network account.'});
         } else {
-          user.onfido_status = Const.ONFIDO_STATUS_NAMED;
           user.worbli_account_name = accountName;
           user.save(function(err, user) {
             if (err) {
@@ -250,6 +249,17 @@ function createNetworkAccount(email, accountName) {
   });
 }
 
+/**
+ * getOnFidoStatus
+ * @param {object} user - the UsersSchema object
+ * @return {object} a map, representing the OnFido status
+ *  it contains at least a 'status' field with the user's status
+ */
+function getOnFidoStatus(user) {
+  return {status: user.onfido_status,
+    errored: (user.onfido_error === undefined ? false : user.onfido_error)};
+}
+
 module.exports = {
   authenticateUser,
   checkUpdateUser,
@@ -260,4 +270,5 @@ module.exports = {
   getByNetworkAccount,
   createNetworkAccount,
   getUserProfile,
+  getOnFidoStatus,
 };

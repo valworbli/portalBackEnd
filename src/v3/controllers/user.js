@@ -25,8 +25,11 @@ function getProfile(req, res) {
  * @param {string} res - The outgoing response.
  */
 function getState(req, res) {
-
+  const ofStatus = Users.getOnFidoStatus(req.worbliUser.user);
+  logger.info('getState got ofStatus: ' + JSON.stringify(ofStatus));
+  res.status(HttpStatus.OK).json({...ofStatus, data: true});
 }
+
 /**
  * POST user/profile
  * @param {string} req - The incoming request.

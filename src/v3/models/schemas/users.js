@@ -81,6 +81,7 @@ const usersSchema = new mongoose.Schema({
   updated_at: {type: Date, default: Date.now},
   onfido_status: {type: String, required: true},
   onfido_id: {type: String},
+  onfido_error: {type: Boolean},
   verify_token: {type: String},
   verified_on: {type: Date},
   verified_from_ip: {type: String},

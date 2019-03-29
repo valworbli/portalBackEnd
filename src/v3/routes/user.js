@@ -15,7 +15,7 @@ const putResendVerify = require('../validators/user/putResendVerify.js');
 router.route('/profile/').get(validate(getProfile.validate),
     jwtAuthenticator({}), userController.getProfile);
 router.route('/state/').get(validate(getState.validate),
-    userController.getState);
+    jwtAuthenticator({getUser: true}), userController.getState);
 router.route('/profile/').post(validate(postProfile.validate),
     jwtAuthenticator({}), userController.postProfile);
 router.route('/verify/').get(validate(getVerify.validate),

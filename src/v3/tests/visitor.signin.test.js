@@ -20,7 +20,7 @@ const defUser = new Users({
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
-  onfido_status: Const.ONFIDO_STATUS_UNVERIFIED,
+  onfido_status: Const.ONFIDO_STATUS_NONE,
 });
 
 const defParams = {
