@@ -4,6 +4,8 @@ const HttpStatus = require('http-status-codes');
 const logger = require('../components/logger')(module);
 const jwt = require('../components/jwt');
 const emailSES = require('../components/email');
+const ofWrapper = require('../components/onfidoWrapper');
+const Const = require('../defs/const.js');
 
 /**
  * GET user/profile
@@ -25,8 +27,7 @@ function getProfile(req, res) {
  * @param {string} res - The outgoing response.
  */
 function getState(req, res) {
-  const ofStatus = Users.getOnFidoStatus(req.worbliUser.user);
-  logger.info('getState got ofStatus: ' + JSON.stringify(ofStatus));
+  const ofStatus = req.worbliUser.user.getOnFidoStatus();
   res.status(HttpStatus.OK).json({...ofStatus, data: true});
 }
 
@@ -103,8 +104,35 @@ function postVerify(req, res) {
     if (token) {
       Users.verifyUser(req.connection.remoteAddress, token)
           .then(function(user) {
-            const token = jwt.jwtWithExpiry({email: user.email}, '72h');
-            res.status(HttpStatus.OK).json({data: true, jwt: token});
+            ofWrapper.createFakeApplicant().then((applicant) => {
+              logger.info('OnFido Applicant created, id: ' +
+                JSON.stringify(applicant.id));
+              user.onfido.onfido_id = applicant.id;
+              user.onfido.onfido_error = false;
+            }).catch((error) => {
+              logger.error('OnFido Applicant ERRORRED' +
+                JSON.stringify(error.response.body));
+              user.onfido.onfido_error = true;
+            }).finally(() => {
+              // eslint-disable-next-line max-len
+              user.onfido.onfido_status = Const.ONFIDO_STATUS_CREATED;
+              logger.info('The user\'s ONFIDO status is now ' +
+                JSON.stringify(user.onfido.onfido_status));
+              user.save(function(err, user) {
+                if (err) {
+                  res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                    data: false,
+                    // eslint-disable-next-line max-len
+                    error: 'Error saving the user\'s details after OF, please try again later.'});
+                } else {
+                  // eslint-disable-next-line max-len
+                  const ofStatus = user.getOnFidoStatus();
+                  const token = jwt.jwtWithExpiry({email: user.email}, '72h');
+                  res.status(HttpStatus.OK).json({...ofStatus,
+                    data: true, jwt: token});
+                }
+              });
+            });
           }).catch(function(err) {
             logger.error(`postVerify: error saving the user: ${err}`);
             res.status(HttpStatus.INTERNAL_SERVER_ERROR)

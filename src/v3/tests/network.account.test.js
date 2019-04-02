@@ -20,7 +20,6 @@ const defUser = new Users({
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
-  onfido_status: Const.ONFIDO_STATUS_NONE,
   verify_token: 'cc2b039697793f4f38aa908f07fd2974',
 });
 
@@ -129,7 +128,7 @@ describe('## User', () => {
     });
 
     it('should return 200 and data true', (done) => {
-      defUser.onfido_status = Const.ONFIDO_STATUS_APPROVED;
+      defUser.onfido.onfido_status = Const.ONFIDO_STATUS_APPROVED;
       defUser.save(function(err, user) {
         expect(err).to.be.null;
         expect(user.verify_token).to.equal(defUser.verify_token);

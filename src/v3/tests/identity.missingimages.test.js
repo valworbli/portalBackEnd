@@ -1,5 +1,4 @@
 const HttpStatus = require('http-status-codes');
-const Const = require('../defs/const.js');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
@@ -16,11 +15,10 @@ chai.config.includeStack = true;
 
 const baseTestUrl = '/api/v3/identity/';
 const defUser = new Users({
-  email: 'test15@example.com',
+  email: 'test17@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
-  onfido_status: Const.ONFIDO_STATUS_NONE,
   verify_token: 'cc2b039697793f4f38aa908f07fd2974',
 });
 
@@ -28,15 +26,12 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    user.verify_token = '';
-    user.save(function(err, user) {
-      expect(err).to.be.null;
-      done();
-    });
+    done();
   });
 };
 
-describe('## User', () => {
+describe('## User', function() {
+  this.timeout(15000);
   const testUrl = baseTestUrl + 'missingimages/';
   let jwtToken = '';
 
@@ -71,6 +66,20 @@ describe('## User', () => {
       });
     });
 
+    it('verifies the user - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/user/verify/')
+          .auth()
+          .set('Accept', 'application/json')
+          .send({token: defUser.verify_token})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
     it('logs in - should return 200 and true', (done) => {
       request(app)
           .post('/api/v3/visitor/signin/')
@@ -86,12 +95,13 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 200 and data true', (done) => {
+    // eslint-disable-next-line max-len
+    it('uploads all images - should return 200 and data true', (done) => {
       request(app)
           .post('/api/v3/identity/image/')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/sampleID-front.jpg')
+          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
           // eslint-disable-next-line max-len
           .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
           // eslint-disable-next-line max-len
@@ -106,7 +116,8 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 200 and data true', (done) => {
+    // eslint-disable-next-line max-len
+    it('checks the images for completeness - should return 200 and data true', (done) => {
       request(app)
           .get(testUrl)
           .set('Accept', 'application/json')
@@ -121,7 +132,8 @@ describe('## User', () => {
           .catch(done);
     });
 
-    it('should return 200 and data true', (done) => {
+    // eslint-disable-next-line max-len
+    it('uploads only a selfie - should return 200 and data true', (done) => {
       Users.updateOne(
           {email: defUser.email},
           {$set: {'identity_images.uploaded_documents': [],
@@ -130,7 +142,7 @@ describe('## User', () => {
                 .get(testUrl)
                 .set('Accept', 'application/json')
                 .set('Authorization', `Bearer ${jwtToken}`)
-                .attach('BGR_selfie', 'src/samples/images/sampleID-front.jpg')
+                .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
                 .expect(HttpStatus.OK)
                 .then((res) => {
                   expect({data: true});

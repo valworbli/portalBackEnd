@@ -10,7 +10,7 @@ module.exports = {
     },
     body: {
       firstName: Joi.string().required(),
-      middleName: Joi.string().required(),
+      middleName: Joi.string(),
       lastName: Joi.string().required(),
       country: Joi.string().required(),
       day: Joi.number().required(),

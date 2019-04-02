@@ -57,6 +57,14 @@ identityImagesSchema.methods.verify = function(accepted) {
   return {missingDocuments: missingDocuments};
 };
 
+const onFidoUsersSchema = new mongoose.Schema({
+  onfido_status: {type: String, required: true},
+  onfido_id: {type: String},
+  onfido_error: {type: Boolean},
+  error_created: {type: String},
+  error_pending: {type: String},
+});
+
 const usersSchema = new mongoose.Schema({
   email: {type: String, required: true, index: true, unique: true},
   agreed_terms: {type: Boolean, required: true},
@@ -79,9 +87,7 @@ const usersSchema = new mongoose.Schema({
   security_code: {type: String, index: true},
   created_at: {type: Date, default: Date.now},
   updated_at: {type: Date, default: Date.now},
-  onfido_status: {type: String, required: true},
-  onfido_id: {type: String},
-  onfido_error: {type: Boolean},
+  onfido: onFidoUsersSchema,
   verify_token: {type: String},
   verified_on: {type: Date},
   verified_from_ip: {type: String},
@@ -95,10 +101,18 @@ const usersSchema = new mongoose.Schema({
 
 usersSchema.pre('save', function(next) {
   const user = this;
-  if (this.isNew && !user.verify_token) {
-    user.verify_token = crypto
-        .randomBytes(Const.VERIFY_TOKEN_LENGTH / 2)
-        .toString('hex');
+  if (this.isNew) {
+    user.onfido = {
+      onfido_status: Const.ONFIDO_STATUS_NONE,
+      onfido_error: false,
+      onfido_id: '',
+    };
+
+    if (this.isNew && !user.verify_token) {
+      user.verify_token = crypto
+          .randomBytes(Const.VERIFY_TOKEN_LENGTH / 2)
+          .toString('hex');
+    }
   }
 
   if (this.isModified('password') || this.isNew) {
@@ -128,6 +142,16 @@ usersSchema.methods.comparePassword = function(passw, cb) {
 usersSchema.methods.initIDImages = function(force=false) {
   if (!this.identity_images || force) {
     this.identity_images = {completed: false, uploaded_documents: []};
+  }
+};
+
+usersSchema.methods.getOnFidoStatus = function() {
+  if (this.onfido) {
+    return {status: this.onfido.onfido_status,
+      errored: (this.onfido.onfido_error === undefined ?
+        false : this.onfido.onfido_error)};
+  } else {
+    return {status: Const.ONFIDO_STATUS_NONE, errored: false};
   }
 };
 

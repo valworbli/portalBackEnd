@@ -72,12 +72,13 @@ function checkUpdateUser(email, password, agreedTerms, agreedMarketing) {
             Buffer.from(crypto.randomBytes(8)).toString('hex'), 16
         );
         const newUser = new Users({
-          email: email,
-          password: password,
-          agreed_terms: agreedTerms,
-          agreed_marketing: agreedMarketing,
-          onfido_status: Const.ONFIDO_STATUS_NONE,
-          security_code: securityCode,
+          'email': email,
+          'password': password,
+          'agreed_terms': agreedTerms,
+          'agreed_marketing': agreedMarketing,
+          'onfido.onfido_status': Const.ONFIDO_STATUS_NONE,
+          'onfido.onfido_error': false,
+          'security_code': securityCode,
         });
         newUser.save(function(err, user) {
           if (err) reject({err});
@@ -224,7 +225,7 @@ function createNetworkAccount(email, accountName) {
         if (user.worbli_account_name) {
           reject({internal: false,
             error: 'Every user is limited to 1 (one) Worbli account.'});
-        } else if (user.onfido_status !== Const.ONFIDO_STATUS_APPROVED) {
+        } else if (user.onfido.onfido_status !== Const.ONFIDO_STATUS_APPROVED) {
           reject({internal: false,
             // eslint-disable-next-line max-len
             error: 'Your profile must be verified before you can create a network account.'});
@@ -249,17 +250,6 @@ function createNetworkAccount(email, accountName) {
   });
 }
 
-/**
- * getOnFidoStatus
- * @param {object} user - the UsersSchema object
- * @return {object} a map, representing the OnFido status
- *  it contains at least a 'status' field with the user's status
- */
-function getOnFidoStatus(user) {
-  return {status: user.onfido_status,
-    errored: (user.onfido_error === undefined ? false : user.onfido_error)};
-}
-
 module.exports = {
   authenticateUser,
   checkUpdateUser,
@@ -270,5 +260,4 @@ module.exports = {
   getByNetworkAccount,
   createNetworkAccount,
   getUserProfile,
-  getOnFidoStatus,
 };

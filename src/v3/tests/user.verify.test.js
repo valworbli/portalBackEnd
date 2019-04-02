@@ -1,10 +1,11 @@
 const HttpStatus = require('http-status-codes');
-const Const = require('../defs/const.js');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
+const ofWrapper = require('../components/onfidoWrapper');
 
 require('dotenv').config();
 const Promise = require('bluebird');
@@ -20,7 +21,6 @@ const defUser = new Users({
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
-  onfido_status: Const.ONFIDO_STATUS_NONE,
   verify_token: 'cc2b039697793f4f38aa908f07fd2974',
 });
 
@@ -76,7 +76,19 @@ describe('## User', () => {
           .then((res) => {
             expect({data: true});
             expect(res.token).to.be.not.null;
-            done();
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(err === null, 'Err DB err');
+              ofWrapper.deleteApplicant(user.onfido.onfido_id).then(() => {
+                logger.info('Deleted OnFido applicant ' +
+                  JSON.stringify(user.onfido.onfido_id));
+              }).catch((error) => {
+                logger.error('ERROR deleting the OnFido applicant ' +
+                  JSON.stringify(user.onfido.onfido_id) + 'error: ' +
+                  JSON.stringify(error));
+              }).finally(() => {
+                done();
+              });
+            });
           })
           .catch(done);
     });
