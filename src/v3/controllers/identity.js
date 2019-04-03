@@ -243,38 +243,41 @@ function postWebHook(req, res) {
         ', resourceType: ' + JSON.stringify(resourceType) + ', status: ' + JSON.stringify(status) +
           ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
 
-      switch(action) {
+
+      let myUser = undefined;
+
+      switch (action) {
         case Const.ONFIDO_CHECK_COMPLETED:
-          let myUser = undefined;
           Users.findByOnFidoCheck(onfidoId)
-            .then(function(user) {
-              myUser = user;
-              return ofWrapper.findCheck(user.onfido.onfido_id, onfidoId);
-            })
-            .then(function(check) {
-              let onfidoStatus = Const.ONFIDO_STATUS_APPROVED;
-              logger.info('Webhook obtained check: ' + JSON.stringify(check));
-              if (check.result !== Const.ONFIDO_CHECK_RESULT_CLEAR) {
-                onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
-              }
-              return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
-            })
-            .then(function (user) {
-              myUser = user;
-            })
-            .catch(function(err) {
-              logger.error('Webhook could not find a user for check ' + JSON.stringify(onfidoId));
-              logger.error('err is ' + JSON.stringify(err));
-            })
-            .finally(function () {
-              if (myUser)
-                logger.info('Webhook set the status of user ' +
+              .then(function(user) {
+                myUser = user;
+                return ofWrapper.findCheck(user.onfido.onfido_id, onfidoId);
+              })
+              .then(function(check) {
+                let onfidoStatus = Const.ONFIDO_STATUS_APPROVED;
+                logger.info('Webhook obtained check: ' + JSON.stringify(check));
+                if (check.result !== Const.ONFIDO_CHECK_RESULT_CLEAR) {
+                  onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
+                }
+                return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
+              })
+              .then(function(user) {
+                myUser = user;
+              })
+              .catch(function(err) {
+                logger.error('Webhook could not find a user for check ' + JSON.stringify(onfidoId));
+                logger.error('err is ' + JSON.stringify(err));
+              })
+              .finally(function() {
+                if (myUser) {
+                  logger.info('Webhook set the status of user ' +
                   JSON.stringify(myUser.email) + ' to ' +
                   JSON.stringify(myUser.onfido.onfido_status));
+                }
 
-              logger.info('Webhook ACKed the check.');
-              res.status(200).json({data: true});
-            });
+                logger.info('Webhook ACKed the check.');
+                res.status(200).json({data: true});
+              });
           break;
         default:
           logger.info('Webhook ACKed the ' + JSON.stringify(action));

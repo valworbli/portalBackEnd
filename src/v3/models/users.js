@@ -260,24 +260,25 @@ function createNetworkAccount(email, accountName) {
 function onfidoCheckCompleted(checkId, onfidoStatus) {
   return new Promise(function(resolve, reject) {
     Users.findOneAndUpdate({'onfido.onfido_check': checkId},
-      { $set: {'onfido.onfido_status': onfidoStatus}},
-      {new: true},
-      function(err, user) {
-      if (err) {
-        logger.error('User with OnFido check: ' +
+        {$set: {'onfido.onfido_status': onfidoStatus}},
+        {new: true},
+        function(err, user) {
+          if (err) {
+            logger.error('User with OnFido check: ' +
           JSON.stringify(checkId) + ' NOT FOUND');
-        reject({err});
-      }
+            reject({err});
+          }
 
-      if (user) {
-        logger.info('Found a user ' + JSON.stringify(user.email)
+          if (user) {
+            logger.info('Found a user ' + JSON.stringify(user.email)
           + ' for check ' + JSON.stringify(checkId));
-        resolve(user);
-      } else {
-        logger.info('NO USER was found for check ' + JSON.stringify(checkId));
-        reject('Could not find a user for this check');
-      }
-    });
+            resolve(user);
+          } else {
+            logger.info('NO USER was found for check ' +
+              JSON.stringify(checkId));
+            reject('Could not find a user for this check');
+          }
+        });
   });
 }
 
