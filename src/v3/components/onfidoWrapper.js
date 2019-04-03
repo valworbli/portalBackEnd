@@ -129,6 +129,16 @@ function startCheck(applicantId, checkType=Const.ONFIDO_CHECK_EXPRESS, asynchron
   return api.createCheck(applicantId, check);
 }
 
+/**
+ * Gets an OnFido check
+ * @param {string} applicantId - The OnFido applicant ID
+ * @param {string} checkId - The OnFido check ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function findCheck(applicantId, checkId) {
+  return api.findCheck(applicantId, checkId);
+}
+
 module.exports = {
   createApplicant,
   createFakeApplicant,
@@ -139,4 +149,5 @@ module.exports = {
   listDocuments,
   listLivePhotos,
   startCheck,
+  findCheck,
 };

@@ -254,9 +254,39 @@ function createNetworkAccount(email, accountName) {
 /**
  * onfidoCheckCompleted
  * @param {string} checkId - the user's email
+ * @param {string} onfidoStatus - the new OnFido status
  * @return {Promise} a Promise with the user or an error
  */
-function onfidoCheckCompleted(checkId) {
+function onfidoCheckCompleted(checkId, onfidoStatus) {
+  return new Promise(function(resolve, reject) {
+    Users.findOneAndUpdate({'onfido.onfido_check': checkId},
+      { $set: {'onfido.onfido_status': onfidoStatus}},
+      {new: true},
+      function(err, user) {
+      if (err) {
+        logger.error('User with OnFido check: ' +
+          JSON.stringify(checkId) + ' NOT FOUND');
+        reject({err});
+      }
+
+      if (user) {
+        logger.info('Found a user ' + JSON.stringify(user.email)
+          + ' for check ' + JSON.stringify(checkId));
+        resolve(user);
+      } else {
+        logger.info('NO USER was found for check ' + JSON.stringify(checkId));
+        reject('Could not find a user for this check');
+      }
+    });
+  });
+}
+
+/**
+ * findByOnFidoCheck
+ * @param {string} checkId - the user's email
+ * @return {Promise} a Promise with the user or an error
+ */
+function findByOnFidoCheck(checkId) {
   return new Promise(function(resolve, reject) {
     Users.findOne({'onfido.onfido_check': checkId}, function(err, user) {
       if (err) {
@@ -268,11 +298,10 @@ function onfidoCheckCompleted(checkId) {
       if (user) {
         logger.info('Found a user ' + JSON.stringify(user.email)
           + ' for check ' + JSON.stringify(checkId));
-        user.onfido.onfido_status = Const.ONFIDO_STATUS_APPROVED;
-        user.save(function(err, user) {
-          if (err) reject(err);
-          else resolve(user);
-        });
+        resolve(user);
+      } else {
+        logger.info('NO USER was found for check ' + JSON.stringify(checkId));
+        reject('Could not find a user for this check');
       }
     });
   });
@@ -289,4 +318,5 @@ module.exports = {
   createNetworkAccount,
   getUserProfile,
   onfidoCheckCompleted,
+  findByOnFidoCheck,
 };
