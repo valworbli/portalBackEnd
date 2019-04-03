@@ -21,7 +21,8 @@ function postSignin(req, res) {
               .json({data: false, error: 'Please verify your email - check your mailbox for activation instructions.'});
         } else {
           const token = jwt.jwtWithExpiry({email}, '72h');
-          res.status(HttpStatus.OK).json({data: true, jwt: token});
+          const ofStatus = user.getOnFidoStatus();
+          res.status(HttpStatus.OK).json({...ofStatus, data: true, jwt: token});
         }
       }).catch((err) => {
         logger.error('Error authenticating the user: ' + JSON.stringify(err));
