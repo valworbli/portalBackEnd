@@ -54,6 +54,7 @@ async function postImage(req, res) {
   // try {
   const {user} = req.worbliUser;
   let countryPrefix = undefined;
+  const rejectedDocuments = [];
 
   user.initIDImages();
 
@@ -76,6 +77,7 @@ async function postImage(req, res) {
     const docName = element.fieldname.substring(countryPrefix.length + 1);
     if (element.failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
+      rejectedDocuments.push(docName);
     } else {
       user.identity_images.pushDocumentUnique(docName);
     }
@@ -99,6 +101,7 @@ async function postImage(req, res) {
         res.status(HttpStatus.OK).json({
           completed: user.identity_images.completed,
           missingDocuments: result.missingDocuments,
+          rejectedDocuments: rejectedDocuments,
           data: true,
         });
       });
