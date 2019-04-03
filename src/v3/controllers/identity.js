@@ -74,7 +74,11 @@ async function postImage(req, res) {
 
   req.files.forEach(function(element) {
     const docName = element.fieldname.substring(countryPrefix.length + 1);
-    user.identity_images.pushDocumentUnique(docName);
+    if (element.failed) {
+      logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
+    } else {
+      user.identity_images.pushDocumentUnique(docName);
+    }
   });
 
   // get the record for that country from MongoDB's worbli.identity_documents

@@ -50,8 +50,10 @@ module.exports = function(options) {
 
           func.then(function(doc) {
             logger.info('SUCCESSFULLY uploaded a ' + printName + ' with id:' + JSON.stringify(doc.id));
+            if (options.markFailed) element.failed = false;
           }).catch(function(err) {
             logger.error('ERROR uploading the ' + printName + ': ' + JSON.stringify(err));
+            if (options.markFailed) element.failed = true;
           }).finally(() => {
             fs.unlinkSync(fName);
             count += 1;

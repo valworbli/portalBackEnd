@@ -1,7 +1,9 @@
+/* eslint max-len: 0 */
 const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
 
@@ -101,21 +103,52 @@ describe('## User', function() {
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-          // eslint-disable-next-line max-len
           .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-          // eslint-disable-next-line max-len
           .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
           .expect(HttpStatus.OK)
           .then((res) => {
-            expect({data: true});
-            expect({completed: true});
-            expect({missingDocuments: []});
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === true, 'Err completed is not true');
+            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
             done();
           })
           .catch(done);
     });
 
-    it('should return 200 and completed false', (done) => {
+    it('uploads identity images from another country - should return 200, data true and completed false', (done) => {
+      request(app)
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .attach('ALB_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+          .attach('ALB_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === false, 'Err completed is not false');
+            assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
+            done();
+          })
+          .catch(done);
+    });
+
+    it('uploads the missing selfie - should return 200 and completed true', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .attach('ALB_selfie', 'src/samples/images/selfie.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === true, 'Err completed is not true');
+            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments[0] is not empty');
+            done();
+          })
+          .catch(done);
+    });
+
+    it('uploads only a selfie - should return 200 and completed false', (done) => {
       Users.updateOne(
           {email: defUser.email},
           {$set: {'identity_images.uploaded_documents': [],
@@ -127,9 +160,49 @@ describe('## User', function() {
                 .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
                 .expect(HttpStatus.OK)
                 .then((res) => {
-                  expect({data: true});
-                  expect({completed: false});
-                  expect({missingDocuments: ['identity']});
+                  assert(res.body.data === true, 'Err data is not true');
+                  assert(res.body.completed === false, 'Err completed is not true');
+                  assert(res.body.missingDocuments[0] === 'identity', 'Err missingDocuments[0] is not \'identity\'');
+                  done();
+                })
+                .catch(done);
+          });
+    });
+
+    it('uploads the rest of the images - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+          .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === true, 'Err completed is not true');
+            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
+            done();
+          })
+          .catch(done);
+    });
+
+    it('uploads a double faced selfie - should return 200 and completed false', (done) => {
+      Users.updateOne(
+          {email: defUser.email},
+          {$set: {'identity_images.uploaded_documents': [],
+            'identity_images.completed': false}}, function(err, user) {
+            request(app)
+                .post(testUrl)
+                .set('Accept', 'application/json')
+                .set('Authorization', `Bearer ${jwtToken}`)
+                .attach('BGR_selfie', 'src/samples/images/double_selfie.jpg')
+                .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+                .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+                .expect(HttpStatus.OK)
+                .then((res) => {
+                  assert(res.body.data === true, 'Err data is not true');
+                  assert(res.body.completed === false, 'Err completed is not false');
+                  assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
                   done();
                 })
                 .catch(done);
