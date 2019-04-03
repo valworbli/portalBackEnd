@@ -120,11 +120,11 @@ function listLivePhotos(applicantId) {
  * @param {Boolean} asynchronous - get the check's results via the webhook or directly
  * @return {Promise} A Promise from the OnFido module
  */
-function startCheck(applicantId, checkType=Const.ONFIDO_CHECK_EXPRESS, asynchronous=false) {
+function startCheck(applicantId, checkType=Const.ONFIDO_CHECK_STANDARD, asynchronous=false) {
   const check = new OnFido.CheckCommon();
   check.type = checkType;
   check.asynchronous = asynchronous;
-  check.reports = [{'name': 'document'}, {'name': 'facial_similarity'}];
+  check.reports = [{name: 'document'}, {name: 'facial_similarity'}, {name: 'watchlist', variant: 'full'}];
 
   return api.createCheck(applicantId, check);
 }

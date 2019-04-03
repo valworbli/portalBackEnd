@@ -4,6 +4,7 @@ const logger = require('../components/logger')(module);
 const IDDocs = require('../models/schemas/idDocs');
 const ofWrapper = require('../components/onfidoWrapper');
 const Const = require('../defs/const.js');
+const crypto = require('crypto');
 
 /**
  * Internal _getMissingImages
@@ -174,8 +175,6 @@ function postApplication(req, res) {
                 logger.info('OnFido Applicant UPDATED, id: ' +
                     JSON.stringify(applicant.id));
                 user.onfido.onfido_id = applicant.id;
-                user.onfido.onfido_error = false;
-                user.onfido.onfido_status = Const.ONFIDO_STATUS_CREATED;
 
                 const check = values[1];
                 logger.info('OnFido check started: ' +
@@ -195,17 +194,14 @@ function postApplication(req, res) {
                   if (err) {
                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
                       data: false,
-                      // eslint-disable-next-line max-len
                       error: 'Error saving the user\'s details after OF, please try again later.'});
                   } else {
-                    // eslint-disable-next-line max-len
                     const ofStatus = user.getOnFidoStatus();
                     res.status(HttpStatus.OK).json({...ofStatus, data: true});
                   }
                 });
               });
             } else {
-              // eslint-disable-next-line max-len
               const ofStatus = user.getOnFidoStatus();
               res.status(HttpStatus.OK).json({...ofStatus, data: true});
             }
@@ -219,6 +215,41 @@ function postApplication(req, res) {
 }
 
 /**
+ * Webhook
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ * @property {string} req.body.payload.resource_type - The resource type.
+ * @property {string} req.body.payload.action - The resource type.
+ * @property {string} req.body.payload.object.id - The resource type.
+ * @property {string} req.body.payload.object.status - The resource type.
+ * @property {string} req.body.payload.object.completed_at - The resource type.
+ * @property {string} req.body.payload.object.href - The resource type.
+ */
+function postWebHook(req, res) {
+  try {
+    const xheader = req.headers['x-signature'];
+    const resourceType = req.body.payload.resource_type;
+    const action = req.body.payload.action;
+    const onfidoId = req.body.payload.object.id;
+    const status = req.body.payload.object.status;
+    const completedAt = req.body.payload.object.completed_at;
+    const href = req.body.payload.object.href;
+    const token = crypto.createHmac('sha1', process.env.ONFIDO_WEBHOOK_SECRET)
+        .update(JSON.stringify(req.body)).digest('hex');
+    if (xheader === token) {
+      logger.info('WebHook received: id: ' + JSON.stringify(onfidoId) + ', action: ' + JSON.stringify(action) +
+        ', resourceType: ' + JSON.stringify(resourceType) + ', status: ' + JSON.stringify(status) +
+          ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
+      res.status(200).json({data: true});
+    } else {
+      res.status(400).json({data: false});
+    }
+  } catch (err) {
+    res.status(400).json({data: false});
+  }
+}
+
+/**
  * GET identity/application
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
@@ -226,6 +257,7 @@ function postApplication(req, res) {
 function getApplication(req, res) {
 
 }
+
 /**
  * GET identity/documents
  * @param {string} req - The incoming request.
@@ -242,4 +274,5 @@ module.exports = {
   getApplication,
   getDocuments,
   getMissingImages,
+  postWebHook,
 };

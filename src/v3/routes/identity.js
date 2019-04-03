@@ -27,5 +27,6 @@ router.route('/documents/').post(validate(getDocuments.validate),
     identityController.getDocuments);
 router.route('/missingimages/').get(validate(getMissingImages.validate),
     jwtAuthenticator({getUser: true}), identityController.getMissingImages);
+router.route('/webhook/').post(identityController.postWebHook);
 
 module.exports = router;
