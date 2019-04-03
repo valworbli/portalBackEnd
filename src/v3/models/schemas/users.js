@@ -61,6 +61,7 @@ const onFidoUsersSchema = new mongoose.Schema({
   onfido_status: {type: String, required: true},
   onfido_id: {type: String},
   onfido_error: {type: Boolean},
+  onfido_check: {type: String},
   error_created: {type: String},
   error_pending: {type: String},
 });

@@ -2,6 +2,7 @@ const Users = require('./schemas/users');
 const Const = require('../defs/const.js');
 const bigInt = require('big-integer');
 const crypto = require('crypto');
+const logger = require('../components/logger')(module);
 
 /**
  * getUserProfile
@@ -250,6 +251,33 @@ function createNetworkAccount(email, accountName) {
   });
 }
 
+/**
+ * onfidoCheckCompleted
+ * @param {string} checkId - the user's email
+ * @return {Promise} a Promise with the user or an error
+ */
+function onfidoCheckCompleted(checkId) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({'onfido.onfido_check': checkId}, function(err, user) {
+      if (err) {
+        logger.error('User with OnFido check: ' +
+          JSON.stringify(checkId) + ' NOT FOUND');
+        reject({err});
+      }
+
+      if (user) {
+        logger.info('Found a user ' + JSON.stringify(user.email)
+          + ' for check ' + JSON.stringify(checkId));
+        user.onfido.onfido_status = Const.ONFIDO_STATUS_APPROVED;
+        user.save(function(err, user) {
+          if (err) reject(err);
+          else resolve(user);
+        });
+      }
+    });
+  });
+}
+
 module.exports = {
   authenticateUser,
   checkUpdateUser,
@@ -260,4 +288,5 @@ module.exports = {
   getByNetworkAccount,
   createNetworkAccount,
   getUserProfile,
+  onfidoCheckCompleted,
 };

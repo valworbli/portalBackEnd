@@ -5,6 +5,7 @@ const IDDocs = require('../models/schemas/idDocs');
 const ofWrapper = require('../components/onfidoWrapper');
 const Const = require('../defs/const.js');
 const crypto = require('crypto');
+const Users = require('../models/users');
 
 /**
  * Internal _getMissingImages
@@ -180,6 +181,7 @@ function postApplication(req, res) {
                 logger.info('OnFido check started: ' +
                     JSON.stringify(check));
 
+                user.onfido.onfido_check = check.id;
                 user.onfido.onfido_status = Const.ONFIDO_STATUS_PENDING;
                 user.onfido.onfido_error = false;
               }).catch((error) => {
@@ -240,7 +242,13 @@ function postWebHook(req, res) {
       logger.info('WebHook received: id: ' + JSON.stringify(onfidoId) + ', action: ' + JSON.stringify(action) +
         ', resourceType: ' + JSON.stringify(resourceType) + ', status: ' + JSON.stringify(status) +
           ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
-      res.status(200).json({data: true});
+
+      Users.onfidoCheckCompleted(onfidoId).
+        then(function (user) {}).
+        catch(function(err) {
+        }).finally(() => {
+          res.status(200).json({data: true});
+        });
     } else {
       res.status(400).json({data: false});
     }

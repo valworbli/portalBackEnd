@@ -124,7 +124,6 @@ function startCheck(applicantId, checkType=Const.ONFIDO_CHECK_EXPRESS, asynchron
   const check = new OnFido.CheckCommon();
   check.type = checkType;
   check.asynchronous = asynchronous;
-  // check.reports = [{name: 'document'}, {name: 'facial_similarity'}];
   check.reports = [{name: 'document'}, {name: 'facial_similarity'}, {name: 'watchlist', variant: 'full'}];
 
   return api.createCheck(applicantId, check);
