@@ -2,6 +2,7 @@ const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
 
@@ -95,15 +96,17 @@ describe('## Visitor', () => {
           .catch(done);
     });
 
-    it('actual log in - should return 200 and data true', (done) => {
+    it('logs in - should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .send(defParams)
           .expect(HttpStatus.OK)
           .then((res) => {
-            expect(res.token).to.be.not.null;
-            expect({data: true});
+            assert(res.body.jwt, 'Err token is null or undefined');
+            assert(res.body.data === true, 'Err data is false');
+            assert(res.body.worbliAccountName === '',
+                'Err worbliAccountName is not empty');
             done();
           })
           .catch(done);

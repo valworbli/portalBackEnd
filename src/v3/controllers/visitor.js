@@ -22,7 +22,9 @@ function postSignin(req, res) {
         } else {
           const token = jwt.jwtWithExpiry({email}, '72h');
           const ofStatus = user.getOnFidoStatus();
-          res.status(HttpStatus.OK).json({...ofStatus, data: true, jwt: token});
+          res.status(HttpStatus.OK).json({...ofStatus, data: true, jwt: token,
+            worbliAccountName: user.worbli_account_name ?
+              user.worbli_account_name: ''});
         }
       }).catch((err) => {
         logger.error('Error authenticating the user: ' + JSON.stringify(err));

@@ -27,8 +27,11 @@ function getProfile(req, res) {
  * @param {string} res - The outgoing response.
  */
 function getState(req, res) {
-  const ofStatus = req.worbliUser.user.getOnFidoStatus();
-  res.status(HttpStatus.OK).json({...ofStatus, data: true});
+  const {user} = req.worbliUser;
+  const ofStatus = user.getOnFidoStatus();
+  res.status(HttpStatus.OK).json({...ofStatus, data: true,
+    worbliAccountName: user.worbli_account_name ?
+      user.worbli_account_name: ''});
 }
 
 /**
