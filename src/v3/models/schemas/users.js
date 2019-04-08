@@ -15,6 +15,23 @@ identityImagesSchema.methods.pushDocumentUnique = function(docName) {
   }
 };
 
+identityImagesSchema.methods.delDocument = function(docName) {
+  let index = undefined;
+  for (const ind in this.uploaded_documents) {
+    if (this.uploaded_documents[ind] === docName) {
+      index = ind;
+      break;
+    }
+  }
+
+  if (index) {
+    this.uploaded_documents.splice(index, 1);
+    return true;
+  }
+
+  return false;
+};
+
 identityImagesSchema.methods.verify = function(accepted) {
   const missingDocuments = [];
   let docType = undefined;
@@ -62,8 +79,7 @@ const onFidoUsersSchema = new mongoose.Schema({
   onfido_id: {type: String},
   onfido_error: {type: Boolean},
   onfido_check: {type: String},
-  error_created: {type: String},
-  error_pending: {type: String},
+  onfido_error_message: {type: String},
 });
 
 const usersSchema = new mongoose.Schema({
@@ -147,10 +163,17 @@ usersSchema.methods.initIDImages = function(force=false) {
 };
 
 usersSchema.methods.getOnFidoStatus = function() {
+  const resp = { };
   if (this.onfido) {
-    return {status: this.onfido.onfido_status,
-      errored: (this.onfido.onfido_error === undefined ?
-        false : this.onfido.onfido_error)};
+    resp['status'] = this.onfido.onfido_status;
+    if (this.onfido.onfido_error) {
+      resp['errored'] = true;
+      resp['errorMessage'] = this.onfido.onfido_error_message;
+    } else {
+      resp['errored'] = false;
+    }
+
+    return resp;
   } else {
     return {status: Const.ONFIDO_STATUS_NONE, errored: false};
   }
