@@ -44,7 +44,11 @@ module.exports = function(options) {
           if (docType === Const.ID_SELFIE) {
             func = ofWrapper.uploadLivePhoto(user.onfido.onfido_id, image);
           } else {
-            func = ofWrapper.uploadDocument(user.onfido.onfido_id, docType, image, {side});
+            if (docType === 'driving_license') {
+              func = ofWrapper.uploadDocument(user.onfido.onfido_id, 'driving_licence', image, {side});
+            } else {
+              func = ofWrapper.uploadDocument(user.onfido.onfido_id, docType, image, {side});
+            }
             printName = 'DOCUMENT';
           }
 

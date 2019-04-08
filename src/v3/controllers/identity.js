@@ -141,6 +141,30 @@ function getImage(req, res) {
 }
 
 /**
+ * DEL identity/image
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ */
+function delImage(req, res) {
+  // const {user} = req.worbliUser;
+  // let resp = undefined;
+
+  // for (const file in req.body.files) {
+  //   user.identity_images.delDocument(file);
+  // }
+
+  // user.save(function(err, user) {
+  //   _getMissingImages(user).then((response) => {
+  //     resp = response;
+  //   }).catch((response) => {
+  //     resp = response;
+  //   }).finally(() => {
+  //     res.status(resp.status).json(resp.body);
+  //   });
+  // });
+}
+
+/**
  * POST identity/application
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
@@ -177,37 +201,47 @@ function postApplication(req, res) {
               error: 'Error saving the user, please try again later.'});
           } else {
             if (user.onfido.onfido_status === Const.ONFIDO_STATUS_CREATED) {
-              Promise.all([ofWrapper.updateApplicant(user),
-                ofWrapper.startCheck(user.onfido.onfido_id)]).then(function(values) {
-                const applicant = values[0];
+              ofWrapper.updateApplicant(user).then(function(applicant) {
                 logger.info('OnFido Applicant UPDATED, id: ' +
                     JSON.stringify(applicant.id));
                 user.onfido.onfido_id = applicant.id;
 
-                const check = values[1];
-                logger.info('OnFido check started: ' +
-                    JSON.stringify(check));
+                ofWrapper.startCheck(user.onfido.onfido_id).then(function(check) {
+                  logger.info('OnFido check started: ' +
+                      JSON.stringify(check));
 
-                user.onfido.onfido_check = check.id;
-                user.onfido.onfido_status = Const.ONFIDO_STATUS_PENDING;
-                user.onfido.onfido_error = false;
-              }).catch((error) => {
-                logger.error('OnFido Applicant ERRORED' +
+                  user.onfido.onfido_check = check.id;
+                  user.onfido.onfido_status = Const.ONFIDO_STATUS_PENDING;
+                  user.onfido.onfido_error = false;
+                }).catch(function(error) {
+                  logger.error('OnFido START check ERRORED: ' +
+                        JSON.stringify(error.response.body));
+                  user.onfido.onfido_error = true;
+                  user.onfido.onfido_status = Const.ONFIDO_STATUS_REJECTED;
+                  user.onfido.onfido_error_message = JSON.stringify(error.response.body);
+                }).finally(() => {
+                  logger.info('The user\'s ONFIDO status is now ' +
+                    JSON.stringify(user.onfido.onfido_status));
+                  user.save(function(err, user) {
+                    if (err) {
+                      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                        data: false,
+                        error: 'Error saving the user\'s details after OF, please try again later.'});
+                    } else {
+                      const ofStatus = user.getOnFidoStatus();
+                      res.status(HttpStatus.OK).json({...ofStatus, data: !ofStatus.errored});
+                    }
+                  });
+                });
+              }).catch(function(error) {
+                logger.error('OnFido UPDATE Applicant ERRORED: ' +
                       JSON.stringify(error.response.body));
                 user.onfido.onfido_error = true;
-                user.onfido.onfido_status = Const.ONFIDO_STATUS_CREATED;
-              }).finally(() => {
-                logger.info('The user\'s ONFIDO status is now ' +
-                    JSON.stringify(user.onfido.onfido_status));
+                user.onfido.onfido_error_message = JSON.stringify(error.response.body);
                 user.save(function(err, user) {
-                  if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                      data: false,
-                      error: 'Error saving the user\'s details after OF, please try again later.'});
-                  } else {
-                    const ofStatus = user.getOnFidoStatus();
-                    res.status(HttpStatus.OK).json({...ofStatus, data: true});
-                  }
+                  const ofStatus = user.getOnFidoStatus();
+                  res.status(HttpStatus.OK).json({...ofStatus, data: false});
+                  return;
                 });
               });
             } else {
@@ -320,6 +354,7 @@ function getDocuments(req, res) {
 module.exports = {
   postImage,
   getImage,
+  delImage,
   postApplication,
   getApplication,
   getDocuments,

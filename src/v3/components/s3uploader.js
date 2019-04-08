@@ -29,7 +29,7 @@ module.exports = function(options) {
         await (async () => {
           const filesCount = req.files.length;
 
-          const fName = prefix + element.fieldname + '.jpg';
+          const fName = prefix + element.fieldname + '_' + Date.now() + '.jpg';
           // logger.info('===== S3 UPLOADING ' + fName);
           const params = {
             Bucket: process.env.S3_IMAGES_BUCKET_NAME,

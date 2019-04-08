@@ -96,6 +96,22 @@ describe('## User', function() {
           .catch(done);
     });
 
+    // eslint-disable-next-line max-len
+    it('should return 400 and data false as some of the data is missing', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({middleName: 'Mozo', lastName: 'Zozo',
+            country: 'BGR', day: 9, month: 9, year: 1944, gender: 'Male'})
+          .expect(HttpStatus.BAD_REQUEST)
+          .then((res) => {
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
     it('uploads images - should return 200 and data true', (done) => {
       request(app)
           .post('/api/v3/identity/image/')
@@ -117,6 +133,21 @@ describe('## User', function() {
     });
 
     // eslint-disable-next-line max-len
+    it('should return 200 and data false as the input is OnFido invalid', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({firstName: 'Bozo', middleName: 'Mozo', lastName: 'Z',
+            country: 'BGR', day: 9, month: 9, year: 1944, gender: 'Male'})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === false, 'Err data is not true');
+            done();
+          }).catch(done);
+    });
+
+    // eslint-disable-next-line max-len
     it('submits an application - should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
@@ -134,22 +165,6 @@ describe('## User', function() {
               done();
             });
           }).catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 400 and data false as some of the data is missing', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({middleName: 'Mozo', lastName: 'Zozo',
-            country: 'BGR', day: 9, month: 9, year: 1944, gender: 'Male'})
-          .expect(HttpStatus.BAD_REQUEST)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
     });
 
     // eslint-disable-next-line max-len
