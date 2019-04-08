@@ -34,7 +34,7 @@ function _getMissingImages(user) {
             error: 'Malformed request submitted!'}});
         } else {
           resolve({status: HttpStatus.OK, body: {
-            completed: user.identity_images.completed,
+            completed: result.missingDocuments.length === 0,
             missingDocuments: result.missingDocuments,
             data: true,
           }});
@@ -146,22 +146,20 @@ function getImage(req, res) {
  * @param {string} res - The outcoming response.
  */
 function delImage(req, res) {
-  // const {user} = req.worbliUser;
-  // let resp = undefined;
+  const {user} = req.worbliUser;
+  let resp = undefined;
 
-  // for (const file in req.body.files) {
-  //   user.identity_images.delDocument(file);
-  // }
+  user.identity_images.delDocument(req.params['doctype']);
 
-  // user.save(function(err, user) {
-  //   _getMissingImages(user).then((response) => {
-  //     resp = response;
-  //   }).catch((response) => {
-  //     resp = response;
-  //   }).finally(() => {
-  //     res.status(resp.status).json(resp.body);
-  //   });
-  // });
+  _getMissingImages(user).then(async (response) => {
+    resp = response;
+    user.identity_images.completed = response.body.completed;
+    await user.save();
+  }).catch((response) => {
+    resp = response;
+  }).finally(() => {
+    res.status(resp.status).json(resp.body);
+  });
 }
 
 /**
