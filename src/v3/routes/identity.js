@@ -9,6 +9,7 @@ const ofUploader = require('../components/onfidoUploader')({markFailed: true});
 
 const postImage = require('../validators/identity/postImage.js');
 const getImage = require('../validators/identity/getImage.js');
+const delImage = require('../validators/identity/delImage.js');
 const postApplication = require('../validators/identity/postApplication.js');
 const getApplication = require('../validators/identity/getApplication.js');
 const getDocuments = require('../validators/identity/getDocuments.js');
@@ -16,6 +17,8 @@ const getMissingImages = require('../validators/identity/getMissingImages.js');
 
 router.route('/image/').get(validate(getImage.validate),
     identityController.getImage);
+router.route('/image/').delete(validate(delImage.validate),
+    identityController.delImage);
 router.route('/image/').post(validate(postImage.validate),
     jwtAuthenticator({getUser: true}), upload.any(),
     ofUploader, s3upload, identityController.postImage);
