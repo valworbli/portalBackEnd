@@ -149,12 +149,16 @@ function delImage(req, res) {
   const {user} = req.worbliUser;
   let resp = undefined;
 
-  user.identity_images.delDocument(req.params['doctype']);
+  if (user.identity_images) {
+    user.identity_images.delDocument(req.params['doctype']);
+  }
 
   _getMissingImages(user).then(async (response) => {
     resp = response;
-    user.identity_images.completed = response.body.completed;
-    await user.save();
+    if (user.identity_images) {
+      user.identity_images.completed = response.body.completed;
+      await user.save();
+    }
   }).catch((response) => {
     resp = response;
   }).finally(() => {
