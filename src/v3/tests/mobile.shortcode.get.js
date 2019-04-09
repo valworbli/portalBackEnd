@@ -15,9 +15,9 @@ mongoose.Promise = Promise;
 
 chai.config.includeStack = true;
 
-const baseTestUrl = '/api/v3/identity/';
+const baseTestUrl = '/api/v3/mobile/';
 const defUser = new Users({
-  email: 'test14@example.com',
+  email: 'test313@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
@@ -32,12 +32,12 @@ const _saveDefUser = function(done) {
   });
 };
 
-describe('## User', function() {
+describe('## Mobile', function() {
   this.timeout(5000);
-  const testUrl = baseTestUrl + 'image/';
+  const testUrl = baseTestUrl + 'shortcode/';
   let jwtToken = '';
 
-  describe(`# DELETE ${testUrl}`, () => {
+  describe(`# GET ${testUrl}`, () => {
     let mustDisconnect = false;
     before(function(done) {
       if (mongoose.connection.readyState === 0) {
@@ -97,82 +97,16 @@ describe('## User', function() {
           .catch(done);
     });
 
-    it('deletes a non-existing image - should return 200 and data true and completed false', (done) => {
+    it('generates a short code - should return 200 and data true', (done) => {
       request(app)
-          .delete(testUrl + 'selfie')
+          .get(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.completed === false, 'Err completed is not true');
-            assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
-            done();
-          })
-          .catch(done);
-    });
-
-    it('uploads images - should return 200 and data true', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-          .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-          .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.completed === true, 'Err completed is not true');
-            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
-            done();
-          })
-          .catch(done);
-    });
-
-    it('deletes the selfie - should return 200 and data true and completed false', (done) => {
-      request(app)
-          .delete(testUrl + 'selfie')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.completed === false, 'Err completed is not true');
-            assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
-            done();
-          })
-          .catch(done);
-    });
-
-    it('uploads additional images - should return 200, data true and completed true', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-          .attach('BGR_passport', 'src/samples/images/sampleID-front.jpg')
-          .attach('BGR_driving_license', 'src/samples/images/sampleID-back.jpg')
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.completed === true, 'Err completed is not false');
-            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
-            done();
-          })
-          .catch(done);
-    });
-
-    it('deletes the passport - should return 200 and data true and completed true', (done) => {
-      request(app)
-          .delete(testUrl + 'passport')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.completed === true, 'Err completed is not true');
-            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
+            assert(res.body.shortcode > 99999, 'Err shortcode is less than 100000');
+            assert(res.body.shortcode < 1000000, 'Err shortcode is greater than 1000000');
             done();
           })
           .catch(done);
@@ -181,12 +115,11 @@ describe('## User', function() {
     // eslint-disable-next-line max-len
     it('should return 400 because the token is missing', (done) => {
       request(app)
-          .post(testUrl)
+          .get(testUrl)
           .set('Accept', 'application/json')
-          .send()
+          .send({number: '+15551234567', message: 'Sample message'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
-            expect({data: false});
             done();
           })
           .catch(done);
@@ -195,13 +128,13 @@ describe('## User', function() {
     // eslint-disable-next-line max-len
     it('should return 401 because the token is malformed', (done) => {
       request(app)
-          .post(testUrl)
+          .get(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
-          .send()
+          .send({number: '+15551234567', message: 'Sample message'})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
-            expect({data: false});
+            assert(res.body.data === false, 'Err data is not false');
             done();
           })
           .catch(done);

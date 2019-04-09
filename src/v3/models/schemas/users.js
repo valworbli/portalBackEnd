@@ -114,6 +114,7 @@ const usersSchema = new mongoose.Schema({
   reset_on: {type: Date},
   reset_from_ip: {type: String},
   identity_images: identityImagesSchema,
+  shortcode: {type: String},
 });
 
 usersSchema.pre('save', function(next) {

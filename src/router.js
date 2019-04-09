@@ -17,6 +17,7 @@ const userRoutesV3 = require('./v3/routes/user.js');
 const identityRoutesV3 = require('./v3/routes/identity.js');
 const networkRoutesV3 = require('./v3/routes/network.js');
 const healthRoutesV3 = require('./v3/routes/health.js');
+const mobileRoutesV3 = require('./v3/routes/mobile.js');
 
 const router = new express.Router();
 // Version 1
@@ -37,5 +38,6 @@ router.use('/api/v3/user', userRoutesV3);
 router.use('/api/v3/identity', identityRoutesV3);
 router.use('/api/v3/network', networkRoutesV3);
 router.use('/api/v3/health', healthRoutesV3);
+router.use('/api/v3/mobile', mobileRoutesV3);
 
 module.exports = router;
