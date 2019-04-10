@@ -2,6 +2,8 @@
 const HttpStatus = require('http-status-codes');
 const logger = require('../components/logger')(module);
 const Const = require('../defs/const.js');
+const Users = require('../models/users');
+const jwt = require('../components/jwt');
 
 const AWS = require('aws-sdk');
 AWS.config.update({
@@ -9,6 +11,7 @@ AWS.config.update({
   'secretAccessKey': process.env.SES_SECRET_ACCESS_KEY,
   'region': process.env.SQS_REGION,
 });
+
 const sns = new AWS.SNS({apiVersion: '2010-03-31'});
 
 /**
@@ -53,7 +56,6 @@ function randomIntFromInterval(min=Const.SHORTCODE_MIN, max=Const.SHORTCODE_MAX)
  * GET mobile/shortcode
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
- * @property {string} accountName - The Worbli account name to check.
  */
 function getShortCode(req, res) {
   const {user} = req.worbliUser;
@@ -68,22 +70,45 @@ function getShortCode(req, res) {
       res.status(HttpStatus.OK).json({data: true, shortcode: shortCode});
     }
   });
-  // const {accountName} = req.params;
+}
 
-  // _checkAccountName(accountName)
-  //     .then(function() {
-  //       res.status(HttpStatus.OK).json({data: true});
-  //     }).catch(function(err) {
-  //       if (err) {
-  //         res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-  //             .json({data: false, error: err});
-  //       } else {
-  //         res.status(HttpStatus.OK).json({data: false});
-  //       }
-  //     });
+/**
+ * POST mobile/shortcode
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ */
+function postShortCode(req, res) {
+  const {shortcode} = req.body;
+
+  Users.findUserByShortCode(shortcode).then(function(user) {
+    if (!user) {
+      res.status(HttpStatus.BAD_REQUEST)
+          .json({data: false, error: 'Failed to authenticate the short code'});
+    } else {
+      user.shortcode = undefined;
+      user.save(function(err, user) {
+        if (err) {
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .json({data: false, error: 'Failed to authenticate the short code, please try again later'});
+        } else {
+          if (!user) {
+            res.status(HttpStatus.BAD_REQUEST)
+                .json({data: false, error: 'Failed to authenticate the short code'});
+          } else {
+            const token = jwt.jwtWithExpiry({email: user.email}, '72h');
+            res.status(HttpStatus.OK).json({data: true, jwt: token});
+          }
+        }
+      });
+    }
+  }).catch(function(err) {
+    res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({data: false, error: 'Failed to authenticate the short code, please try again later'});
+  });
 }
 
 module.exports = {
   postSMS,
   getShortCode,
+  postShortCode,
 };

@@ -17,7 +17,7 @@ chai.config.includeStack = true;
 
 const baseTestUrl = '/api/v3/mobile/';
 const defUser = new Users({
-  email: 'test312@example.com',
+  email: 'test314@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
@@ -34,8 +34,8 @@ const _saveDefUser = function(done) {
 
 describe('## Mobile', function() {
   this.timeout(5000);
-  const testUrl = baseTestUrl + 'sms/';
-  let jwtToken = '';
+  const testUrl = baseTestUrl + 'shortcode/';
+  let jwtToken = ''; let shortcode = 0;
 
   describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -97,12 +97,39 @@ describe('## Mobile', function() {
           .catch(done);
     });
 
-    it('sends an SMS - should return 200 and data true', (done) => {
+    it('gets a shortcode - should return 200 and data true', (done) => {
+      request(app)
+          .get(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            shortcode = Number(res.body.shortcode);
+            done();
+          })
+          .catch(done);
+    });
+
+    // eslint-disable-next-line max-len
+    it('should return 400 and data false because the shortcode is invalid', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+004135364493333', message: 'Hello, world!'})
+          .send({shortcode: shortcode - 1})
+          .expect(HttpStatus.BAD_REQUEST)
+          .then((res) => {
+            assert(res.body.data === false, 'Err data is not false');
+            done();
+          })
+          .catch(done);
+    });
+
+    it('authenticates with a valid shortcode - should return 200 and data true', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .send({shortcode: shortcode})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
@@ -112,40 +139,10 @@ describe('## Mobile', function() {
     });
 
     // eslint-disable-next-line max-len
-    it('should return 400 because the token is missing', (done) => {
+    it('should return 400 because the shortcode is missing', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567', message: 'Sample message'})
-          .expect(HttpStatus.BAD_REQUEST)
-          .then((res) => {
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 401 because the token is malformed', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
-          .set('Accept', 'application/json')
-          .send({number: '+15551234567', message: 'Sample message'})
-          .expect(HttpStatus.UNAUTHORIZED)
-          .then((res) => {
-            assert(res.body.data === false, 'Err data is not false');
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 400 and data false because the input data is invalid', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+1555123456743943938378373', message: 'Sample message'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             done();

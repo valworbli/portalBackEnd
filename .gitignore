@@ -65,3 +65,4 @@ typings/
 aws-config.json
 
 package-lock.json
+identity_parser/*

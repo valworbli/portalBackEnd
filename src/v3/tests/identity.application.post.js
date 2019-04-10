@@ -138,11 +138,13 @@ describe('## User', function() {
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
+          // eslint-disable-next-line no-irregular-whitespace
+          // empty space is ' '
           .send({firstName: 'Bozo', middleName: 'Mozo', lastName: 'Z',
             country: 'BGR', day: 9, month: 9, year: 1944, gender: 'Male'})
           .expect(HttpStatus.OK)
           .then((res) => {
-            assert(res.body.data === false, 'Err data is not true');
+            assert(res.body.data === false, 'Err data is not false');
             done();
           }).catch(done);
     });

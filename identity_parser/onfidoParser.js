@@ -2,47 +2,50 @@
 const fs =require('fs');
 
 async function Reader() {
-  let ofDocRaw = fs.readFileSync(process.argv[2]);
-  let ourDocRaw = fs.readFileSync(process.argv[3]);
-  let ofDoc = JSON.parse(ofDocRaw);
-  let ourDoc = JSON.parse(ourDocRaw);
+  const ofDocRaw = fs.readFileSync(process.argv[2]);
+  const ourDocRaw = fs.readFileSync(process.argv[3]);
+  const ofDoc = JSON.parse(ofDocRaw);
+  const ourDoc = JSON.parse(ourDocRaw);
 
-  var regex = / /gi;
-  var notFound = [];
+  const regex = / /gi;
+  const notFound = [];
   // console.log('ONFIDO document has ' + ofDoc.length + ' entries');
   // console.log('OUR document has ' + ourDoc.length + ' entries');
 
-  for (let ofEntry of ofDoc) {
-    var arr = [];
+  for (const ofEntry of ofDoc) {
+    const arr = [];
 
     // console.log(ofEntry['country_name'] + ':');
-    var docs = ofEntry['doc_types_list'].split(',');
+    const docs = ofEntry['doc_types_list'].split(',');
     for (let doc of docs) {
       if (doc.includes('and')) {
-        var splitDoc = doc.split('and');
-        for (let x of splitDoc) {
-          var z = x.trim().toLowerCase();
-          if (z.endsWith('**'))
+        const splitDoc = doc.split('and');
+        for (const x of splitDoc) {
+          const z = x.trim().toLowerCase();
+          if (z.endsWith('**')) {
             continue;
+          }
           if (z.length > 0) {
             arr.push(z.replace(regex, '_'));
           }
         }
       } else {
         doc = doc.trim().toLowerCase();
-        if (doc.endsWith('**'))
+        if (doc.endsWith('**')) {
           continue;
-        if (doc.length > 0)
+        }
+        if (doc.length > 0) {
           arr.push(doc.replace(regex, '_'));
+        }
       }
     }
 
-    var found = false;
-    for (let ourEntry of ourDoc) {
+    let found = false;
+    for (const ourEntry of ourDoc) {
       if (ourEntry['name'] === ofEntry['country_name']) {
-        var obj = {};
-        for(let doc of arr) {
-          var back = false;
+        const obj = {};
+        for (let doc of arr) {
+          let back = false;
           if (doc.endsWith('*')) {
             doc = doc.replace('*', '');
             back = true;
@@ -71,7 +74,7 @@ async function Reader() {
     console.log('');
   }
 
-  for (let entry of notFound) {
+  for (const entry of notFound) {
     console.log(JSON.stringify(entry) + ' has not been found in our table!');
   }
 }
