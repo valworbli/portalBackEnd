@@ -10,7 +10,7 @@ const identityImagesSchema = new mongoose.Schema({
 });
 
 const shortcodeDataSchema = new mongoose.Schema({
-  files: {type: Array, required: true},
+  files: {type: String, required: true},
   country: {type: String, required: true, index: true},
 });
 

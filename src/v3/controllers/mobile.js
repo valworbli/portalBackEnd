@@ -22,11 +22,13 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
 function postSMS(req, res) {
   const {user} = req.worbliUser;
   const {number, message, country, files} = req.body;
+  logger.info('FILES: ' + files);
 
-  user.shortcodeData = {files, country};
+  user.shortcodeData = {files: files, country: country};
+  logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
     if (err) {
-      logger.error('Failed to send the SMS!');
+      logger.error('Failed to save the user when sending the SMS: ' + JSON.stringify(err));
       res.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .json({data: false, error: 'Failed to send out the SMS, please try again later'});
     } else {
@@ -38,12 +40,12 @@ function postSMS(req, res) {
           logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
           res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode});
         }).catch(function(err) {
-          logger.error('Failed to send the SMS!');
+          logger.error('Failed to send the SMS: ' + JSON.stringify(err));
           res.status(HttpStatus.INTERNAL_SERVER_ERROR)
               .json({data: false, error: 'Failed to send out the SMS, please try again later'});
         });
       }).catch(function(err) {
-        logger.error('Failed to set the SMS type to Transactional!');
+        logger.error('Failed to set the SMS type to Transactional: ' + JSON.stringify(err));
         res.status(HttpStatus.INTERNAL_SERVER_ERROR)
             .json({data: false, error: 'Failed to send out the SMS, please try again later'});
       });
