@@ -21,9 +21,9 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
  */
 function postSMS(req, res) {
   const {user} = req.worbliUser;
-  const {number, message, country, fields} = req.body;
+  const {number, message, country, files} = req.body;
 
-  user.shortcodeData = {fields, country};
+  user.shortcodeData = {files, country};
   user.save(function(err, user) {
     if (err) {
       logger.error('Failed to send the SMS!');
@@ -97,7 +97,7 @@ function postShortCode(req, res) {
     } else {
       const shortcodeData = {
         country: user.shortcodeData.country,
-        fields: user.shortcodeData.fields,
+        files: user.shortcodeData.files,
       };
       user.shortcode = undefined;
       user.shortcodeData = undefined;
@@ -112,10 +112,7 @@ function postShortCode(req, res) {
                 .json({data: false, error: 'Failed to authenticate the short code'});
           } else {
             const token = jwt.jwtWithExpiry({email: user.email}, '72h');
-            logger.info('Returning ' + JSON.stringify({country: shortcodeData.country,
-              fields: shortcodeData.fields, data: true, jwt: token}));
-            res.status(HttpStatus.OK).json({country: shortcodeData.country,
-              fields: shortcodeData.fields, data: true, jwt: token});
+            res.status(HttpStatus.OK).json({...shortcodeData, data: true, jwt: token});
           }
         }
       });

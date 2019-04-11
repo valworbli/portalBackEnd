@@ -15,7 +15,7 @@ module.exports = {
           .error(() => 'The message is missing or is too long').required(),
       country: Joi.string().length(3).uppercase()
           .error(() => 'Invalid country provided').required(),
-      fields: Joi.array().items(Joi.string().max(128)).min(1).max(8)
+      files: Joi.array().items(Joi.string().max(128)).min(1).max(8)
           .error(() => 'Invalid fields provided').required(),
     },
   },

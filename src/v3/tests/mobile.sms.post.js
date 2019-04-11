@@ -109,7 +109,7 @@ describe('## Mobile', function() {
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .send({number: '+004135364493333', message: 'Hello, world!',
-            country: 'GBR', fields: ['drivers_licence']})
+            country: 'GBR', files: ['drivers_licence']})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
@@ -117,7 +117,7 @@ describe('## Mobile', function() {
             Users.findOne({email: defUser.email}, function(err, user) {
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
               assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-              assert(user.shortcodeData.fields[0] === 'drivers_licence', 'Err the stored document DOES NOT match the submitted one');
+              assert(user.shortcodeData.files[0] === 'drivers_licence', 'Err the stored document DOES NOT match the submitted one');
               done();
             });
           })
@@ -144,7 +144,7 @@ describe('## Mobile', function() {
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
           .send({number: '+15551234567', message: 'Sample message',
-            country: 'GBR', fields: ['drivers_licence']})
+            country: 'GBR', files: ['drivers_licence']})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
             assert(res.body.data === false, 'Err data is not false');
