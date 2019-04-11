@@ -36,7 +36,6 @@ function postSMS(req, res) {
 
         sns.publish(params).promise().then(function(data) {
           logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-          logger.info('Returning shortcode: ' + JSON.stringify(user.shortcode));
           res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode});
         }).catch(function(err) {
           logger.error('Failed to send the SMS!');
@@ -97,7 +96,7 @@ function postShortCode(req, res) {
     } else {
       const shortcodeData = {
         country: user.shortcodeData.country,
-        files: user.shortcodeData.files,
+        files: user.shortcodeData.files.slice(0),
       };
       user.shortcode = undefined;
       user.shortcodeData = undefined;

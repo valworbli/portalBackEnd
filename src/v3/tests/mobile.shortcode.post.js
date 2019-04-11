@@ -87,26 +87,6 @@ describe('## Mobile', function() {
           .catch(done);
     });
 
-    it('sends an SMS and saves some data - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/mobile/sms')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+004135364493333', message: 'Hello, world!',
-            country: 'GBR', files: ['drivers_licence']})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            Users.findOne({email: defUser.email}, function(err, user) {
-              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
-              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-              assert(user.shortcodeData.files[0] === 'drivers_licence', 'Err the stored document DOES NOT match the submitted one');
-              done();
-            });
-          })
-          .catch(done);
-    });
-
     it('gets a shortcode - should return 200 and data true', (done) => {
       request(app)
           .get(testUrl)
@@ -117,6 +97,27 @@ describe('## Mobile', function() {
             assert(res.body.data === true, 'Err data is not true');
             shortcode = Number(res.body.shortcode);
             done();
+          })
+          .catch(done);
+    });
+
+    it('sends an SMS - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/mobile/sms')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({number: '+004135364493333', message: 'Hello, world!',
+            country: 'GBR', files: [{'value': 'national_identity_card_reverse', 'label': 'national identity card reverse'}]})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(Number(res.body.shortcode) === shortcode, 'Err the returned shortcode DOES NOT match the submitted one');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.files[0].value === 'national_identity_card_reverse', 'Err the stored document DOES NOT match the submitted one');
+              done();
+            });
           })
           .catch(done);
     });
@@ -144,7 +145,7 @@ describe('## Mobile', function() {
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
             assert(res.body.country === 'GBR', 'Err the returned country DOES NOT match the submitted one');
-            assert(res.body.files[0] === 'drivers_licence', 'Err the returned document DOES NOT match the submitted one');
+            assert(res.body.files[0].value === 'national_identity_card_reverse', 'Err the returned document DOES NOT match the submitted one');
             done();
           })
           .catch(done);
