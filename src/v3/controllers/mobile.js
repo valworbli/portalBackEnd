@@ -22,9 +22,9 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
 function postSMS(req, res) {
   const {user} = req.worbliUser;
   const {number, message, country, files} = req.body;
-  logger.info('FILES: ' + files);
 
-  user.shortcodeData = {files: files, country: country};
+  user.shortcodeData = {files: JSON.stringify(files), country};
+
   logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
     if (err) {
@@ -98,7 +98,7 @@ function postShortCode(req, res) {
     } else {
       const shortcodeData = {
         country: user.shortcodeData.country,
-        files: user.shortcodeData.files.slice(0),
+        files: JSON.parse(user.shortcodeData.files),
       };
       user.shortcode = undefined;
       user.shortcodeData = undefined;
