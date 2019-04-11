@@ -20,25 +20,35 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
  * @param {string} res - The outcoming response.
  */
 function postSMS(req, res) {
-  // const {user} = req.worbliUser;
-  const {number, message} = req.body;
+  const {user} = req.worbliUser;
+  const {number, message, country, fields} = req.body;
 
-  sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
-    const params = {Message: message, PhoneNumber: number};
-    logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
-
-    sns.publish(params).promise().then(function(data) {
-      logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-      res.status(HttpStatus.OK).json({data: true});
-    }).catch(function(err) {
+  user.shortcodeData = {fields, country};
+  user.save(function(err, user) {
+    if (err) {
       logger.error('Failed to send the SMS!');
       res.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .json({data: false, error: 'Failed to send out the SMS, please try again later'});
-    });
-  }).catch(function(err) {
-    logger.error('Failed to set the SMS type to Transactional!');
-    res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+    } else {
+      sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
+        const params = {Message: message, PhoneNumber: number};
+        logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
+
+        sns.publish(params).promise().then(function(data) {
+          logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
+          logger.info('Returning shortcode: ' + JSON.stringify(user.shortcode));
+          res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode});
+        }).catch(function(err) {
+          logger.error('Failed to send the SMS!');
+          res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+        });
+      }).catch(function(err) {
+        logger.error('Failed to set the SMS type to Transactional!');
+        res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+      });
+    }
   });
 }
 
@@ -85,7 +95,13 @@ function postShortCode(req, res) {
       res.status(HttpStatus.BAD_REQUEST)
           .json({data: false, error: 'Failed to authenticate the short code'});
     } else {
+      const shortcodeData = {
+        country: user.shortcodeData.country,
+        fields: user.shortcodeData.fields,
+      };
       user.shortcode = undefined;
+      user.shortcodeData = undefined;
+
       user.save(function(err, user) {
         if (err) {
           res.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -96,7 +112,10 @@ function postShortCode(req, res) {
                 .json({data: false, error: 'Failed to authenticate the short code'});
           } else {
             const token = jwt.jwtWithExpiry({email: user.email}, '72h');
-            res.status(HttpStatus.OK).json({data: true, jwt: token});
+            logger.info('Returning ' + JSON.stringify({country: shortcodeData.country,
+              fields: shortcodeData.fields, data: true, jwt: token}));
+            res.status(HttpStatus.OK).json({country: shortcodeData.country,
+              fields: shortcodeData.fields, data: true, jwt: token});
           }
         }
       });

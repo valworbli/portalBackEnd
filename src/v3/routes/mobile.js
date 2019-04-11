@@ -9,7 +9,7 @@ const getShortCode = require('../validators/mobile/getShortCode');
 const postShortCode = require('../validators/mobile/postShortCode');
 
 router.route('/sms/').post(validate(postSMS.validate),
-    jwtAuthenticator({}), mobileController.postSMS);
+    jwtAuthenticator({getUser: true}), mobileController.postSMS);
 router.route('/shortcode/').get(validate(getShortCode.validate),
     jwtAuthenticator({getUser: true}), mobileController.getShortCode);
 router.route('/shortcode/').post(validate(postShortCode.validate),

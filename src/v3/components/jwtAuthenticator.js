@@ -16,7 +16,10 @@ module.exports = function(options) {
       if (options.getDBID || options.getUser) {
         Users.findOne({email: req.worbliUser.email}, function(err, user) {
           if (err || !user) {
-            throw (new Error('User DB ID could not be retrieved.'));
+            // throw (new Error('User DB ID could not be retrieved.'));
+            res.status(HttpStatus.UNAUTHORIZED)
+            // eslint-disable-next-line max-len
+                .json({data: false, error: 'Authentication failed: credentials wrong or missing.'});
           } else {
             if (options.getDBID) {
               req.worbliUser._id = '' + user._id;
@@ -25,8 +28,8 @@ module.exports = function(options) {
               req.worbliUser.user = user;
               req.worbliUser._id = '' + user._id;
             }
+            next();
           }
-          next();
         });
       } else {
         next();

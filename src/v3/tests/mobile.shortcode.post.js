@@ -28,7 +28,11 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    done();
+    user.verify_token = '';
+    user.save(function(err, user) {
+      expect(err).to.be.null;
+      done();
+    });
   });
 };
 
@@ -68,20 +72,6 @@ describe('## Mobile', function() {
       });
     });
 
-    it('verifies the user - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/user/verify/')
-          .auth()
-          .set('Accept', 'application/json')
-          .send({token: defUser.verify_token})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
-    });
-
     it('logs in - should return 200 and true', (done) => {
       request(app)
           .post('/api/v3/visitor/signin/')
@@ -93,6 +83,26 @@ describe('## Mobile', function() {
             expect({data: true});
             jwtToken = res.body.jwt;
             done();
+          })
+          .catch(done);
+    });
+
+    it('sends an SMS and saves some data - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/mobile/sms')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({number: '+004135364493333', message: 'Hello, world!',
+            country: 'GBR', fields: ['drivers_licence']})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.fields[0] === 'drivers_licence', 'Err the stored document DOES NOT match the submitted one');
+              done();
+            });
           })
           .catch(done);
     });
@@ -133,6 +143,8 @@ describe('## Mobile', function() {
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.country === 'GBR', 'Err the returned country DOES NOT match the submitted one');
+            assert(res.body.fields[0] === 'drivers_licence', 'Err the returned document DOES NOT match the submitted one');
             done();
           })
           .catch(done);

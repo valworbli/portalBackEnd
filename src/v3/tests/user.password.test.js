@@ -27,7 +27,11 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    done();
+    user.verify_token = '';
+    user.save(function(err, user) {
+      expect(err).to.be.null;
+      done();
+    });
   });
 };
 
@@ -63,20 +67,6 @@ describe('## User', () => {
           done();
         }
       });
-    });
-
-    it('verifies the user - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/user/verify/')
-          .auth()
-          .set('Accept', 'application/json')
-          .send({token: defUser.verify_token})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
     });
 
     it('should return 200 and data true', (done) => {

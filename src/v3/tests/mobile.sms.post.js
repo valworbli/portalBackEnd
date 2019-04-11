@@ -28,14 +28,18 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    done();
+    user.verify_token = '';
+    user.save(function(err, user) {
+      expect(err).to.be.null;
+      done();
+    });
   });
 };
 
 describe('## Mobile', function() {
   this.timeout(5000);
   const testUrl = baseTestUrl + 'sms/';
-  let jwtToken = '';
+  let jwtToken = ''; let shortcode = 0;
 
   describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -68,20 +72,6 @@ describe('## Mobile', function() {
       });
     });
 
-    it('verifies the user - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/user/verify/')
-          .auth()
-          .set('Accept', 'application/json')
-          .send({token: defUser.verify_token})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
-    });
-
     it('logs in - should return 200 and true', (done) => {
       request(app)
           .post('/api/v3/visitor/signin/')
@@ -97,16 +87,39 @@ describe('## Mobile', function() {
           .catch(done);
     });
 
+    it('generates a short code - should return 200 and data true', (done) => {
+      request(app)
+          .get('/api/v3/mobile/shortcode')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.shortcode > 99999, 'Err shortcode is less than 100000');
+            assert(res.body.shortcode < 1000000, 'Err shortcode is greater than 1000000');
+            shortcode = res.body.shortcode;
+            done();
+          })
+          .catch(done);
+    });
+
     it('sends an SMS - should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+004135364493333', message: 'Hello, world!'})
+          .send({number: '+004135364493333', message: 'Hello, world!',
+            country: 'GBR', fields: ['drivers_licence']})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
-            done();
+            assert(Number(res.body.shortcode) === shortcode, 'Err the returned shortcode DOES NOT match the submitted one');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.fields[0] === 'drivers_licence', 'Err the stored document DOES NOT match the submitted one');
+              done();
+            });
           })
           .catch(done);
     });
@@ -130,7 +143,8 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567', message: 'Sample message'})
+          .send({number: '+15551234567', message: 'Sample message',
+            country: 'GBR', fields: ['drivers_licence']})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
             assert(res.body.data === false, 'Err data is not false');
