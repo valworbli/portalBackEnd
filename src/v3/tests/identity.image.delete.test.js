@@ -99,17 +99,17 @@ describe('## User', function() {
 
     it('deletes a non-existing image - should return 200 and data true and completed false', (done) => {
       request(app)
-        .delete(testUrl + 'selfie')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${jwtToken}`)
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          assert(res.body.data === true, 'Err data is not true');
-          assert(res.body.completed === false, 'Err completed is not true');
-          assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
-          done();
-        })
-        .catch(done);
+          .delete(testUrl + 'selfie')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === false, 'Err completed is not true');
+            assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
+            done();
+          })
+          .catch(done);
     });
 
     it('uploads images - should return 200 and data true', (done) => {
@@ -132,17 +132,17 @@ describe('## User', function() {
 
     it('deletes the selfie - should return 200 and data true and completed false', (done) => {
       request(app)
-        .delete(testUrl + 'selfie')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${jwtToken}`)
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          assert(res.body.data === true, 'Err data is not true');
-          assert(res.body.completed === false, 'Err completed is not true');
-          assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
-          done();
-        })
-        .catch(done);
+          .delete(testUrl + 'selfie')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === false, 'Err completed is not true');
+            assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
+            done();
+          })
+          .catch(done);
     });
 
     it('uploads additional images - should return 200, data true and completed true', (done) => {
@@ -165,17 +165,17 @@ describe('## User', function() {
 
     it('deletes the passport - should return 200 and data true and completed true', (done) => {
       request(app)
-        .delete(testUrl + 'passport')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${jwtToken}`)
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          assert(res.body.data === true, 'Err data is not true');
-          assert(res.body.completed === true, 'Err completed is not true');
-          assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
-          done();
-        })
-        .catch(done);
+          .delete(testUrl + 'passport')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.completed === true, 'Err completed is not true');
+            assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
+            done();
+          })
+          .catch(done);
     });
 
     // eslint-disable-next-line max-len
