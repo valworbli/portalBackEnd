@@ -1,0 +1,19 @@
+{
+  "nyc": {
+    "include": [
+      "src/v3/*.js"
+    ],
+    "exclude": [
+      "src/v3/tests/**",
+      "coverage/**",
+      "packages/*/test/**",
+      "test/**",
+      "test{,-*}.js",
+      "**/*{.,-}test.js",
+      "**/__tests__/**",
+      "**/node_modules/**",
+      "**/babel.config.js",
+      "**/*.spec.js"
+    ]
+  }
+}

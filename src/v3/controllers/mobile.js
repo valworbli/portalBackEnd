@@ -21,9 +21,23 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
  */
 function postSMS(req, res) {
   const {user} = req.worbliUser;
-  const {number, message, country, files} = req.body;
+  let {number, message, country, files} = req.body;
 
   user.shortcodeData = {files: JSON.stringify(files), country};
+  if (!user.shortcode) {
+    const shortCode = randomIntFromInterval(Const.SHORTCODE_MIN, Const.SHORTCODE_MAX);
+    user.shortcode = shortCode;
+  }
+
+  const myLink = `https://${process.env.FRONT_END_URL}/id/${user.shortcode}`;
+  const myMessage = `WORBLI: Tap this link to upload your photos: ${myLink}`;
+
+  if (message !== myMessage) {
+    logger.error('++++ The POSTed message DOES NOT equal the generated one:');
+    logger.error('++++ generated: ' + JSON.stringify(myMessage));
+    logger.error('++++ POSTed: ' + JSON.stringify(message));
+    message = myMessage;
+  }
 
   logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
@@ -38,7 +52,7 @@ function postSMS(req, res) {
 
         sns.publish(params).promise().then(function(data) {
           logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-          res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode});
+          res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
         }).catch(function(err) {
           logger.error('Failed to send the SMS: ' + JSON.stringify(err));
           res.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -66,6 +66,12 @@ describe('## User', function() {
       });
     });
 
+    beforeEach(function(done) {
+      setTimeout(function() {
+        done();
+      }, 500);
+    });
+
     it('verifies the user - should return 200 and data true', (done) => {
       request(app)
           .post('/api/v3/user/verify/')

@@ -114,6 +114,7 @@ describe('## Mobile', function() {
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
             assert(Number(res.body.shortcode) === shortcode, 'Err the returned shortcode DOES NOT match the submitted one');
+            assert(res.body.link.endsWith('/id/' + JSON.stringify(shortcode)), 'Err the link DOES NOT match!');
             Users.findOne({email: defUser.email}, function(err, user) {
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
               assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');

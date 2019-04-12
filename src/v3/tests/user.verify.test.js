@@ -66,6 +66,12 @@ describe('## User', () => {
       });
     });
 
+    beforeEach(function(done) {
+      setTimeout(function() {
+        done();
+      }, 500);
+    });
+
     it('should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
