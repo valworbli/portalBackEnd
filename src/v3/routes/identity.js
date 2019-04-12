@@ -17,8 +17,8 @@ const getMissingImages = require('../validators/identity/getMissingImages.js');
 
 router.route('/image/').get(validate(getImage.validate),
     identityController.getImage);
-router.route('/image/').delete(validate(delImage.validate),
-    identityController.delImage);
+router.route('/image/:doctype').delete(validate(delImage.validate),
+    jwtAuthenticator({getUser: true}), identityController.delImage);
 router.route('/image/').post(validate(postImage.validate),
     jwtAuthenticator({getUser: true}), upload.any(),
     ofUploader, s3upload, identityController.postImage);

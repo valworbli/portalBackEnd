@@ -8,8 +8,8 @@ module.exports = {
       authorization: Joi.string().regex(regex)
           .error(() => 'Invalid token').required(),
     },
-    body: {
-      files: Joi.array().items(Joi.string()).required(),
+    params: {
+      doctype: Joi.string().required(),
     },
   },
 };
