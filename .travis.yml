@@ -45,31 +45,6 @@ deploy:
     branch: uat_v3
   region: us-west-2
   wait_until_deployed: true
-- provider: s3
-  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-  bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
-  local_dir: dpl_cd_upload
-  key: latest.zip
-  bundle_type: zip
-  skip_cleanup: true
-  on: 
-    repo: worbli/portalBackEnd
-    branch: uat_v3
-  region: us-west-2
-- provider: codedeploy
-  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-  bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
-  key: latest.zip
-  bundle_type: zip
-  application: $AWS_CODE_DEPLOY_APPLICATION
-  deployment_group: $AWS_UAT_CODE_DEPLOY_DEPLOYMENT_GROUP
-  on:
-    repo: worbli/portalBackEnd
-    branch: uat_v3
-  region: us-west-2
-  wait_until_deployed: true
 before_deploy:
   - rm -fr node_modules
   - shopt -s dotglob && zip -rq latest *
