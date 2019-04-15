@@ -3,14 +3,14 @@ node_js:
 - 10.8.0
 os: linux
 dist: xenial
-# services:
-# - mongodb
-# before_script:
-#   - sleep 10
-#   - mongoimport --jsonArray --db worbli --collection identity_documents --file documents.json
-# addons:
-#   hosts:
-#     - portalbackend-mongo
+services:
+- mongodb
+before_script:
+  - sleep 10
+  - mongoimport --jsonArray --db worbli --collection identity_documents --file documents.json
+addons:
+  hosts:
+    - portalbackend-mongo
 script:
 - npm run test
 before_install:
