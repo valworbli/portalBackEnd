@@ -3,13 +3,11 @@ version: "3"
 services:
 
   portalbackend:
-    links:
-      - portalbackend-mongo
     ports:
       - '9229:9229'
       - '5000:5000'
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
     command:
       bash -c "npm install && npm run dev"
       # bash -c "npm run import"
