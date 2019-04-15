@@ -7,7 +7,9 @@ const Promise = require('bluebird');
 mongoose.Promise = Promise;
 
 // mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`, {useNewUrlParser: true});
-mongoose.connect(process.env.DB_CONN, {dbName: process.env.DB_NAME, useNewUrlParser: true});
+mongoose.connect(process.env.DB_CONN, {
+  dbName: process.env.DB_NAME, useNewUrlParser: true,
+});
 
 mongoose.connection.on('error', () => {
   throw new Error(`unable to connect to database: ${process.env.DB_NAME}`);
