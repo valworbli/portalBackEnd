@@ -3,7 +3,10 @@ require('dotenv').config();
 const csv = require('fast-csv');
 const mongoose = require('mongoose');
 
-mongoose.connect(`mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}`, {useNewUrlParser: true});
+if (process.env.DB_CONN)
+  mongoose.connect(process.env.DB_CONN, {useNewUrlParser: true});
+else
+  mongoose.connect(`mongodb://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}`, {useNewUrlParser: true});
 
 const snapshotSchema = new mongoose.Schema({
   account_name: {type: String, required: true, unique: true},

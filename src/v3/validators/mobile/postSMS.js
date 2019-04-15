@@ -12,7 +12,7 @@ module.exports = {
       number: Joi.string().lowercase().regex(/^\+[0-9]{10,15}$/)
           .error(() => 'Invalid number').required(),
       message: Joi.string().max(140)
-          .error(() => 'The message is missing or is too long').required(),
+          .error(() => 'The message is missing or is too long'),
       country: Joi.string().length(3).uppercase()
           .error(() => 'Invalid country provided').required(),
       files: Joi.string().error(() => 'Invalid fields provided').required(),
