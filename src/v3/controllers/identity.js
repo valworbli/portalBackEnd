@@ -190,6 +190,12 @@ function postApplication(req, res) {
           missingDocuments: response.body.missingDocuments,
         });
       } else {
+        // if (lastName.length === 1) {
+        // eslint-disable-next-line no-irregular-whitespace
+        //   lastName += ' '; // that's U+2002 whitespace appended to the last name to trick OnFido...
+        //   logger.info('The last name of the applicant is one symbol, changed it to ' + JSON.stringify(lastName));
+        // }
+
         user.name_first = firstName;
         user.name_middle = middleName;
         user.name_last = lastName;
