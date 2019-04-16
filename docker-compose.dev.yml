@@ -9,6 +9,7 @@ services:
     environment:
       NODE_ENV: development
     command:
-      bash -c "npm install && npm run dev"
+      bash -c "npm install && pm2-runtime start pm2.json"
+      # bash -c "npm install && npm run dev"
       # bash -c "npm run import"
       # bash -c "npm run test"

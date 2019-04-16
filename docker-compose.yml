@@ -3,7 +3,7 @@ version: "3"
 services:
 
   portalbackend:
-    image: node:10
+    image: keymetrics/pm2:latest-stretch
     container_name: portalbackend
     restart: always
     volumes:
