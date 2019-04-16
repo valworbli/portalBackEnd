@@ -47,6 +47,23 @@ function authenticateUser(email, plainPassword) {
 }
 
 /**
+ * findUserByShortCode
+ * @param {integer} shortcode - the user's shortcode
+ * @return {Promise} a Promise with the user or an error
+ */
+function findUserByShortCode(shortcode) {
+  return new Promise(function(resolve, reject) {
+    Users.findOne({shortcode: shortcode}, function(err, user) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(user);
+      }
+    });
+  });
+}
+
+/**
  * checkUpdateUser
  * @param {string} email - the user's email
  * @param {string} password - the user's password
@@ -320,4 +337,5 @@ module.exports = {
   getUserProfile,
   onfidoCheckCompleted,
   findByOnFidoCheck,
+  findUserByShortCode,
 };

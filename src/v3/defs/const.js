@@ -19,3 +19,6 @@ module.exports.ONFIDO_CHECK_STANDARD = 'standard';
 module.exports.ONFIDO_CHECK_COMPLETED = 'check.completed';
 module.exports.ONFIDO_REPORT_COMPLETED = 'report.completed';
 module.exports.ONFIDO_CHECK_RESULT_CLEAR = 'clear';
+
+module.exports.SHORTCODE_MIN = 100000;
+module.exports.SHORTCODE_MAX = 999999;

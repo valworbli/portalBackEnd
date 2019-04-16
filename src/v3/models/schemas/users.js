@@ -9,6 +9,11 @@ const identityImagesSchema = new mongoose.Schema({
   country: {type: String, index: true},
 });
 
+const shortcodeDataSchema = new mongoose.Schema({
+  files: {type: String, required: true},
+  country: {type: String, required: true, index: true},
+});
+
 identityImagesSchema.methods.pushDocumentUnique = function(docName) {
   if (!this.uploaded_documents.includes(docName)) {
     this.uploaded_documents.push(docName);
@@ -114,6 +119,8 @@ const usersSchema = new mongoose.Schema({
   reset_on: {type: Date},
   reset_from_ip: {type: String},
   identity_images: identityImagesSchema,
+  shortcode: {type: String},
+  shortcodeData: shortcodeDataSchema,
 });
 
 usersSchema.pre('save', function(next) {

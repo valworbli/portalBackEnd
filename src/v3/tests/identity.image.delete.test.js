@@ -97,6 +97,12 @@ describe('## User', function() {
           .catch(done);
     });
 
+    beforeEach(function(done) {
+      setTimeout(function() {
+        done();
+      }, 500);
+    });
+
     it('deletes a non-existing image - should return 200 and data true and completed false', (done) => {
       request(app)
           .delete(testUrl + 'selfie')

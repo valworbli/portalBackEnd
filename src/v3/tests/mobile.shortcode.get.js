@@ -1,7 +1,9 @@
+/* eslint max-len: 0 */
 const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
 
@@ -13,9 +15,9 @@ mongoose.Promise = Promise;
 
 chai.config.includeStack = true;
 
-const baseTestUrl = '/api/v3/identity/';
+const baseTestUrl = '/api/v3/mobile/';
 const defUser = new Users({
-  email: 'test17@example.com',
+  email: 'test313@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
@@ -26,13 +28,17 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    done();
+    user.verify_token = '';
+    user.save(function(err, user) {
+      expect(err).to.be.null;
+      done();
+    });
   });
 };
 
-describe('## User', function() {
-  this.timeout(15000);
-  const testUrl = baseTestUrl + 'missingimages/';
+describe('## Mobile', function() {
+  this.timeout(5000);
+  const testUrl = baseTestUrl + 'shortcode/';
   let jwtToken = '';
 
   describe(`# GET ${testUrl}`, () => {
@@ -66,26 +72,6 @@ describe('## User', function() {
       });
     });
 
-    beforeEach(function(done) {
-      setTimeout(function() {
-        done();
-      }, 500);
-    });
-
-    it('verifies the user - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/user/verify/')
-          .auth()
-          .set('Accept', 'application/json')
-          .send({token: defUser.verify_token})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
-    });
-
     it('logs in - should return 200 and true', (done) => {
       request(app)
           .post('/api/v3/visitor/signin/')
@@ -101,63 +87,19 @@ describe('## User', function() {
           .catch(done);
     });
 
-    // eslint-disable-next-line max-len
-    it('uploads all images - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/identity/image/')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-          // eslint-disable-next-line max-len
-          .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-          // eslint-disable-next-line max-len
-          .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            expect({completed: true});
-            expect({missingDocuments: []});
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('checks the images for completeness - should return 200 and data true', (done) => {
+    it('generates a short code - should return 200 and data true', (done) => {
       request(app)
           .get(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)
           .then((res) => {
-            expect({data: true});
-            expect({completed: true});
-            expect({missingDocuments: []});
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.shortcode > 99999, 'Err shortcode is less than 100000');
+            assert(res.body.shortcode < 1000000, 'Err shortcode is greater than 1000000');
             done();
           })
           .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('uploads only a selfie - should return 200 and data true', (done) => {
-      Users.updateOne(
-          {email: defUser.email},
-          {$set: {'identity_images.uploaded_documents': [],
-            'identity_images.completed': false}}, function(err, user) {
-            request(app)
-                .get(testUrl)
-                .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${jwtToken}`)
-                .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-                .expect(HttpStatus.OK)
-                .then((res) => {
-                  expect({data: true});
-                  expect({completed: false});
-                  expect({missingDocuments: ['identity']});
-                  done();
-                })
-                .catch(done);
-          });
     });
 
     // eslint-disable-next-line max-len
@@ -165,10 +107,9 @@ describe('## User', function() {
       request(app)
           .get(testUrl)
           .set('Accept', 'application/json')
-          .send()
+          .send({number: '+15551234567', message: 'Sample message'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
-            expect({data: false});
             done();
           })
           .catch(done);
@@ -180,10 +121,10 @@ describe('## User', function() {
           .get(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
-          .send()
+          .send({number: '+15551234567', message: 'Sample message'})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
-            expect({data: false});
+            assert(res.body.data === false, 'Err data is not false');
             done();
           })
           .catch(done);

@@ -113,7 +113,7 @@ function postVerify(req, res) {
               user.onfido.onfido_id = applicant.id;
               user.onfido.onfido_error = false;
             }).catch((error) => {
-              logger.error('OnFido Applicant ERRORRED' +
+              logger.error('OnFido Applicant ERRORED: ' +
                 JSON.stringify(error.response.body));
               user.onfido.onfido_error = true;
             }).finally(() => {

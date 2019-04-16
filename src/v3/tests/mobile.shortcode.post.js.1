@@ -1,7 +1,9 @@
+/* eslint max-len: 0 */
 const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
 
@@ -13,9 +15,9 @@ mongoose.Promise = Promise;
 
 chai.config.includeStack = true;
 
-const baseTestUrl = '/api/v3/identity/';
+const baseTestUrl = '/api/v3/mobile/';
 const defUser = new Users({
-  email: 'test17@example.com',
+  email: 'test314@example.com',
   password: 'bozoPass!',
   agreed_terms: true,
   agreed_marketing: false,
@@ -26,16 +28,20 @@ const _saveDefUser = function(done) {
   defUser.save(function(err, user) {
     expect(err).to.be.null;
     expect(user.verify_token).to.equal(defUser.verify_token);
-    done();
+    user.verify_token = '';
+    user.save(function(err, user) {
+      expect(err).to.be.null;
+      done();
+    });
   });
 };
 
-describe('## User', function() {
-  this.timeout(15000);
-  const testUrl = baseTestUrl + 'missingimages/';
-  let jwtToken = '';
+describe('## Mobile', function() {
+  this.timeout(5000);
+  const testUrl = baseTestUrl + 'shortcode/';
+  let jwtToken = ''; let shortcode = 0;
 
-  describe(`# GET ${testUrl}`, () => {
+  describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
     before(function(done) {
       if (mongoose.connection.readyState === 0) {
@@ -66,26 +72,6 @@ describe('## User', function() {
       });
     });
 
-    beforeEach(function(done) {
-      setTimeout(function() {
-        done();
-      }, 500);
-    });
-
-    it('verifies the user - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/user/verify/')
-          .auth()
-          .set('Accept', 'application/json')
-          .send({token: defUser.verify_token})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            done();
-          })
-          .catch(done);
-    });
-
     it('logs in - should return 200 and true', (done) => {
       request(app)
           .post('/api/v3/visitor/signin/')
@@ -101,89 +87,79 @@ describe('## User', function() {
           .catch(done);
     });
 
-    // eslint-disable-next-line max-len
-    it('uploads all images - should return 200 and data true', (done) => {
-      request(app)
-          .post('/api/v3/identity/image/')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-          // eslint-disable-next-line max-len
-          .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-          // eslint-disable-next-line max-len
-          .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            expect({completed: true});
-            expect({missingDocuments: []});
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('checks the images for completeness - should return 200 and data true', (done) => {
+    it('gets a shortcode - should return 200 and data true', (done) => {
       request(app)
           .get(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)
           .then((res) => {
-            expect({data: true});
-            expect({completed: true});
-            expect({missingDocuments: []});
+            assert(res.body.data === true, 'Err data is not true');
+            shortcode = Number(res.body.shortcode);
             done();
           })
           .catch(done);
     });
 
-    // eslint-disable-next-line max-len
-    it('uploads only a selfie - should return 200 and data true', (done) => {
-      Users.updateOne(
-          {email: defUser.email},
-          {$set: {'identity_images.uploaded_documents': [],
-            'identity_images.completed': false}}, function(err, user) {
-            request(app)
-                .get(testUrl)
-                .set('Accept', 'application/json')
-                .set('Authorization', `Bearer ${jwtToken}`)
-                .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-                .expect(HttpStatus.OK)
-                .then((res) => {
-                  expect({data: true});
-                  expect({completed: false});
-                  expect({missingDocuments: ['identity']});
-                  done();
-                })
-                .catch(done);
-          });
+    it('sends an SMS - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/mobile/sms')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({number: '+004135364493333', message: 'Hello, world!',
+            country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(Number(res.body.shortcode) === shortcode, 'Err the returned shortcode DOES NOT match the submitted one');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.files === '"[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]"',
+                  'Err the stored document DOES NOT match the submitted one');
+              done();
+            });
+          })
+          .catch(done);
     });
 
     // eslint-disable-next-line max-len
-    it('should return 400 because the token is missing', (done) => {
+    it('should return 400 and data false because the shortcode is invalid', (done) => {
       request(app)
-          .get(testUrl)
+          .post(testUrl)
           .set('Accept', 'application/json')
-          .send()
+          .send({shortcode: shortcode - 1})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
-            expect({data: false});
+            assert(res.body.data === false, 'Err data is not false');
+            done();
+          })
+          .catch(done);
+    });
+
+    it('authenticates with a valid shortcode - should return 200 and data true', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .send({shortcode: shortcode})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.country === 'GBR', 'Err the returned country DOES NOT match the submitted one');
+            assert(res.body.files === '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]',
+                'Err the returned document DOES NOT match the submitted one');
             done();
           })
           .catch(done);
     });
 
     // eslint-disable-next-line max-len
-    it('should return 401 because the token is malformed', (done) => {
+    it('should return 400 because the shortcode is missing', (done) => {
       request(app)
-          .get(testUrl)
-          .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
+          .post(testUrl)
           .set('Accept', 'application/json')
-          .send()
-          .expect(HttpStatus.UNAUTHORIZED)
+          .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
-            expect({data: false});
             done();
           })
           .catch(done);
