@@ -125,6 +125,7 @@ describe('## User', () => {
       socket.on(Const.SOCKET_USER_GET_STATE, function(data) {
         logger.info('SOCKET_USER_GET_STATE: ' + JSON.stringify(data));
         socket.disconnect();
+        // eslint-disable-next-line max-len
         assert(data.status.worbliAccountName === '', 'Err worbliAccountName is not empty');
         assert(data.status.errored === false, 'Err errored is not false');
         done();
