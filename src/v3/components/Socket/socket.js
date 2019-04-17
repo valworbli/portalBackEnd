@@ -59,11 +59,10 @@ SocketManager.prototype.initRoutes = function(socket) {
           socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.UNAUTHORIZED});
         } else {
           const ofStatus = user.getOnFidoStatus();
+          ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
           socket.emit(Const.SOCKET_USER_GET_STATE, {
-            ...ofStatus,
+            status: ofStatus,
             data: true,
-            status: HttpStatus.OK,
-            worbliAccountName: user.worbli_account_name ? user.worbli_account_name: '',
           });
         }
       }

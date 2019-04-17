@@ -125,10 +125,13 @@ describe('## User', () => {
       socket.on(Const.SOCKET_USER_GET_STATE, function(data) {
         logger.info('SOCKET_USER_GET_STATE: ' + JSON.stringify(data));
         socket.disconnect();
+        assert(data.status.worbliAccountName === '', 'Err worbliAccountName is not empty');
+        assert(data.status.errored === false, 'Err errored is not false');
         done();
       });
       socket.on(Const.SOCKET_ON_CONNECT, function(data) {
         logger.info('SOCKET_ON_CONNECT: ' + JSON.stringify(data));
+        done();
       });
     });
 
