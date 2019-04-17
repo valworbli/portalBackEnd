@@ -24,6 +24,8 @@ function SocketManager(server) {
   that = this;
   this.ioServer = socketio(server, {
     path: `${process.env.SOCKET_PATH}`,
+    pingInterval: 10000,
+    pingTimeout: 10000
   });
 
   logger.info(`SocketManager(): listening on ${process.env.SOCKET_PATH}`);
@@ -44,7 +46,9 @@ function SocketManager(server) {
 
 SocketManager.prototype.initRoutes = function(socket) {
   socket.on('disconnect', function(reason) {
-    logger.info('Client DISCONNECTED from ' + JSON.stringify(socket.handshake.address) + ', reason: ' + JSON.stringify(reason));
+    logger.info('Client ' + JSON.stringify(socket.request.user._id) +
+      ' DISCONNECTED from ' + JSON.stringify(socket.handshake.address) +
+      ', reason: ' + JSON.stringify(reason));
   });
   socket.on(Const.SOCKET_TEST_MESSAGE, function(data) {
     socket.emit(Const.SOCKET_TEST_MESSAGE, data);
