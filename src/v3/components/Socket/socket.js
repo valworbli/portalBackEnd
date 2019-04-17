@@ -36,6 +36,7 @@ function SocketManager(server) {
         socket.emit(Const.SOCKET_ON_CONNECT, user);
       } else {
         that.initRoutes(socket);
+        that.getUserState(socket, {});
       }
     });
   });
@@ -50,23 +51,7 @@ SocketManager.prototype.initRoutes = function(socket) {
   });
   socket.on(Const.SOCKET_USER_GET_STATE, function(data) {
     logger.info('SOCKET_USER_GET_STATE');
-    const {user} = socket.request;
-    Users.findOne({_id: user._id}, function(err, user) {
-      if (err) {
-        socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
-      } else {
-        if (!user) {
-          socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.UNAUTHORIZED});
-        } else {
-          const ofStatus = user.getOnFidoStatus();
-          ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
-          socket.emit(Const.SOCKET_USER_GET_STATE, {
-            status: ofStatus,
-            data: true,
-          });
-        }
-      }
-    });
+    that.getUserState(socket, data);
   });
 };
 
@@ -93,6 +78,26 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
       }
     });
   }
+};
+
+SocketManager.prototype.getUserState = function(socket, data) {
+  const {user} = socket.request;
+  Users.findOne({_id: user._id}, function(err, user) {
+    if (err) {
+      socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
+    } else {
+      if (!user) {
+        socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.UNAUTHORIZED});
+      } else {
+        const ofStatus = user.getOnFidoStatus();
+        ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
+        socket.emit(Const.SOCKET_USER_GET_STATE, {
+          status: ofStatus,
+          data: true,
+        });
+      }
+    }
+  });
 };
 
 module.exports = SocketManager;

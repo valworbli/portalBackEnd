@@ -119,7 +119,7 @@ describe('## User', () => {
         logger.info('SOCKET connected!');
         setTimeout(() => {
           logger.info('CLIENT emitting SOCKET_USER_GET_STATE!');
-          socket.emit(Const.SOCKET_USER_GET_STATE, {});
+          // socket.emit(Const.SOCKET_USER_GET_STATE, {});
         }, 3000);
       });
       socket.on(Const.SOCKET_USER_GET_STATE, function(data) {
