@@ -45,7 +45,11 @@ function SocketManager(server) {
     });
   });
 
-  this.dbWatcher();
+  try {
+    this.dbWatcher();
+  } catch (err) {
+    logger.info('Error spawning the dbWatcher: ' + JSON.stringify(err));
+  }
 }
 
 SocketManager.prototype.dbWatcher = function() {
