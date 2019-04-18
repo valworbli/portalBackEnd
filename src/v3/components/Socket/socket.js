@@ -24,7 +24,7 @@ function SocketManager(server) {
   that = this;
   this.ioServer = socketio(server, {
     path: `${process.env.SOCKET_PATH}`,
-    pingInterval: 10000,
+    pingInterval: 20000,
     pingTimeout: 10000
   });
 
@@ -39,6 +39,7 @@ function SocketManager(server) {
       } else {
         that.initRoutes(socket);
         that.getUserState(socket, {});
+        that.getMissingDocuments(socket, {});
       }
     });
   });
@@ -57,6 +58,10 @@ SocketManager.prototype.initRoutes = function(socket) {
     logger.info('SOCKET_USER_GET_STATE');
     that.getUserState(socket, data);
   });
+  socket.on(Const.SOCKET_MISSING_IMAGES, function(data) {
+    logger.info('SOCKET_MISSING_IMAGES');
+    that.getMissingDocuments(socket, data);
+  })
 };
 
 SocketManager.prototype.authenticate = function(socket, cb=null) {
@@ -82,6 +87,61 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
       }
     });
   }
+};
+
+/**
+ * Internal _getMissingImages
+ * @param {object} user - A UsersSchema object
+ * @return {Promise} A Promise with the result
+ */
+SocketManager.prototype.getMissingDocuments = function(socket, data) {
+  const {user} = socket.request;
+  Users.findOne({_id: user._id}, function(err, user) {
+    if (err) {
+      socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
+        status: HttpStatus.INTERNAL_SERVER_ERROR,
+        error: 'Internal service error, please try again later.'
+      });
+    } else {
+      if (!user) {
+        socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
+          status: HttpStatus.UNAUTHORIZED,
+          error: 'Unauthorized!'
+        });
+      } else {
+        if (!user.identity_images) {
+          socket.emit(Const.SOCKET_MISSING_IMAGES, {
+            completed: false,
+            missingDocuments: ['selfie', 'identity'],
+            data: true,
+          });
+        }
+
+        const countryPrefix = user.identity_images.country;
+        IDDocs.findOne({code: countryPrefix}, function(err, countryInfo) {
+          if (!countryInfo) {
+            socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
+              status: HttpStatus.BAD_REQUEST,
+              error: 'Malformed request submitted!'
+            });
+          } else {
+            const result = user.identity_images.verify(countryInfo.accepted[0]);
+            if (result.error) {
+              socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
+                status: HttpStatus.BAD_REQUEST,
+                error: 'Malformed request submitted!'
+              });
+            } else {
+              socket.emit(Const.SOCKET_MISSING_IMAGES, {data: true,
+                completed: result.missingDocuments.length === 0,
+                missingDocuments: result.missingDocuments,
+              });
+            }
+          }
+        });
+      }
+    }
+  });
 };
 
 SocketManager.prototype.getUserState = function(socket, data) {

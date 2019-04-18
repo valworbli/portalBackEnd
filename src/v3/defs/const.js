@@ -25,4 +25,5 @@ module.exports.SHORTCODE_MAX = 999999;
 
 module.exports.SOCKET_TEST_MESSAGE = 'TEST_MESSAGE';
 module.exports.SOCKET_USER_GET_STATE = 'status';
+module.exports.SOCKET_MISSING_IMAGES = 'imageStatus';
 module.exports.SOCKET_ON_CONNECT = 'ON_CONNECT';
