@@ -22,6 +22,11 @@ function SocketManager(server) {
     return new SocketManager(server);
   }
 
+  if (process.env.TRAVIS) {
+    logger.error('Running the SocketManager under TRAVIS is not supported!');
+    return;
+  }
+
   that = this;
   this.ioServer = socketio(server, {
     path: `${process.env.SOCKET_PATH}`,
