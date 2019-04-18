@@ -7,7 +7,7 @@ services:
 - mongodb
 before_script:
   - echo "replSet = myReplSetName" | sudo tee -a /etc/mongodb.conf
-  - sudo /etc/init.d/mongodb restart
+  - sudo service mongod restart
   - sleep 20
   - mongo --eval 'rs.initiate()'
   - sleep 15
