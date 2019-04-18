@@ -1,6 +1,7 @@
 /* eslint max-len: 0 */
 const jwt = require('../jwt');
 const Users = require('../../models/schemas/users');
+const IDDocs = require('../../models/schemas/idDocs');
 const socketio = require('socket.io');
 const logger = require('../logger')(module);
 const Const = require('../../defs/const');
@@ -25,7 +26,7 @@ function SocketManager(server) {
   this.ioServer = socketio(server, {
     path: `${process.env.SOCKET_PATH}`,
     pingInterval: 20000,
-    pingTimeout: 10000
+    pingTimeout: 10000,
   });
 
   logger.info(`SocketManager(): listening on ${process.env.SOCKET_PATH}`);
@@ -61,7 +62,7 @@ SocketManager.prototype.initRoutes = function(socket) {
   socket.on(Const.SOCKET_MISSING_IMAGES, function(data) {
     logger.info('SOCKET_MISSING_IMAGES');
     that.getMissingDocuments(socket, data);
-  })
+  });
 };
 
 SocketManager.prototype.authenticate = function(socket, cb=null) {
@@ -91,8 +92,8 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
 
 /**
  * Internal _getMissingImages
- * @param {object} user - A UsersSchema object
- * @return {Promise} A Promise with the result
+ * @param {object} socket - The socket of the user
+ * @param {object} data - The request data (unused for the moment)
  */
 SocketManager.prototype.getMissingDocuments = function(socket, data) {
   const {user} = socket.request;
@@ -100,13 +101,13 @@ SocketManager.prototype.getMissingDocuments = function(socket, data) {
     if (err) {
       socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
         status: HttpStatus.INTERNAL_SERVER_ERROR,
-        error: 'Internal service error, please try again later.'
+        error: 'Internal service error, please try again later.',
       });
     } else {
       if (!user) {
         socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
           status: HttpStatus.UNAUTHORIZED,
-          error: 'Unauthorized!'
+          error: 'Unauthorized!',
         });
       } else {
         if (!user.identity_images) {
@@ -115,30 +116,30 @@ SocketManager.prototype.getMissingDocuments = function(socket, data) {
             missingDocuments: ['selfie', 'identity'],
             data: true,
           });
-        }
-
-        const countryPrefix = user.identity_images.country;
-        IDDocs.findOne({code: countryPrefix}, function(err, countryInfo) {
-          if (!countryInfo) {
-            socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
-              status: HttpStatus.BAD_REQUEST,
-              error: 'Malformed request submitted!'
-            });
-          } else {
-            const result = user.identity_images.verify(countryInfo.accepted[0]);
-            if (result.error) {
+        } else {
+          const countryPrefix = user.identity_images.country;
+          IDDocs.findOne({code: countryPrefix}, function(err, countryInfo) {
+            if (!countryInfo) {
               socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
                 status: HttpStatus.BAD_REQUEST,
-                error: 'Malformed request submitted!'
+                error: 'Malformed request submitted!',
               });
             } else {
-              socket.emit(Const.SOCKET_MISSING_IMAGES, {data: true,
-                completed: result.missingDocuments.length === 0,
-                missingDocuments: result.missingDocuments,
-              });
+              const result = user.identity_images.verify(countryInfo.accepted[0]);
+              if (result.error) {
+                socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
+                  status: HttpStatus.BAD_REQUEST,
+                  error: 'Malformed request submitted!',
+                });
+              } else {
+                socket.emit(Const.SOCKET_MISSING_IMAGES, {data: true,
+                  completed: result.missingDocuments.length === 0,
+                  missingDocuments: result.missingDocuments,
+                });
+              }
             }
-          }
-        });
+          });
+        }
       }
     }
   });

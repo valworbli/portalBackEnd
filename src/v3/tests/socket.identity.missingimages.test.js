@@ -1,3 +1,4 @@
+/* eslint max-len: 0 */
 const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const clientio = require('socket.io-client');
@@ -136,7 +137,7 @@ describe('## Socket User', function() {
         done();
       });
     });
-    
+
     // // eslint-disable-next-line max-len
     // it('uploads all images - should return 200 and data true', (done) => {
     //   request(app)
