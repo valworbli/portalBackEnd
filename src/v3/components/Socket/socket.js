@@ -53,11 +53,11 @@ SocketManager.prototype.dbWatcher = function() {
 
   let updatedFields = undefined;
   let _id = undefined;
-  let found = false;
+  // let found = false;
 
   const changeStreams = Users.watch();
   changeStreams.on('change', function(change) {
-    logger.info('DB WATCH: ' + JSON.stringify(change));
+    // logger.info('DB WATCH: ' + JSON.stringify(change));
     const sockets = that.ioServer.sockets.sockets;
     switch (change.operationType) {
       case 'update':
@@ -70,12 +70,12 @@ SocketManager.prototype.dbWatcher = function() {
             //   JSON.stringify(sockets[socket].user._id));
             if (JSON.stringify(sockets[socket].user._id) === _id) {
               that.getMissingDocuments(sockets[socket], {});
-              found = true;
+              // found = true;
               logger.info('Emitted missing documents to user ' + _id);
               break;
             }
           }
-          if (!found) logger.info('No connected socket found for user ' + _id);
+          // if (!found) logger.info('No connected socket found for user ' + _id);
         } else if (Object.keys(updatedFields).includes('onfido.onfido_status') ||
           Object.keys(updatedFields).includes('worbli_account_name')) {
           for (const socket in sockets) {
@@ -83,12 +83,12 @@ SocketManager.prototype.dbWatcher = function() {
             //   JSON.stringify(sockets[socket].user._id));
             if (JSON.stringify(sockets[socket].user._id) === _id) {
               that.getUserState(sockets[socket], {});
-              found = true;
+              // found = true;
               logger.info('Emitted user state to user ' + _id);
               break;
             }
           }
-          if (!found) logger.info('No connected socket found for user ' + _id);
+          // if (!found) logger.info('No connected socket found for user ' + _id);
         }
         break;
       default:

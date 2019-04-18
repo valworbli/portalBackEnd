@@ -7,6 +7,11 @@ services:
 - mongodb
 before_script:
   - sleep 10
+  - echo "replSet = myReplSetName" | sudo tee -a /etc/mongodb.conf
+  - sudo service mongodb restart
+  - sleep 20
+  - mongo --eval 'rs.initiate()'
+  - sleep 15
   - mongoimport --jsonArray --db worbli --collection identity_documents --file documents.json
 addons:
   hosts:
