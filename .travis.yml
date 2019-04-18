@@ -6,11 +6,12 @@ dist: xenial
 services:
 - mongodb
 before_script:
-  - echo "replSet = myReplSetName" | sudo tee -a /etc/mongodb.conf
-  - sudo service mongod restart
-  - sleep 20
-  - mongo --eval 'rs.initiate()'
-  - sleep 15
+  # - echo "replSet = myReplSetName" | sudo tee -a /etc/mongodb.conf
+  # - sudo service mongod restart
+  # - sleep 20
+  # - mongo --eval 'rs.initiate()'
+  # - sleep 15
+  - sleep 10
   - mongoimport --jsonArray --db worbli --collection identity_documents --file documents.json
 addons:
   hosts:
