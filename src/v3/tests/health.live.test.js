@@ -9,7 +9,8 @@ chai.config.includeStack = true;
 
 const baseTestUrl = '/api/v3/health/';
 
-describe('## Health', () => {
+describe('## Health', function() {
+  this.timeout(30000);
   const testUrl = baseTestUrl + 'live/';
 
   describe(`# GET ${testUrl}`, () => {

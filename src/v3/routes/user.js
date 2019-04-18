@@ -3,6 +3,7 @@ const validate = require('express-validation');
 const userController = require('../controllers/user.js');
 const router = new express.Router();
 const jwtAuthenticator = require('../components/jwtAuthenticator');
+const ipExtractor = require('../components/ipExtractor');
 
 const getProfile = require('../validators/user/getProfile.js');
 const getState = require('../validators/user/getState.js');
@@ -19,11 +20,11 @@ router.route('/state/').get(validate(getState.validate),
 router.route('/profile/').post(validate(postProfile.validate),
     jwtAuthenticator({}), userController.postProfile);
 router.route('/verify/').get(validate(getVerify.validate),
-    userController.getVerify);
+    ipExtractor({useWorbliUser: true}), userController.getVerify);
 router.route('/verify/').post(validate(postVerify.validate),
-    userController.postVerify);
+    ipExtractor({useWorbliUser: true}), userController.postVerify);
 router.route('/password/').put(validate(putPassword.validate),
-    userController.putPassword);
+    ipExtractor({useWorbliUser: true}), userController.putPassword);
 router.route('/resendverify/').put(validate(putResendVerify.validate),
     userController.putResendVerify);
 

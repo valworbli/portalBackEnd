@@ -32,7 +32,7 @@ const _saveDefUser = function(done) {
 };
 
 describe('## User', function() {
-  this.timeout(15000);
+  this.timeout(35000);
   const testUrl = baseTestUrl + 'application/';
   let jwtToken = '';
 

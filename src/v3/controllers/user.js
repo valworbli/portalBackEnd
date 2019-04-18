@@ -78,7 +78,7 @@ function getVerify(req, res) {
   try {
     const token = req.query.token;
     if (token) {
-      Users.verifyUser(req.connection.remoteAddress, token)
+      Users.verifyUser(req.worbliUser.ip, token)
           .then(function(user) {
             res.status(HttpStatus.OK).json({data: true});
           }).catch(function(err) {
@@ -105,7 +105,7 @@ function postVerify(req, res) {
   try {
     const {token} = req.body;
     if (token) {
-      Users.verifyUser(req.connection.remoteAddress, token)
+      Users.verifyUser(req.worbliUser.ip, token)
           .then(function(user) {
             ofWrapper.createFakeApplicant().then((applicant) => {
               logger.info('OnFido Applicant created, id: ' +
@@ -206,7 +206,7 @@ function putPassword(req, res) {
   try {
     const {password, token} = req.body;
     if (token) {
-      Users.resetUser(req.connection.remoteAddress, token, password)
+      Users.resetUser(req.worbliUser.ip, token, password)
           .then(function(user) {
             const token = jwt.jwtWithExpiry({email: user.email}, '72h');
             res.status(HttpStatus.OK).json({data: true, jwt: token});

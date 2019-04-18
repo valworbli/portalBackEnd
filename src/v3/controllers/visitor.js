@@ -104,7 +104,7 @@ function postForgot(req, res) {
   const {email} = req.body;
 
   if (email) {
-    Users.prepareForgotToken(req.connection.remoteAddress, email)
+    Users.prepareForgotToken(req.headers['x-real-ip'], email)
         .then(function(user) {
           emailSES.sendEmail(user.email, user.reset_token, 'reset')
               .then((data) => {
