@@ -44,11 +44,62 @@ function SocketManager(server) {
       }
     });
   });
+
+  this.dbWatcher();
 }
+
+SocketManager.prototype.dbWatcher = function() {
+  // let db = client.db('worbli');
+
+  let updatedFields = undefined;
+  let _id = undefined;
+  let found = false;
+
+  const changeStreams = Users.watch();
+  changeStreams.on('change', function(change) {
+    logger.info('DB WATCH: ' + JSON.stringify(change));
+    const sockets = that.ioServer.sockets.sockets;
+    switch (change.operationType) {
+      case 'update':
+        updatedFields = change.updateDescription.updatedFields;
+        _id = JSON.stringify(change.documentKey._id);
+        found = false;
+        if (Object.keys(updatedFields).includes('identity_images')) {
+          for (const socket in sockets) {
+            // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
+            //   JSON.stringify(sockets[socket].user._id));
+            if (JSON.stringify(sockets[socket].user._id) === _id) {
+              that.getMissingDocuments(sockets[socket], {});
+              found = true;
+              logger.info('Emitted missing documents to user ' + _id);
+              break;
+            }
+          }
+          if (!found) logger.info('No connected socket found for user ' + _id);
+        } else if (Object.keys(updatedFields).includes('onfido.onfido_status') ||
+          Object.keys(updatedFields).includes('worbli_account_name')) {
+          for (const socket in sockets) {
+            // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
+            //   JSON.stringify(sockets[socket].user._id));
+            if (JSON.stringify(sockets[socket].user._id) === _id) {
+              that.getUserState(sockets[socket], {});
+              found = true;
+              logger.info('Emitted user state to user ' + _id);
+              break;
+            }
+          }
+          if (!found) logger.info('No connected socket found for user ' + _id);
+        }
+        break;
+      default:
+        break;
+    }
+  });
+};
 
 SocketManager.prototype.initRoutes = function(socket) {
   socket.on('disconnect', function(reason) {
-    logger.info('Client ' + JSON.stringify(socket.request.user._id) +
+    logger.info('Client ' + JSON.stringify(socket.user._id) +
       ' DISCONNECTED from ' + JSON.stringify(socket.handshake.address) +
       ', reason: ' + JSON.stringify(reason));
   });
@@ -81,7 +132,7 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
           logger.error('authenticate: No such user!');
           if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'No such user'});
         } else {
-          socket.request.user = user;
+          socket.user = user;
           logger.info('authenticate: user found: ' + JSON.stringify(user._id));
           if (cb) return cb(false, user);
         }
@@ -91,12 +142,12 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
 };
 
 /**
- * Internal _getMissingImages
+ * Internal getMissingImages
  * @param {object} socket - The socket of the user
  * @param {object} data - The request data (unused for the moment)
  */
 SocketManager.prototype.getMissingDocuments = function(socket, data) {
-  const {user} = socket.request;
+  const {user} = socket;
   Users.findOne({_id: user._id}, function(err, user) {
     if (err) {
       socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
@@ -146,7 +197,7 @@ SocketManager.prototype.getMissingDocuments = function(socket, data) {
 };
 
 SocketManager.prototype.getUserState = function(socket, data) {
-  const {user} = socket.request;
+  const {user} = socket;
   Users.findOne({_id: user._id}, function(err, user) {
     if (err) {
       socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});

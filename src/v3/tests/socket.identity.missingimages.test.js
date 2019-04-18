@@ -39,6 +39,9 @@ describe('## Socket User', function() {
   this.timeout(15000);
   const testUrl = baseTestUrl + 'missingimages/';
   let jwtToken = '';
+  let socket = undefined;
+  let completeDone = false;
+  let myDone = undefined;
 
   describe(`# GET ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -69,6 +72,8 @@ describe('## Socket User', function() {
           done();
         }
       });
+
+      if (socket) socket.disconnect();
     });
 
     beforeEach(function(done) {
@@ -106,9 +111,28 @@ describe('## Socket User', function() {
           .catch(done);
     });
 
+    const onMissingImagesIncomplete = function(data) {
+      logger.info('onMissingImagesIncomplete: ' + JSON.stringify(data));
+      // eslint-disable-next-line max-len
+      assert(data.completed === false, 'Err completed is not false');
+      assert(data.data === true, 'Err data is not true');
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesIncomplete);
+      myDone();
+    };
+
+    const onMissingImagesComplete = function(data) {
+      logger.info('onMissingImagesComplete: ' + JSON.stringify(data));
+      // eslint-disable-next-line max-len
+      assert(data.completed === true, 'Err completed is not true');
+      assert(data.data === true, 'Err data is not true');
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
+      completeDone = true;
+      // myDone();
+    };
+
     // eslint-disable-next-line max-len
-    it('SOCKET:: gets the missing images - should return 200 and data true', (done) => {
-      const socket = clientio(`http://localhost:9020`, {
+    it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
+      socket = clientio(`http://localhost:9020`, {
         autoConnect: true,
         reconnection: false,
         path: `${process.env.SOCKET_PATH}`,
@@ -116,48 +140,48 @@ describe('## Socket User', function() {
           jwt: jwtToken,
         },
       });
-
       socket.on('connect', () => {
         logger.info('SOCKET connected!');
-        setTimeout(() => {
-          logger.info('CLIENT emitting SOCKET_MISSING_IMAGES!');
-          // socket.emit(Const.SOCKET_USER_GET_STATE, {});
-        }, 3000);
       });
-      socket.on(Const.SOCKET_MISSING_IMAGES, function(data) {
-        logger.info('SOCKET_MISSING_IMAGES: ' + JSON.stringify(data));
-        socket.disconnect();
-        // eslint-disable-next-line max-len
-        assert(data.completed === false, 'Err completed is not false');
-        assert(data.data === true, 'Err data is not true');
-        done();
-      });
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesIncomplete);
       socket.on(Const.SOCKET_ON_CONNECT, function(data) {
         logger.info('SOCKET_ON_CONNECT: ' + JSON.stringify(data));
         done();
       });
     });
 
-    // // eslint-disable-next-line max-len
-    // it('uploads all images - should return 200 and data true', (done) => {
-    //   request(app)
-    //       .post('/api/v3/identity/image/')
-    //       .set('Accept', 'application/json')
-    //       .set('Authorization', `Bearer ${jwtToken}`)
-    //       .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-    //       // eslint-disable-next-line max-len
-    //       .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-    //       // eslint-disable-next-line max-len
-    //       .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-    //       .expect(HttpStatus.OK)
-    //       .then((res) => {
-    //         expect({data: true});
-    //         expect({completed: true});
-    //         expect({missingDocuments: []});
-    //         done();
-    //       })
-    //       .catch(done);
-    // });
+    // eslint-disable-next-line max-len
+    it('uploads all images - should return 200 and data true', (done) => {
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
+      request(app)
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
+          // eslint-disable-next-line max-len
+          .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+          // eslint-disable-next-line max-len
+          .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            expect({completed: true});
+            expect({missingDocuments: []});
+            done();
+          })
+          .catch(done);
+    });
+
+    // eslint-disable-next-line max-len
+    it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
+      myDone = done;
+      setTimeout(() => {
+        assert(completeDone === true, 'Err completeDone is not true');
+        done();
+      }, 5000);
+    });
 
     // // eslint-disable-next-line max-len
     // it('checks the images for completeness - should return 200 and data true', (done) => {
