@@ -63,7 +63,7 @@ SocketManager.prototype.dbWatcher = function() {
       case 'update':
         updatedFields = change.updateDescription.updatedFields;
         _id = JSON.stringify(change.documentKey._id);
-        found = false;
+        // found = false;
         if (Object.keys(updatedFields).includes('identity_images')) {
           for (const socket in sockets) {
             // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
