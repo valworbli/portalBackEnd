@@ -42,6 +42,7 @@ function SocketManager(server) {
     that.authenticate(socket, function(err, user) {
       if (err) {
         socket.emit(Const.SOCKET_ON_CONNECT, user);
+        socket.disconnect(true);
       } else {
         that.initRoutes(socket);
         that.getUserState(socket, {});
@@ -90,7 +91,7 @@ SocketManager.prototype.dbWatcher = function() {
           for (const socket in sockets) {
             // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
             //   JSON.stringify(sockets[socket].user._id));
-            if (JSON.stringify(sockets[socket].user._id) === _id) {
+            if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
               that.getUserState(sockets[socket], {});
               // found = true;
               logger.info('Emitted user state to user ' + _id);
