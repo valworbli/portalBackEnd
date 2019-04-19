@@ -77,9 +77,10 @@ SocketManager.prototype.dbWatcher = function() {
         for (const socket in sockets) {
           if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
             that.getMissingDocuments(sockets[socket], {});
-            that.getUserState(sockets[socket], {});
-            found = true;
             logger.info('Emitted missing documents to user ' + _id);
+            that.getUserState(sockets[socket], {});
+            logger.info('Emitted user state to user ' + _id);
+            found = true;
             break;
           }
         }
