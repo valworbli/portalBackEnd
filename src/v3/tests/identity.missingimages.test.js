@@ -2,6 +2,7 @@ const HttpStatus = require('http-status-codes');
 const request = require('supertest');
 const chai = require('chai'); // eslint-disable-line import/newline-after-import
 const expect = chai.expect;
+const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
 
@@ -101,6 +102,23 @@ describe('## User', function() {
           .catch(done);
     });
 
+    // eslint-disable-next-line max-len
+    it('checks the images for completeness - should return 200 and data false', (done) => {
+      request(app)
+          .get(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            logger.info('Received data: ' + JSON.stringify(res.body));
+            assert(res.body.data === true, 'Err data is not true');
+            expect(res.body.completed === false, 'Err completed is not false');
+            expect(res.body.missingDocuments === ['selfie', 'identity'], 'Err missingDocuments is not \'selfie\' and \'identity\'');
+            done();
+          })
+          .catch(done);
+    });
+    
     // eslint-disable-next-line max-len
     it('uploads all images - should return 200 and data true', (done) => {
       request(app)

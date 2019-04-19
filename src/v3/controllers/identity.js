@@ -149,8 +149,12 @@ function delImage(req, res) {
   const {user} = req.worbliUser;
   let resp = undefined;
 
+  // strip the country code from the doc name
+  let countryPrefix = req.params['doctype'].split('_')[0];
+  const docName = req.params['doctype'].substring(countryPrefix.length + 1);
+  
   if (user.identity_images) {
-    user.identity_images.delDocument(req.params['doctype']);
+    user.identity_images.delDocument(docName);
   }
 
   _getMissingImages(user).then(async (response) => {

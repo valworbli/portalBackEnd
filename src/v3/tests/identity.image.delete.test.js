@@ -105,7 +105,7 @@ describe('## User', function() {
 
     it('deletes a non-existing image - should return 200 and data true and completed false', (done) => {
       request(app)
-          .delete(testUrl + 'selfie')
+          .delete(testUrl + 'BGR_selfie')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)
@@ -138,7 +138,7 @@ describe('## User', function() {
 
     it('deletes the selfie - should return 200 and data true and completed false', (done) => {
       request(app)
-          .delete(testUrl + 'selfie')
+          .delete(testUrl + 'BGR_selfie')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)
@@ -171,7 +171,7 @@ describe('## User', function() {
 
     it('deletes the passport - should return 200 and data true and completed true', (done) => {
       request(app)
-          .delete(testUrl + 'passport')
+          .delete(testUrl + 'BGR_passport')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
           .expect(HttpStatus.OK)

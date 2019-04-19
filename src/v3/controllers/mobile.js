@@ -29,7 +29,7 @@ function postSMS(req, res) {
     user.shortcode = shortCode;
   }
 
-  const myLink = `https://${process.env.FRONT_END_URL}/id/${user.shortcode}`;
+  const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
   const myMessage = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
   if (message !== myMessage) {
