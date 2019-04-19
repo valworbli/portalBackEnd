@@ -38,7 +38,8 @@ function SocketManager(server) {
   // this.ioServer.use(authSocket);
 
   this.ioServer.on('connection', function(socket) {
-    logger.info('Client connected from ' + JSON.stringify(socket.handshake.address));
+    logger.info('Client connected from ' +
+      JSON.stringify(socket.handshake.headers['x-real-ip'] || socket.handshake.address));
     that.authenticate(socket, function(err, user) {
       if (err) {
         socket.emit(Const.SOCKET_ON_CONNECT, user);
@@ -67,7 +68,7 @@ SocketManager.prototype.dbWatcher = function() {
 
   const changeStreams = Users.watch();
   changeStreams.on('change', function(change) {
-    // logger.info('DB WATCH: ' + JSON.stringify(change));
+    logger.info('DB WATCH: ' + JSON.stringify(change));
     const sockets = that.ioServer.sockets.sockets;
     switch (change.operationType) {
       case 'update':
@@ -109,8 +110,8 @@ SocketManager.prototype.dbWatcher = function() {
 
 SocketManager.prototype.initRoutes = function(socket) {
   socket.on('disconnect', function(reason) {
-    logger.info('Client ' + JSON.stringify(socket.user._id) +
-      ' DISCONNECTED from ' + JSON.stringify(socket.handshake.address) +
+    logger.info('Client ' + JSON.stringify(socket.user._id) + 
+      ' DISCONNECTED from ' + JSON.stringify(socket.handshake.headers['x-real-ip'] || socket.handshake.address) +
       ', reason: ' + JSON.stringify(reason));
   });
   socket.on(Const.SOCKET_TEST_MESSAGE, function(data) {
@@ -143,7 +144,7 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
           if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'No such user'});
         } else {
           socket.user = user;
-          logger.info('authenticate: user found: ' + JSON.stringify(user._id));
+          logger.info('authenticate: user found: ' + JSON.stringify(user.email));
           if (cb) return cb(false, user);
         }
       }
