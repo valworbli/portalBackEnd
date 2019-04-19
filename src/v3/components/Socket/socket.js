@@ -64,47 +64,55 @@ SocketManager.prototype.dbWatcher = function() {
 
   let updatedFields = undefined;
   let _id = undefined;
-  // let found = false;
+  let found = false;
 
   const changeStreams = Users.watch();
   changeStreams.on('change', function(change) {
     logger.info('DB WATCH: ' + JSON.stringify(change));
     const sockets = that.ioServer.sockets.sockets;
+    found = false;
     switch (change.operationType) {
+      case 'replace':
+        _id = JSON.stringify(change.documentKey._id);
+        for (const socket in sockets) {
+          if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
+            that.getMissingDocuments(sockets[socket], {});
+            that.getUserState(sockets[socket], {});
+            found = true;
+            logger.info('Emitted missing documents to user ' + _id);
+            break;
+          }
+        }
+        break;
       case 'update':
         updatedFields = change.updateDescription.updatedFields;
         _id = JSON.stringify(change.documentKey._id);
-        // found = false;
         if (Object.keys(updatedFields).includes('identity_images')) {
           for (const socket in sockets) {
-            // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
-            //   JSON.stringify(sockets[socket].user._id));
-            if (JSON.stringify(sockets[socket].user._id) === _id) {
+            if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
               that.getMissingDocuments(sockets[socket], {});
-              // found = true;
+              found = true;
               logger.info('Emitted missing documents to user ' + _id);
               break;
             }
           }
-          // if (!found) logger.info('No connected socket found for user ' + _id);
         } else if (Object.keys(updatedFields).includes('onfido.onfido_status') ||
           Object.keys(updatedFields).includes('worbli_account_name')) {
           for (const socket in sockets) {
-            // logger.info('Processing socket ' + JSON.stringify(socket) + ' with user: ' +
-            //   JSON.stringify(sockets[socket].user._id));
             if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
               that.getUserState(sockets[socket], {});
-              // found = true;
+              found = true;
               logger.info('Emitted user state to user ' + _id);
               break;
             }
           }
-          // if (!found) logger.info('No connected socket found for user ' + _id);
         }
         break;
       default:
         break;
     }
+
+    if (!found) logger.info('No connected socket found for user ' + _id);
   });
 };
 
