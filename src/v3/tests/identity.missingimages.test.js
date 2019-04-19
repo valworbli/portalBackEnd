@@ -113,12 +113,13 @@ describe('## User', function() {
             logger.info('Received data: ' + JSON.stringify(res.body));
             assert(res.body.data === true, 'Err data is not true');
             expect(res.body.completed === false, 'Err completed is not false');
+            // eslint-disable-next-line max-len
             expect(res.body.missingDocuments === ['selfie', 'identity'], 'Err missingDocuments is not \'selfie\' and \'identity\'');
             done();
           })
           .catch(done);
     });
-    
+
     // eslint-disable-next-line max-len
     it('uploads all images - should return 200 and data true', (done) => {
       request(app)
