@@ -65,49 +65,36 @@ SocketManager.prototype.dbWatcher = function() {
   let updatedFields = undefined;
   let _id = undefined;
   let found = false;
+  let keys = undefined;
 
   const changeStreams = Users.watch();
   changeStreams.on('change', function(change) {
     logger.info('DB WATCH: ' + JSON.stringify(change));
-    const sockets = that.ioServer.sockets.sockets;
     found = false;
     switch (change.operationType) {
       case 'replace':
         _id = JSON.stringify(change.documentKey._id);
-        for (const socket in sockets) {
-          if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
-            that.getMissingDocuments(sockets[socket], {});
-            logger.info('Emitted missing documents to user ' + _id);
-            that.getUserState(sockets[socket], {});
-            logger.info('Emitted user state to user ' + _id);
-            found = true;
-            break;
-          }
-        }
+        that.findSocket(_id, function(socket) {
+          that.getMissingDocuments(socket, {});
+          logger.info('Emitted missing documents to user ' + _id);
+          that.getUserState(socket, {});
+          logger.info('Emitted user state to user ' + _id);
+          found = true;
+        });
         break;
       case 'update':
-        updatedFields = change.updateDescription.updatedFields;
         _id = JSON.stringify(change.documentKey._id);
-        if (Object.keys(updatedFields).includes('identity_images')) {
-          for (const socket in sockets) {
-            if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
-              that.getMissingDocuments(sockets[socket], {});
-              found = true;
-              logger.info('Emitted missing documents to user ' + _id);
-              break;
-            }
-          }
-        } else if (Object.keys(updatedFields).includes('onfido.onfido_status') ||
-          Object.keys(updatedFields).includes('worbli_account_name')) {
-          for (const socket in sockets) {
-            if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === _id) {
-              that.getUserState(sockets[socket], {});
-              found = true;
-              logger.info('Emitted user state to user ' + _id);
-              break;
-            }
-          }
-        }
+        updatedFields = change.updateDescription.updatedFields;
+        keys = Object.keys(updatedFields);
+        that.checkUpdatedFields(keys, function(key) {
+          that.findSocket(_id, function(socket) {
+            that.getMissingDocuments(socket, {});
+            logger.info('Emitted missing documents to user ' + _id);
+            that.getUserState(socket, {});
+            logger.info('Emitted user state to user ' + _id);
+            found = true;
+          });
+        });
         break;
       default:
         break;
@@ -152,8 +139,8 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
           logger.error('authenticate: No such user!');
           if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'No such user'});
         } else {
-          socket.user = user;
-          logger.info('authenticate: user found: ' + JSON.stringify(user.email));
+          socket.user = { _id: user._id, email: user.email };
+          logger.info('authenticate: user found: ' + JSON.stringify(socket.user.email));
           if (cb) return cb(false, user);
         }
       }
@@ -234,6 +221,41 @@ SocketManager.prototype.getUserState = function(socket, data) {
       }
     }
   });
+};
+
+/**
+ * Internal findSocket
+ * @param {string} userID - The user ID against which to match a socket
+ * @return socket - The socket of the user
+ */
+SocketManager.prototype.findSocket = function(userID, cb=null) {
+  const sockets = that.ioServer.sockets.sockets;
+  logger.info('There are ' + Object.keys(sockets).length + ' connected clients');
+  for (const socket in sockets) {
+    logger.info('==== Checking socket with userID: ' + JSON.stringify(sockets[socket].user._id));
+    if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === userID) {
+      if (cb) (cb(sockets[socket]));
+      else return sockets[socket];
+    }
+  }
+};
+
+/**
+ * Internal checkUpdatedFields
+ * @param {string} keys - The fields to check
+ * @return the first field that matches the criteria - The socket of the user
+ */
+SocketManager.prototype.checkUpdatedFields = function(keys, cb=null) {
+  logger.info('======= GOT keys ' + JSON.stringify(keys));
+  for (const key of keys) {
+    logger.info('======= checking key ' + key);
+    if (key.startsWith('identity_images') ||
+      key.startsWith('worbli_account_name') ||
+      key.startsWith('onfido')) {
+      if (cb) (cb(key));
+      else return key;
+    }
+  }
 };
 
 module.exports = SocketManager;
