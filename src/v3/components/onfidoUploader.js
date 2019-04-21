@@ -21,9 +21,6 @@ module.exports = function(options) {
           const countryPrefix = element.fieldname.split('_')[0];
           const docName = element.fieldname.substring(countryPrefix.length + 1);
 
-          logger.info('+++ Processing image ' + JSON.stringify(docName) +
-          ' for applicant ' + user.onfido.onfido_id);
-
           const fName = '/tmp/' + user.onfido.onfido_id + element.fieldname + '.jpg';
           fs.writeFileSync(fName, element.buffer);
 

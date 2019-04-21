@@ -44,7 +44,8 @@ function jwtDecode(token) {
     return jwt.verify(token, jwtSecret);
   } catch (err) {
     // eslint-disable-next-line no-console
-    console.log('jwtDecode: ' + JSON.stringify(err) + ', token: ' + JSON.stringify(token));
+    console.log('jwtDecode: ' + JSON.stringify(err) +
+      ', token: ' + JSON.stringify(token));
     return null;
   }
 }

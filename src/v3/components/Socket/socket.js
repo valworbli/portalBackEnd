@@ -106,7 +106,7 @@ SocketManager.prototype.dbWatcher = function() {
 
 SocketManager.prototype.initRoutes = function(socket) {
   socket.on('disconnect', function(reason) {
-    logger.info('Client ' + JSON.stringify(socket.user._id) + 
+    logger.info('Client ' + JSON.stringify(socket.user._id) +
       ' DISCONNECTED from ' + JSON.stringify(socket.handshake.headers['x-real-ip'] || socket.handshake.address) +
       ', reason: ' + JSON.stringify(reason));
   });
@@ -139,7 +139,7 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
           logger.error('authenticate: No such user!');
           if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'No such user'});
         } else {
-          socket.user = { _id: user._id, email: user.email };
+          socket.user = {_id: user._id, email: user.email};
           logger.info('authenticate: user found: ' + JSON.stringify(socket.user.email));
           if (cb) return cb(false, user);
         }
@@ -226,13 +226,12 @@ SocketManager.prototype.getUserState = function(socket, data) {
 /**
  * Internal findSocket
  * @param {string} userID - The user ID against which to match a socket
- * @return socket - The socket of the user
+ * @param {string} cb - The callback
+ * @return {Object} socket - The socket of the user
  */
 SocketManager.prototype.findSocket = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
-  logger.info('There are ' + Object.keys(sockets).length + ' connected clients');
   for (const socket in sockets) {
-    logger.info('==== Checking socket with userID: ' + JSON.stringify(sockets[socket].user._id));
     if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === userID) {
       if (cb) (cb(sockets[socket]));
       else return sockets[socket];
@@ -243,12 +242,11 @@ SocketManager.prototype.findSocket = function(userID, cb=null) {
 /**
  * Internal checkUpdatedFields
  * @param {string} keys - The fields to check
- * @return the first field that matches the criteria - The socket of the user
+ * @param {string} cb - The callback
+ * @return {string} the first field that matches the criteria - The socket of the user
  */
 SocketManager.prototype.checkUpdatedFields = function(keys, cb=null) {
-  logger.info('======= GOT keys ' + JSON.stringify(keys));
   for (const key of keys) {
-    logger.info('======= checking key ' + key);
     if (key.startsWith('identity_images') ||
       key.startsWith('worbli_account_name') ||
       key.startsWith('onfido')) {
