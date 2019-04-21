@@ -14,7 +14,7 @@ let that = undefined;
 /**
  * SocketManager
  * @param {string} server - The express app
- * @return {null} nothing
+ * @return {null} nothing...
  */
 function SocketManager(server) {
   if (!(this instanceof SocketManager)) {
