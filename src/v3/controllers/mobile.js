@@ -32,7 +32,7 @@ function postSMS(req, res) {
   const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
   const myMessage = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
-  if (message !== myMessage) {
+  if (message !== myMessage && (!myMessage.startsWith(message))) {
     logger.error('++++ The POSTed message DOES NOT equal the generated one:');
     logger.error('++++ generated: ' + JSON.stringify(myMessage));
     logger.error('++++ POSTed: ' + JSON.stringify(message));
@@ -46,23 +46,26 @@ function postSMS(req, res) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .json({data: false, error: 'Failed to send out the SMS, please try again later'});
     } else {
+      // TODO: remove this once the tests are done
+      res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
       sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
         const params = {Message: message, PhoneNumber: number};
         logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
 
-        sns.publish(params).promise().then(function(data) {
-          logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-          res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
-        }).catch(function(err) {
-          logger.error('Failed to send the SMS: ' + JSON.stringify(err));
-          res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-              .json({data: false, error: 'Failed to send out the SMS, please try again later'});
-        });
-      }).catch(function(err) {
-        logger.error('Failed to set the SMS type to Transactional: ' + JSON.stringify(err));
-        res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-            .json({data: false, error: 'Failed to send out the SMS, please try again later'});
-      });
+        // sns.publish(params).promise().then(function(data) {
+        //   logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
+        //   res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
+        // }).catch(function(err) {
+        //   logger.error('Failed to send the SMS: ' + JSON.stringify(err));
+        //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+        //       .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+        // });
+      // }).catch(function(err) {
+      //   logger.error('Failed to set the SMS type to Transactional: ' + JSON.stringify(err));
+      //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+      //       .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+      // });
+      // END TODO
     }
   });
 }
