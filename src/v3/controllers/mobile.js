@@ -12,7 +12,8 @@ AWS.config.update({
   'region': process.env.SQS_REGION,
 });
 
-const sns = new AWS.SNS({apiVersion: '2010-03-31'});
+// TODO uncomment this after the tests
+// const sns = new AWS.SNS({apiVersion: '2010-03-31'});
 
 /**
  * POST mobile/sms
@@ -21,7 +22,9 @@ const sns = new AWS.SNS({apiVersion: '2010-03-31'});
  */
 function postSMS(req, res) {
   const {user} = req.worbliUser;
-  let {number, message, country, files} = req.body;
+  // TODO remove the following line and uncomment the next one after the tests
+  let {message, country, files} = req.body;
+  // let {number, message, country, files} = req.body;
 
   user.shortcodeData = {files: JSON.stringify(files), country};
   if (!user.shortcode) {
@@ -48,18 +51,18 @@ function postSMS(req, res) {
     } else {
       // TODO: remove this once the tests are done
       res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
-      sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
-        const params = {Message: message, PhoneNumber: number};
-        logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
+      // sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
+      //   const params = {Message: message, PhoneNumber: number};
+      //   logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
 
-        // sns.publish(params).promise().then(function(data) {
-        //   logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-        //   res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
-        // }).catch(function(err) {
-        //   logger.error('Failed to send the SMS: ' + JSON.stringify(err));
-        //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)
-        //       .json({data: false, error: 'Failed to send out the SMS, please try again later'});
-        // });
+      // sns.publish(params).promise().then(function(data) {
+      //   logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
+      //   res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
+      // }).catch(function(err) {
+      //   logger.error('Failed to send the SMS: ' + JSON.stringify(err));
+      //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+      //       .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+      // });
       // }).catch(function(err) {
       //   logger.error('Failed to set the SMS type to Transactional: ' + JSON.stringify(err));
       //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)

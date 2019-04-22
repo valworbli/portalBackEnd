@@ -1,4 +1,6 @@
-var Reports = new Schema({
+const mongoose = require('mongoose');
+
+const Reports = new mongoose.Schema({
   onfido_id: {type: String, required: true},
   created_at: {type: Date, required: false},
   href: {type: String, required: false},
@@ -22,5 +24,5 @@ const onFidoChecks = new mongoose.Schema({
   reports: [Reports],
 });
 
-module.exports = mongoose.models.activeJwt ||
-mongoose.model('onFidoChecks', onFidoChecks);
+module.exports = mongoose.models.onfidochecks ||
+mongoose.model('onfidochecks', onFidoChecks);
