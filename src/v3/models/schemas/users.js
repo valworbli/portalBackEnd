@@ -57,7 +57,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     missingDocuments.push(Const.ID_SELFIE);
   }
 
-  if (!docType || !accepted[docType]) {
+  if (!docType || (accepted[docType] === undefined)) {
     missingDocuments.push(Const.ID_IDENTITY);
   } else {
     // check the uploaded vs the required documents
