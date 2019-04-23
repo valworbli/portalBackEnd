@@ -6,7 +6,7 @@ const ofWrapper = require('../components/onfidoWrapper');
 const Const = require('../defs/const.js');
 const crypto = require('crypto');
 const Users = require('../models/users');
-// const Checks = require('../models/schemas/onFidoChecks');
+const OFChecks = require('../models/schemas/onfidoChecks');
 
 /**
  * Internal _getMissingImages
@@ -329,6 +329,7 @@ function postWebHook(req, res) {
 
       let myUser = undefined;
       const reports = [];
+      let ofCheck = undefined;
 
       switch (action) {
         case Const.ONFIDO_CHECK_COMPLETED:
@@ -344,17 +345,42 @@ function postWebHook(req, res) {
                   onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
                 }
 
-                // check.reports.reduce(function(acc, reportId) {
-                //   acc.push(ofWrapper.findReport(onfidoId, reportId));
-                // }, reports);
-                // Promise.all(reports).then(function(values) {
-                //   values.forEach(function(report) {
-                //     logger.info('==== report: ' + JSON.stringify(report));
-                //   });
-                // }).catch(function(err) {
-                //   logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
-                // });
-                return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
+                try {
+                  ofCheck = new OFChecks({
+                    user: myUser._id,
+                    onfido_id: check.id,
+                    created_at: check.created_at,
+                    href: check.href,
+                    status: check.status,
+                    result: check.result,
+                    download_uri: check.download_uri,
+                    results_uri: check.results_uri,
+                    check_type: check.type,
+                    dump: JSON.stringify(check),
+                    reports: [],
+                  });
+                  logger.info('==== Created a new check: ' + JSON.stringify(ofCheck));
+                  check.reports.reduce(function(acc, reportId) {
+                    logger.info('==== processing report: ' + JSON.stringify(reportId));
+                    acc.push(ofWrapper.findReport(check.id, reportId));
+                    return acc;
+                  }, reports);
+                  Promise.all(reports).then(function(values) {
+                    values.forEach(function(report) {
+                      logger.info('==== obtained a report: ' + JSON.stringify(report));
+                      ofCheck.addReport(report);
+                      logger.info('==== ADDED report: ' + JSON.stringify(report));
+                    });
+                  }).catch(function(err) {
+                    logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
+                  }).finally(function() {
+                    ofCheck.save();
+                    logger.info('==== Saved check ' + check.id);
+                  });
+                } catch (err) {
+                  logger.error('Error iterating through the reports: ' + JSON.stringify(err));
+                }
+                return Users.onfidoCheckCompleted(myUser._id, onfidoStatus);
               })
               .then(function(user) {
                 myUser = user;
