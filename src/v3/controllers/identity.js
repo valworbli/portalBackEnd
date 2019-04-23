@@ -328,7 +328,7 @@ function postWebHook(req, res) {
           ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
 
       let myUser = undefined;
-      const reports = [];
+      // const reports = [];
 
       switch (action) {
         case Const.ONFIDO_CHECK_COMPLETED:
