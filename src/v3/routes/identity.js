@@ -1,3 +1,4 @@
+/* eslint max-len: 0 */
 const express = require('express');
 const validate = require('express-validation');
 const identityController = require('../controllers/identity.js');
@@ -14,6 +15,7 @@ const postApplication = require('../validators/identity/postApplication.js');
 const getApplication = require('../validators/identity/getApplication.js');
 const getDocuments = require('../validators/identity/getDocuments.js');
 const getMissingImages = require('../validators/identity/getMissingImages.js');
+const delIdentityImages = require('../validators/identity/delIdentityImages.js');
 
 router.route('/image/').get(validate(getImage.validate),
     identityController.getImage);
@@ -31,5 +33,7 @@ router.route('/documents/').post(validate(getDocuments.validate),
 router.route('/missingimages/').get(validate(getMissingImages.validate),
     jwtAuthenticator({getUser: true}), identityController.getMissingImages);
 router.route('/webhook/').post(identityController.postWebHook);
+router.route('/identityimages').delete(validate(delIdentityImages.validate),
+    jwtAuthenticator({getUser: true}), identityController.delIdentityImages);
 
 module.exports = router;

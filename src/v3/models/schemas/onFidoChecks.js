@@ -24,5 +24,10 @@ const onFidoChecks = new mongoose.Schema({
   reports: [Reports],
 });
 
+onFidoChecks.prototype.addReport = function(ofReport) {
+  const report = new Reports();
+  report.onfido_id = ofReport.id;
+};
+
 module.exports = mongoose.models.onfidochecks ||
 mongoose.model('onfidochecks', onFidoChecks);

@@ -35,7 +35,7 @@ function postSMS(req, res) {
   const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
   const myMessage = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
-  if (message !== myMessage && (!myMessage.startsWith(message))) {
+  if (message !== myMessage && !(myMessage.startsWith(message))) {
     logger.error('++++ The POSTed message DOES NOT equal the generated one:');
     logger.error('++++ generated: ' + JSON.stringify(myMessage));
     logger.error('++++ POSTed: ' + JSON.stringify(message));

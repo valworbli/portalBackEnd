@@ -2,6 +2,7 @@ const Const = require('../../defs/const');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
+const logger = require('../../components/logger')(module);
 
 const identityImagesSchema = new mongoose.Schema({
   completed: {type: Boolean, index: true},
@@ -57,7 +58,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     missingDocuments.push(Const.ID_SELFIE);
   }
 
-  if (!docType) {
+  if (!docType || !accepted[docType]) {
     missingDocuments.push(Const.ID_IDENTITY);
   } else {
     // check the uploaded vs the required documents

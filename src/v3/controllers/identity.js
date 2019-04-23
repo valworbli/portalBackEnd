@@ -6,6 +6,7 @@ const ofWrapper = require('../components/onfidoWrapper');
 const Const = require('../defs/const.js');
 const crypto = require('crypto');
 const Users = require('../models/users');
+// const Checks = require('../models/schemas/onFidoChecks');
 
 /**
  * Internal _getMissingImages
@@ -171,6 +172,36 @@ function delImage(req, res) {
 }
 
 /**
+ * DEL identity/identity
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ */
+function delIdentityImages(req, res) {
+  const {user} = req.worbliUser;
+  let resp = undefined;
+
+  if (user.identity_images) {
+    if (user.identity_images.uploaded_documents.includes('selfie')) {
+      user.identity_images.uploaded_documents = ['selfie'];
+    } else {
+      user.identity_images.uploaded_documents = [];
+    }
+  }
+
+  _getMissingImages(user).then(async (response) => {
+    resp = response;
+    if (user.identity_images) {
+      user.identity_images.completed = response.body.completed;
+      await user.save();
+    }
+  }).catch((response) => {
+    resp = response;
+  }).finally(() => {
+    res.status(resp.status).json(resp.body);
+  });
+}
+
+/**
  * POST identity/application
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
@@ -296,8 +327,8 @@ function postWebHook(req, res) {
         ', resourceType: ' + JSON.stringify(resourceType) + ', status: ' + JSON.stringify(status) +
           ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
 
-
       let myUser = undefined;
+      const reports = [];
 
       switch (action) {
         case Const.ONFIDO_CHECK_COMPLETED:
@@ -312,6 +343,17 @@ function postWebHook(req, res) {
                 if (check.result !== Const.ONFIDO_CHECK_RESULT_CLEAR) {
                   onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
                 }
+
+                check.reports.reduce(function(acc, reportId) {
+                  acc.push(ofWrapper.findReport(onfidoId, reportId));
+                }, reports);
+                Promise.all(reports).then(function(values) {
+                  values.forEach(function(report) {
+                    logger.info('==== report: ' + JSON.stringify(report));
+                  });
+                }).catch(function(err) {
+                  logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
+                });
                 return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
               })
               .then(function(user) {
@@ -372,4 +414,5 @@ module.exports = {
   getDocuments,
   getMissingImages,
   postWebHook,
+  delIdentityImages,
 };

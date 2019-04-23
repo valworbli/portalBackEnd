@@ -139,6 +139,16 @@ function findCheck(applicantId, checkId) {
   return api.findCheck(applicantId, checkId);
 }
 
+/**
+ * Gets an OnFido report
+ * @param {string} checkId - The OnFido check ID
+ * @param {string} reportId - The OnFido applicant ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function findReport(checkId, reportId) {
+  return api.findReport(checkId, reportId);
+}
+
 module.exports = {
   createApplicant,
   createFakeApplicant,
@@ -150,4 +160,5 @@ module.exports = {
   listLivePhotos,
   startCheck,
   findCheck,
+  findReport,
 };
