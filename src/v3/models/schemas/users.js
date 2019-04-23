@@ -2,7 +2,6 @@ const Const = require('../../defs/const');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
-const logger = require('../../components/logger')(module);
 
 const identityImagesSchema = new mongoose.Schema({
   completed: {type: Boolean, index: true},
