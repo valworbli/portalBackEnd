@@ -344,16 +344,16 @@ function postWebHook(req, res) {
                   onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
                 }
 
-                check.reports.reduce(function(acc, reportId) {
-                  acc.push(ofWrapper.findReport(onfidoId, reportId));
-                }, reports);
-                Promise.all(reports).then(function(values) {
-                  values.forEach(function(report) {
-                    logger.info('==== report: ' + JSON.stringify(report));
-                  });
-                }).catch(function(err) {
-                  logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
-                });
+                // check.reports.reduce(function(acc, reportId) {
+                //   acc.push(ofWrapper.findReport(onfidoId, reportId));
+                // }, reports);
+                // Promise.all(reports).then(function(values) {
+                //   values.forEach(function(report) {
+                //     logger.info('==== report: ' + JSON.stringify(report));
+                //   });
+                // }).catch(function(err) {
+                //   logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
+                // });
                 return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
               })
               .then(function(user) {
