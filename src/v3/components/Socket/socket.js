@@ -193,6 +193,7 @@ SocketManager.prototype.getMissingDocuments = function(socket, data) {
                 socket.emit(Const.SOCKET_MISSING_IMAGES, {data: true,
                   completed: result.missingDocuments.length === 0,
                   missingDocuments: result.missingDocuments,
+                  completedDocuments: user.identity_images.uploaded_documents,
                 });
               }
             }

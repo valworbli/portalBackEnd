@@ -14,20 +14,43 @@ const shortcodeDataSchema = new mongoose.Schema({
   country: {type: String, required: true, index: true},
 });
 
-identityImagesSchema.methods.pushDocumentUnique = function(docName) {
-  if (!this.uploaded_documents.includes(docName)) {
-    this.uploaded_documents.push(docName);
+identityImagesSchema.methods.pushDocumentUnique = function(docName, devId) {
+  // if the document exist, check if it needs to be updated
+  // else insert it in the array
+  for (const doc of this.uploaded_documents) {
+    if (doc.name === docName) {
+      if (doc.id !== devId) {
+        doc.id = devId;
+      }
+
+      return;
+    }
   }
+
+  this.uploaded_documents.push({name: docName, id: devId});
 };
 
-identityImagesSchema.methods.delDocument = function(docName) {
-  let index = undefined;
-  for (const ind in this.uploaded_documents) {
-    if (this.uploaded_documents[ind] === docName) {
-      index = ind;
+identityImagesSchema.methods.delAllBut = function(docName, devId=0) {
+  // if the document exist, check if it needs to be updated
+  // else insert it in the array
+  let onlyDoc = undefined;
+
+  for (const doc of this.uploaded_documents) {
+    if (doc.name === docName) {
+      onlyDoc = {...doc};
       break;
     }
   }
+
+  if (!onlyDoc) {
+    onlyDoc = { name: docName, id: 0 };
+  }
+
+  this.uploaded_documents = [onlyDoc];
+};
+
+identityImagesSchema.methods.delDocument = function(docName) {
+  const index = this.includes(docName);
 
   if (index) {
     this.uploaded_documents.splice(index, 1);
@@ -37,23 +60,35 @@ identityImagesSchema.methods.delDocument = function(docName) {
   return false;
 };
 
+identityImagesSchema.methods.includes = function(docName) {
+  let index = undefined;
+  for (const ind in this.uploaded_documents) {
+    if (this.uploaded_documents[ind].name === docName) {
+      index = ind;
+      break;
+    }
+  }
+
+  return index;
+};
+
 identityImagesSchema.methods.verify = function(accepted) {
   const missingDocuments = [];
   let docType = undefined;
 
   this.uploaded_documents.forEach((element) => {
-    if (element !== Const.ID_SELFIE && !docType) {
-      if (element.endsWith(Const.ID_REVERSE_SUFFIX)) {
-        docType = element.substring(
-            0, element.length - Const.ID_REVERSE_SUFFIX.length - 1
+    if (element.name !== Const.ID_SELFIE && !docType) {
+      if (element.name.endsWith(Const.ID_REVERSE_SUFFIX)) {
+        docType = element.name.substring(
+            0, element.name.length - Const.ID_REVERSE_SUFFIX.length - 1
         );
       } else {
-        docType = element;
+        docType = element.name;
       }
     }
   });
 
-  if (!this.uploaded_documents.includes(Const.ID_SELFIE)) {
+  if (!this.includes(Const.ID_SELFIE)) {
     missingDocuments.push(Const.ID_SELFIE);
   }
 
@@ -62,7 +97,7 @@ identityImagesSchema.methods.verify = function(accepted) {
   } else {
     // check the uploaded vs the required documents
     const backRequired = accepted[docType];
-    if (!this.uploaded_documents.includes(docType)) {
+    if (!this.includes(docType)) {
       missingDocuments.push(docType);
     }
     if (backRequired.constructor !== Boolean) {
@@ -70,7 +105,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     }
     if (backRequired) {
       const docTypeReverse = docType + '_' + Const.ID_REVERSE_SUFFIX;
-      if (!this.uploaded_documents.includes(docTypeReverse)) {
+      if (!this.includes(docTypeReverse)) {
         missingDocuments.push(docTypeReverse);
       }
     }
@@ -188,3 +223,5 @@ usersSchema.methods.getOnFidoStatus = function() {
 
 module.exports = mongoose.models.users ||
 mongoose.model('users', usersSchema);
+
+module.exports.usersSchema = usersSchema;

@@ -55,6 +55,7 @@ async function postImage(req, res) {
   // try {
   const {user} = req.worbliUser;
   let countryPrefix = undefined;
+  let deviceId = undefined;
   const rejectedDocuments = [];
 
   user.initIDImages();
@@ -65,8 +66,16 @@ async function postImage(req, res) {
         json({data: false, error: 'Please include at least one file in the request!'});
   }
 
-  // get the country from the uploaded file.fieldname
-  countryPrefix = req.files[0].fieldname.split('_')[0];
+  const splitParts = req.files[0].fieldname.split('_');
+  // get the device ID from the uploaded file.fieldname
+  deviceId = parseInt(splitParts[0]);
+  if (isNaN(deviceId)) {
+    countryPrefix = splitParts[0];
+    deviceId = 0;
+  } else {
+    // get the country from the uploaded file.fieldname
+    countryPrefix = splitParts[1];
+  }
 
   if (user.identity_images && (user.identity_images.country !== countryPrefix)) {
     user.initIDImages(true);
@@ -78,9 +87,13 @@ async function postImage(req, res) {
     const docName = element.fieldname.substring(countryPrefix.length + 1);
     if (element.failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
-      rejectedDocuments.push(docName);
+      if (deviceId === 0) {
+        rejectedDocuments.push(docName);
+      } else {
+        rejectedDocuments.push({name: docName, id: deviceId});
+      }
     } else {
-      user.identity_images.pushDocumentUnique(docName);
+      user.identity_images.pushDocumentUnique(docName, deviceId);
     }
   });
 
@@ -103,6 +116,7 @@ async function postImage(req, res) {
           completed: user.identity_images.completed,
           missingDocuments: result.missingDocuments,
           rejectedDocuments: rejectedDocuments,
+          completedDocuments: user.identity_images.uploaded_documents,
           data: true,
         });
       });
@@ -181,8 +195,8 @@ function delIdentityImages(req, res) {
   let resp = undefined;
 
   if (user.identity_images) {
-    if (user.identity_images.uploaded_documents.includes('selfie')) {
-      user.identity_images.uploaded_documents = ['selfie'];
+    if (user.identity_images.includes(Const.ID_SELFIE)) {
+      user.identity_images.delAllBut(Const.ID_SELFIE);
     } else {
       user.identity_images.uploaded_documents = [];
     }

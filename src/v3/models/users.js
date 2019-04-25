@@ -281,18 +281,14 @@ function onfidoCheckCompleted(userId, onfidoStatus) {
         {new: true},
         function(err, user) {
           if (err) {
-            logger.error('User with id: ' +
-          JSON.stringify(userId) + ' NOT FOUND');
+            logger.error('onfidoCheckCompleted: User with id: ' +
+              JSON.stringify(userId) + ' NOT FOUND: ' + JSON.stringify(err));
             reject({err});
           }
 
           if (user) {
-            logger.info('Found a user ' + JSON.stringify(user.email)
-          + ' with userId ' + JSON.stringify(userId));
             resolve(user);
           } else {
-            logger.info('NO USER was found with userId ' +
-              JSON.stringify(userId));
             reject('Could not find a user for this check');
           }
         });
