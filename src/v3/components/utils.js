@@ -1,3 +1,8 @@
+/**
+ * extractNames
+ * @param {object} fieldname - The fieldname to be split
+ * @return {object} - the extracted deviceId, countryPrefix, docName, offset
+ */
 function extractNames(fieldname) {
   let countryPrefix = undefined;
   let deviceId = undefined;
@@ -19,9 +24,9 @@ function extractNames(fieldname) {
   offset += countryPrefix.length + 1;
   docName = fieldname.substring(offset);
 
-  return { deviceId, countryPrefix, docName, offset };
+  return {deviceId, countryPrefix, docName, offset};
 }
 
 module.exports = {
   extractNames,
-}
+};

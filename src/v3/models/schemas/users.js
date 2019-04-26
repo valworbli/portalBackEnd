@@ -43,7 +43,7 @@ identityImagesSchema.methods.delAllBut = function(docName, devId=0) {
   }
 
   if (!onlyDoc) {
-    onlyDoc = { name: docName, id: 0 };
+    onlyDoc = {name: docName, id: 0};
   }
 
   this.uploaded_documents = [onlyDoc];

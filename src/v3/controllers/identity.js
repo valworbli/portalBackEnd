@@ -65,7 +65,7 @@ async function postImage(req, res) {
         json({data: false, error: 'Please include at least one file in the request!'});
   }
 
-  let { deviceId, countryPrefix, docName, offset } = utils.extractNames(req.files[0].fieldname);
+  let {deviceId, countryPrefix, docName, offset} = utils.extractNames(req.files[0].fieldname);
 
   if (user.identity_images && (user.identity_images.country !== countryPrefix)) {
     user.initIDImages(true);
