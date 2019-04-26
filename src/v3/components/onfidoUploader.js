@@ -4,6 +4,7 @@ const Const = require('../defs/const.js');
 const logger = require('./logger')(module);
 const ofWrapper = require('../components/onfidoWrapper');
 const asyncForEach = require('./asyncFunctions').asyncForEach;
+const utils = require('./utils');
 
 module.exports = function(options) {
   return function uploadToOnFido(req, res, next) {
@@ -18,8 +19,7 @@ module.exports = function(options) {
       asyncForEach(req.files, async (element) => {
         await (async () => {
           const {user} = req.worbliUser;
-          const countryPrefix = element.fieldname.split('_')[0];
-          const docName = element.fieldname.substring(countryPrefix.length + 1);
+          const {docName} = utils.extractNames(element.fieldname);
 
           const fName = '/tmp/' + user.onfido.onfido_id + element.fieldname + '.jpg';
           fs.writeFileSync(fName, element.buffer);

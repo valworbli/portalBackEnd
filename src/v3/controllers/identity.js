@@ -7,6 +7,7 @@ const Const = require('../defs/const.js');
 const crypto = require('crypto');
 const Users = require('../models/users');
 const OFChecks = require('../models/schemas/onfidoChecks');
+const utils = require('../components/utils');
 
 /**
  * Internal _getMissingImages
@@ -54,8 +55,6 @@ function _getMissingImages(user) {
 async function postImage(req, res) {
   // try {
   const {user} = req.worbliUser;
-  let countryPrefix = undefined;
-  let deviceId = undefined;
   const rejectedDocuments = [];
 
   user.initIDImages();
@@ -66,16 +65,7 @@ async function postImage(req, res) {
         json({data: false, error: 'Please include at least one file in the request!'});
   }
 
-  const splitParts = req.files[0].fieldname.split('_');
-  // get the device ID from the uploaded file.fieldname
-  deviceId = parseInt(splitParts[0]);
-  if (isNaN(deviceId)) {
-    countryPrefix = splitParts[0];
-    deviceId = 0;
-  } else {
-    // get the country from the uploaded file.fieldname
-    countryPrefix = splitParts[1];
-  }
+  let { deviceId, countryPrefix, docName, offset } = utils.extractNames(req.files[0].fieldname);
 
   if (user.identity_images && (user.identity_images.country !== countryPrefix)) {
     user.initIDImages(true);
@@ -84,14 +74,10 @@ async function postImage(req, res) {
   }
 
   req.files.forEach(function(element) {
-    const docName = element.fieldname.substring(countryPrefix.length + 1);
+    docName = element.fieldname.substring(offset);
     if (element.failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
-      if (deviceId === 0) {
-        rejectedDocuments.push(docName);
-      } else {
-        rejectedDocuments.push({name: docName, id: deviceId});
-      }
+      rejectedDocuments.push(docName);
     } else {
       user.identity_images.pushDocumentUnique(docName, deviceId);
     }

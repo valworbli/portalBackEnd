@@ -216,6 +216,29 @@ describe('## User', function() {
           });
     });
 
+    it('tests uploading with a device ID - should return 200 and completed true', (done) => {
+      Users.updateOne(
+          {email: defUser.email},
+          {$set: {'identity_images.uploaded_documents': [],
+            'identity_images.completed': false}}, function(err, user) {
+            request(app)
+                .post(testUrl)
+                .set('Accept', 'application/json')
+                .set('Authorization', `Bearer ${jwtToken}`)
+                .attach('112233_BGR_selfie', 'src/samples/images/selfie.jpg')
+                .attach('112233_BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+                .attach('112233_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+                .expect(HttpStatus.OK)
+                .then((res) => {
+                  assert(res.body.data === true, 'Err data is not true');
+                  assert(res.body.completed === true, 'Err completed is not false');
+                  assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
+                  done();
+                })
+                .catch(done);
+          });
+    });
+
     // eslint-disable-next-line max-len
     it('should return 400 because the token is missing', (done) => {
       request(app)
