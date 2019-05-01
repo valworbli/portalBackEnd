@@ -1,4 +1,5 @@
-require('dotenv').config({ path: '../../.env' })
+/* eslint max-len: 0 */
+require('dotenv').config({path: '../../.env'});
 const Promise = require('bluebird');
 const mongoose = require('mongoose');
 mongoose.Promise = Promise;
@@ -73,7 +74,7 @@ cursor.on('data', function(user) {
     onfidoId = nUser.onfido_id;
     onfidoStatus = nUser.onfido_status;
 
-    switch(onfidoStatus) {
+    switch (onfidoStatus) {
       case 'default':
         onfidoStatus = Const.ONFIDO_STATUS_CREATED;
         break;
@@ -86,7 +87,7 @@ cursor.on('data', function(user) {
         break;
     }
 
-    nUser.onfido = { onfido_id: onfidoId, onfido_status: onfidoStatus, onfido_error: false };
+    nUser.onfido = {onfido_id: onfidoId, onfido_status: onfidoStatus, onfido_error: false};
     delete nUser.onfido_id;
     delete nUser.onfido_status;
   }
@@ -96,21 +97,21 @@ cursor.on('data', function(user) {
   nUser.date_birth = new Date(Date.UTC(nUser.date_birth_year, nUser.date_birth_month - 1, nUser.date_birth_day));
 
   if (nUser.address_building_name) {
-    nUser.address_two += ', building: ' + address_building_name;
+    nUser.address_two += ', building: ' + nUser.address_building_name;
     delete nUser.address_building_name;
   }
   if (nUser.address_building_number) {
-    nUser.address_two += ', building number: ' + address_building_number;
+    nUser.address_two += ', building number: ' + nUser.address_building_number;
     delete nUser.address_building_number;
   }
   if (nUser.address_flat_number) {
-    nUser.address_two += ', flat: ' + address_flat_number;
+    nUser.address_two += ', flat: ' + nUser.address_flat_number;
     delete nUser.address_flat_number;
   }
 
   delete nUser._id;
   delete nUser.date_birth_year;
-  delete nUser.date_birth_month - 1;
+  delete nUser.date_birth_month;
   delete nUser.date_birth_day;
 
   const newUser = new NewUsers(nUser);

@@ -246,19 +246,19 @@ function postApplication(req, res) {
             if (user.onfido.onfido_status === Const.ONFIDO_STATUS_CREATED) {
               ofWrapper.updateApplicant(user).then(function(applicant) {
                 logger.info('OnFido Applicant UPDATED, id: ' +
-                    JSON.stringify(applicant.id));
+                  JSON.stringify(applicant.id));
                 user.onfido.onfido_id = applicant.id;
 
                 ofWrapper.startCheck(user.onfido.onfido_id).then(function(check) {
                   logger.info('OnFido check started: ' +
-                      JSON.stringify(check));
+                    JSON.stringify(check));
 
                   user.onfido.onfido_check = check.id;
                   user.onfido.onfido_status = Const.ONFIDO_STATUS_PENDING;
                   user.onfido.onfido_error = false;
                 }).catch(function(error) {
                   logger.error('OnFido START check ERRORED: ' +
-                        JSON.stringify(error.response.body));
+                    JSON.stringify(error.response.body));
                   user.onfido.onfido_error = true;
                   user.onfido.onfido_status = Const.ONFIDO_STATUS_REJECTED;
                   user.onfido.onfido_error_message = JSON.stringify(error.response.body);
@@ -362,7 +362,9 @@ function postWebHook(req, res) {
                   logger.info('==== Created a new check: ' + JSON.stringify(ofCheck));
                   check.reports.reduce(function(acc, reportId) {
                     logger.info('==== processing report: ' + JSON.stringify(reportId));
-                    acc.push(ofWrapper.findReport(check.id, reportId));
+                    acc.push(ofWrapper.findReport(check.id, reportId).catch(function(err) {
+                      logger.error('Error obtaining report ' + JSON.stringify(check.id));
+                    }));
                     return acc;
                   }, reports);
                   Promise.all(reports).then(function(values) {
