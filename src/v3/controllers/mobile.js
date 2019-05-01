@@ -23,10 +23,8 @@ AWS.config.update({
 function postSMS(req, res) {
   const {user} = req.worbliUser;
   // TODO remove the following line and uncomment the next one after the tests
-  const {country, files} = req.body;
   // let {number, country, files} = req.body;
 
-  user.shortcodeData = {files: JSON.stringify(files), country};
   if (!user.shortcode) {
     const shortCode = randomIntFromInterval(Const.SHORTCODE_MIN, Const.SHORTCODE_MAX);
     user.shortcode = shortCode;
@@ -35,7 +33,6 @@ function postSMS(req, res) {
   const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
   // const message = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
-  logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
     if (err) {
       logger.error('Failed to save the user when sending the SMS: ' + JSON.stringify(err));

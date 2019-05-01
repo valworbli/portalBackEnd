@@ -37,7 +37,7 @@ const _saveDefUser = function(done) {
 };
 
 describe('## Mobile', function() {
-  this.timeout(5000);
+  this.timeout(20000);
   const testUrl = baseTestUrl + 'sms/';
   let jwtToken = ''; let shortcode = 0;
 
@@ -108,8 +108,7 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+004135364493333', message: 'Hello, world!',
-            country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
+          .send({number: '+359893546540'})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
@@ -117,9 +116,6 @@ describe('## Mobile', function() {
             assert(res.body.link.endsWith('/id/' + JSON.stringify(shortcode)), 'Err the link DOES NOT match!');
             Users.findOne({email: defUser.email}, function(err, user) {
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
-              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-              assert(user.shortcodeData.files === '"[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]"',
-                  'Err the stored document DOES NOT match the submitted one');
               done();
             });
           })
@@ -131,7 +127,7 @@ describe('## Mobile', function() {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567', message: 'Sample message'})
+          .send({number: '+15551234567'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             done();
@@ -145,8 +141,7 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567', message: 'Sample message',
-            country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
+          .send({number: '+15551234567'})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
             assert(res.body.data === false, 'Err data is not false');
@@ -161,7 +156,7 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+1555123456743943938378373', message: 'Sample message'})
+          .send({number: '+1555123456743943938378373'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             done();
