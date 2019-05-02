@@ -237,7 +237,7 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
       if (!user) {
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
       } else {
-        const userFiles = { ...user.shortcodeData, files: JSON.parse(user.shortcodeData) };
+        const userFiles = {...user.shortcodeData, files: JSON.parse(user.shortcodeData)};
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
           documents: userFiles,
           data: true,
