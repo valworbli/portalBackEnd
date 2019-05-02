@@ -79,6 +79,8 @@ SocketManager.prototype.dbWatcher = function() {
           logger.info('Emitted missing documents to user ' + _id);
           that.getUserState(socket, {});
           logger.info('Emitted user state to user ' + _id);
+          that.getUserFiles(socket, {});
+          logger.info('Emitted user files to user ' + _id);
           found = true;
         });
         break;
@@ -92,6 +94,8 @@ SocketManager.prototype.dbWatcher = function() {
             logger.info('Emitted missing documents to user ' + _id);
             that.getUserState(socket, {});
             logger.info('Emitted user state to user ' + _id);
+            that.getUserFiles(socket, {});
+            logger.info('Emitted user files to user ' + _id);
             found = true;
           });
         });
@@ -217,6 +221,25 @@ SocketManager.prototype.getUserState = function(socket, data) {
         ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
         socket.emit(Const.SOCKET_USER_GET_STATE, {
           status: ofStatus,
+          data: true,
+        });
+      }
+    }
+  });
+};
+
+SocketManager.prototype.getUserFiles = function(socket, data) {
+  const {user} = socket;
+  Users.findOne({_id: user._id}, function(err, user) {
+    if (err) {
+      socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
+    } else {
+      if (!user) {
+        socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
+      } else {
+        const userFiles = { ...user.shortcodeData, files: JSON.parse(user.shortcodeData) };
+        socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
+          documents: userFiles,
           data: true,
         });
       }
