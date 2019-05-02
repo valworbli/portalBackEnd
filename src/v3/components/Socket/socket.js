@@ -1,4 +1,6 @@
 /* eslint max-len: 0 */
+/* eslint guard-for-in: 0 */
+
 const jwt = require('../jwt');
 const Users = require('../../models/schemas/users');
 const IDDocs = require('../../models/schemas/idDocs');
@@ -75,7 +77,7 @@ SocketManager.prototype.dbWatcher = function() {
       case 'replace':
         _id = JSON.stringify(change.documentKey._id);
         that.findSockets(_id, function(sockets) {
-          for (let sock of sockets) {
+          for (const sock of sockets) {
             that.getMissingDocuments(sock, {});
             logger.info('Emitted missing documents to user ' + _id);
             that.getUserState(sock, {});
@@ -92,7 +94,7 @@ SocketManager.prototype.dbWatcher = function() {
         keys = Object.keys(updatedFields);
         that.checkUpdatedFields(keys, function(key) {
           that.findSockets(_id, function(sockets) {
-            for (let sock of sockets) {
+            for (const sock of sockets) {
               that.getMissingDocuments(sock, {});
               logger.info('Emitted missing documents to user ' + _id);
               that.getUserState(sock, {});
@@ -260,7 +262,7 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
 SocketManager.prototype.findSocket = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
   for (const socket in sockets) {
-    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser))
+    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser));
     if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
       if (cb) (cb(sockets[socket]));
       else return sockets[socket];
@@ -276,9 +278,9 @@ SocketManager.prototype.findSocket = function(userID, cb=null) {
  */
 SocketManager.prototype.findSockets = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
-  let userSockets = [];
+  const userSockets = [];
   for (const socket in sockets) {
-    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser))
+    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser));
     if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
       userSockets.push(sockets[socket]);
     }
