@@ -74,14 +74,16 @@ SocketManager.prototype.dbWatcher = function() {
     switch (change.operationType) {
       case 'replace':
         _id = JSON.stringify(change.documentKey._id);
-        that.findSocket(_id, function(socket) {
-          that.getMissingDocuments(socket, {});
-          logger.info('Emitted missing documents to user ' + _id);
-          that.getUserState(socket, {});
-          logger.info('Emitted user state to user ' + _id);
-          that.getUserFiles(socket, {});
-          logger.info('Emitted user files to user ' + _id);
-          found = true;
+        that.findSockets(_id, function(sockets) {
+          for (let sock of sockets) {
+            that.getMissingDocuments(sock, {});
+            logger.info('Emitted missing documents to user ' + _id);
+            that.getUserState(sock, {});
+            logger.info('Emitted user state to user ' + _id);
+            that.getUserFiles(sock, {});
+            logger.info('Emitted user files to user ' + _id);
+            found = true;
+          }
         });
         break;
       case 'update':
@@ -89,14 +91,16 @@ SocketManager.prototype.dbWatcher = function() {
         updatedFields = change.updateDescription.updatedFields;
         keys = Object.keys(updatedFields);
         that.checkUpdatedFields(keys, function(key) {
-          that.findSocket(_id, function(socket) {
-            that.getMissingDocuments(socket, {});
-            logger.info('Emitted missing documents to user ' + _id);
-            that.getUserState(socket, {});
-            logger.info('Emitted user state to user ' + _id);
-            that.getUserFiles(socket, {});
-            logger.info('Emitted user files to user ' + _id);
-            found = true;
+          that.findSockets(_id, function(sockets) {
+            for (let sock of sockets) {
+              that.getMissingDocuments(sock, {});
+              logger.info('Emitted missing documents to user ' + _id);
+              that.getUserState(sock, {});
+              logger.info('Emitted user state to user ' + _id);
+              that.getUserFiles(sock, {});
+              logger.info('Emitted user files to user ' + _id);
+              found = true;
+            }
           });
         });
         break;
@@ -110,7 +114,7 @@ SocketManager.prototype.dbWatcher = function() {
 
 SocketManager.prototype.initRoutes = function(socket) {
   socket.on('disconnect', function(reason) {
-    logger.info('Client ' + JSON.stringify(socket.user._id) +
+    logger.info('Client ' + JSON.stringify(socket.worbliUser._id) +
       ' DISCONNECTED from ' + JSON.stringify(socket.handshake.headers['x-real-ip'] || socket.handshake.address) +
       ', reason: ' + JSON.stringify(reason));
   });
@@ -143,8 +147,8 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
           logger.error('authenticate: No such user!');
           if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'No such user'});
         } else {
-          socket.user = {_id: user._id, email: user.email};
-          logger.info('authenticate: user found: ' + JSON.stringify(socket.user.email));
+          socket.worbliUser = {_id: user._id, email: user.email};
+          logger.info('authenticate: user found: ' + JSON.stringify(socket.worbliUser.email));
           if (cb) return cb(false, user);
         }
       }
@@ -158,7 +162,7 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
  * @param {object} data - The request data (unused for the moment)
  */
 SocketManager.prototype.getMissingDocuments = function(socket, data) {
-  const {user} = socket;
+  const user = socket.worbliUser;
   Users.findOne({_id: user._id}, function(err, user) {
     if (err) {
       socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
@@ -209,7 +213,7 @@ SocketManager.prototype.getMissingDocuments = function(socket, data) {
 };
 
 SocketManager.prototype.getUserState = function(socket, data) {
-  const {user} = socket;
+  const user = socket.worbliUser;
   Users.findOne({_id: user._id}, function(err, user) {
     if (err) {
       socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
@@ -229,7 +233,7 @@ SocketManager.prototype.getUserState = function(socket, data) {
 };
 
 SocketManager.prototype.getUserFiles = function(socket, data) {
-  const {user} = socket;
+  const user = socket.worbliUser;
   Users.findOne({_id: user._id}, function(err, user) {
     if (err) {
       socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
@@ -237,7 +241,7 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
       if (!user) {
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
       } else {
-        const userFiles = {...user.shortcodeData, files: JSON.parse(user.shortcodeData)};
+        const userFiles = {country: user.shortcodeData.country, files: JSON.parse(user.shortcodeData.files)};
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
           documents: userFiles,
           data: true,
@@ -256,11 +260,32 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
 SocketManager.prototype.findSocket = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
   for (const socket in sockets) {
-    if (sockets[socket] && sockets[socket].user && JSON.stringify(sockets[socket].user._id) === userID) {
+    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser))
+    if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
       if (cb) (cb(sockets[socket]));
       else return sockets[socket];
     }
   }
+};
+
+/**
+ * Internal findSockets
+ * @param {string} userID - The user ID against which to match a socket
+ * @param {string} cb - The callback
+ * @return {Object} socket - The socket of the user
+ */
+SocketManager.prototype.findSockets = function(userID, cb=null) {
+  const sockets = that.ioServer.sockets.sockets;
+  let userSockets = [];
+  for (const socket in sockets) {
+    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser))
+    if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
+      userSockets.push(sockets[socket]);
+    }
+  }
+
+  if (cb) (cb(userSockets));
+  else return userSockets;
 };
 
 /**
@@ -273,7 +298,8 @@ SocketManager.prototype.checkUpdatedFields = function(keys, cb=null) {
   for (const key of keys) {
     if (key.startsWith('identity_images') ||
       key.startsWith('worbli_account_name') ||
-      key.startsWith('onfido')) {
+      key.startsWith('onfido') ||
+      key.startsWith('shortcodeData')) {
       if (cb) (cb(key));
       else return key;
     }
