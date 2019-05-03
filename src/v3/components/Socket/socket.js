@@ -240,14 +240,37 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
     if (err) {
       socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
     } else {
-      if (!user) {
+      if (!user || !user.shortcodeData) {
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
       } else {
-        const userFiles = {country: user.shortcodeData.country, files: JSON.parse(user.shortcodeData.files)};
-        socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
-          documents: userFiles,
-          data: true,
-        });
+        if (user.shortcodeData) {
+          let sFiles = user.shortcodeData.files.replace(/'/g, '"');
+          sFiles = sFiles.substr(1, sFiles.length - 1);
+          sFiles = sFiles.substr(0, sFiles.length - 1);
+          const filesArray = JSON.parse(sFiles);
+          logger.info('filesArray is ' + JSON.stringify(filesArray));
+          for (const file of filesArray) {
+            let index = undefined;
+            if (user.identity_images) {
+              index = user.identity_images.includes(file.value);
+            }
+
+            if (index) {
+              logger.info('File ' + JSON.stringify(file.value) + ' is UPLOADED');
+              file.uploaded = true;
+              file.deviceId = user.identity_images.uploaded_documents[index].id;
+            } else {
+              logger.info('File ' + JSON.stringify(file.value) + ' is NOT uploaded');
+              file.uploaded = false;
+            }
+          }
+
+          const userFiles = {country: user.shortcodeData.country, files: JSON.stringify(filesArray)};
+          socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
+            documents: userFiles,
+            data: true,
+          });
+        }
       }
     }
   });
@@ -262,7 +285,6 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
 SocketManager.prototype.findSocket = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
   for (const socket in sockets) {
-    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser));
     if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
       if (cb) (cb(sockets[socket]));
       else return sockets[socket];
@@ -280,7 +302,6 @@ SocketManager.prototype.findSockets = function(userID, cb=null) {
   const sockets = that.ioServer.sockets.sockets;
   const userSockets = [];
   for (const socket in sockets) {
-    logger.info('Checking socket with user ' + JSON.stringify(sockets[socket].worbliUser));
     if (sockets[socket] && sockets[socket].worbliUser && JSON.stringify(sockets[socket].worbliUser._id) === userID) {
       userSockets.push(sockets[socket]);
     }
