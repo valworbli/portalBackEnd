@@ -71,7 +71,7 @@ describe('## User', function() {
     beforeEach(function(done) {
       setTimeout(function() {
         done();
-      }, 1000);
+      }, 2000);
     });
 
     it('verifies the user - should return 200 and data true', (done) => {
