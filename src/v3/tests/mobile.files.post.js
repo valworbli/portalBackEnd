@@ -97,9 +97,10 @@ describe('## Mobile', function() {
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
             Users.findOne({email: defUser.email}, function(err, user) {
+              logger.warn('shortcodeData: ' + JSON.stringify(user.shortcodeData));
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
               assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-              assert(user.shortcodeData.files === '"[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]"',
+              assert(user.shortcodeData.files === "[{'value': 'national_identity_card_reverse', 'label': 'national identity card reverse'}]",
                   'Err the stored document DOES NOT match the submitted one');
               done();
             });

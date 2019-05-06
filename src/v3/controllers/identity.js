@@ -16,7 +16,7 @@ const utils = require('../components/utils');
  */
 function _getMissingImages(user) {
   return new Promise(function(resolve, reject) {
-    if (!user.identity_images) {
+    if (!user.identity_images || !user.identity_images.country) {
       resolve({status: HttpStatus.OK, body: {
         completed: false,
         missingDocuments: ['selfie', 'identity'],
