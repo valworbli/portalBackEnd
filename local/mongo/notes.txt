@@ -1,0 +1,30 @@
+mongo "mongodb://localhost:30001,localhost:30002,localhost:30003/test?replicaSet=rs0" 
+
+# create the docker network
+docker network create -d bridge --subnet 192.168.0.0/24 --gateway 192.168.0.1 dockernet
+
+# run on any memmber
+#config={"_id":"rs0","members":[{"_id":0,"host":"mongo1:27017"},{"_id":1,"host":"mongo2:27017"},{"_id":2,"host":"mongo3:27017"}]}
+
+rs.initiate({"_id":"rs0","members":[{"_id":0,"host":"mongo1:27017"},{"_id":1,"host":"mongo2:27017"},{"_id":2,"host":"mongo3:27017"}]})
+rs.initiate({"_id":"rs0","members":[{"_id":0,"host":"localmongo1:27017"},{"_id":1,"host":"localmongo2:27017"},{"_id":2,"host":"localmongo3:27017"}]})
+rs.initiate({"_id":"rs0","members":[{"_id":0,"host":"192.168.0.1:30001"},{"_id":1,"host":"192.168.0.1:30002"},{"_id":2,"host":"192.168.0.1:30003"}]})
+
+db.adminCommand( { replSetGetStatus: 1 } )
+
+docker exec -it localmongo1 mongo
+
+docker build --tag=admin-backend2 .
+
+## publish to ECR
+
+# aws get ecs login link
+aws ecr get-login --region us-east-1 
+
+# tag image to push
+docker tag 87714068ff76 373953752322.dkr.ecr.us-east-1.amazonaws.com/admin:api-test
+
+# push images
+
+
+

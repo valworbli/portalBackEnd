@@ -1,0 +1,21 @@
+# https://www.sohamkamani.com/blog/2016/06/30/docker-mongo-replica-set/
+
+docker run \
+-p 30001:27017 \
+--name mongo1 \
+--net mongo-cluster \
+mongo mongod --replSet mongo-set
+
+docker run \
+-p 30002:27017 \
+--name mongo2 \
+--net mongo-cluster \
+mongo mongod --replSet mongo-set
+
+docker run \
+-p 30003:27017 \
+--name mongo3 \
+--net mongo-cluster \
+mongo mongod --replSet mongo-set
+
+config = {"_id":"mongo-set","members":[{"_id":0,"host":"mongo1:27017"},{"_id":1,"host":"mongo2:27017"},{"_id":2,"host":"mongo3:27017"}]}
