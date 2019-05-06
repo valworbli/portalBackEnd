@@ -71,7 +71,7 @@ function postFiles(req, res) {
   const {user} = req.worbliUser;
   const {country, files} = req.body;
 
-  user.shortcodeData = {files: JSON.stringify(files), country};
+  user.shortcodeData = {files, country};
 
   logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
@@ -172,7 +172,7 @@ function postShortCode(req, res) {
       });
     }
   }).catch(function(err) {
-    logger.error('Error in POST /mobile/files: ' + JSON.stringify(err));
+    logger.error('Error in POST /mobile/shortcode: ' + JSON.stringify(err));
     res.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({data: false, error: 'Failed to authenticate the short code, please try again later'});
   });

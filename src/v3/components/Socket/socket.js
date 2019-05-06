@@ -244,9 +244,10 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
         socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
       } else {
         if (user.shortcodeData) {
-          let sFiles = user.shortcodeData.files.replace(/'/g, '"');
-          sFiles = sFiles.substr(1, sFiles.length - 1);
-          sFiles = sFiles.substr(0, sFiles.length - 1);
+          const sFiles = user.shortcodeData.files.replace(/'/g, '"');
+          // sFiles = sFiles.substr(1, sFiles.length - 1);
+          // sFiles = sFiles.substr(0, sFiles.length - 1);
+          logger.info('sFiles is ' + JSON.stringify(sFiles));
           const filesArray = JSON.parse(sFiles);
           logger.info('filesArray is ' + JSON.stringify(filesArray));
           for (const file of filesArray) {
@@ -322,6 +323,7 @@ SocketManager.prototype.checkUpdatedFields = function(keys, cb=null) {
     if (key.startsWith('identity_images') ||
       key.startsWith('worbli_account_name') ||
       key.startsWith('onfido') ||
+      key.startsWith('updated_at') ||
       key.startsWith('shortcodeData')) {
       if (cb) (cb(key));
       else return key;

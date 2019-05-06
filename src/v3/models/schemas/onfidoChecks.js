@@ -62,5 +62,21 @@ onFidoChecks.methods.populate = function(ofCheck) {
   this.dump = JSON.stringify(ofCheck);
 };
 
+onFidoChecks.methods.includesReport = function(reportId) {
+  if (!this.reports) {
+    return false;
+  }
+
+  for (const report of this.reports) {
+    if (report.onfido_id === reportId) {
+      return JSON.parse(report.dump);
+    }
+  }
+
+  return false;
+};
+
 module.exports = mongoose.models.onfidochecks ||
 mongoose.model('onfidochecks', onFidoChecks);
+
+module.exports.ofChecksSchema = onFidoChecks;

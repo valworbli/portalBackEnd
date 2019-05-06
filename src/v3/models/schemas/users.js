@@ -160,6 +160,8 @@ const usersSchema = new mongoose.Schema({
 
 usersSchema.pre('save', function(next) {
   const user = this;
+  user.updated_at = Date.now();
+
   if (this.isNew) {
     user.onfido = {
       onfido_status: Const.ONFIDO_STATUS_NONE,

@@ -186,6 +186,8 @@ function delIdentityImages(req, res) {
     } else {
       user.identity_images.uploaded_documents = [];
     }
+  } else {
+    user.initIDImages(true);
   }
 
   _getMissingImages(user).then(async (response) => {
