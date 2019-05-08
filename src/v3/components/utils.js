@@ -47,9 +47,7 @@ function getImageStatus(user) {
       return {data: true, status: HttpStatus.OK, completed: false, files: [], country: ''};
     } else {
       const sFiles = user.shortcodeData.files.replace(/'/g, '"');
-      logger.info('sFiles is ' + JSON.stringify(sFiles));
       const filesArray = JSON.parse(sFiles);
-      logger.info('filesArray is ' + JSON.stringify(filesArray));
       let bSelfieFound = false; let completed = true;
 
       for (const file of filesArray) {

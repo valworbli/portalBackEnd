@@ -3,7 +3,6 @@
 
 const jwt = require('../jwt');
 const Users = require('../../models/schemas/users');
-const IDDocs = require('../../models/schemas/idDocs');
 const socketio = require('socket.io');
 const logger = require('../logger')(module);
 const Const = require('../../defs/const');
@@ -49,9 +48,10 @@ function SocketManager(server) {
         socket.disconnect(true);
       } else {
         that.initRoutes(socket);
-        that.getImageStatus(socket);
-        that.getUserState(socket, {});
-        // that.getMissingDocuments(socket, {});
+        that.getImageStatus(socket, user);
+        logger.info(`Emitted INITIAL ${Const.SOCKET_MISSING_IMAGES} to user ${user._id}`);
+        that.getUserState(socket, user);
+        logger.info('Emitted INITIAL user state to user ' + user._id);
       }
     });
   });
@@ -65,7 +65,6 @@ function SocketManager(server) {
 
 SocketManager.prototype.dbWatcher = function() {
   let updatedFields = undefined;
-  let _id = undefined;
   let found = false;
   let keys = undefined;
 
@@ -75,41 +74,49 @@ SocketManager.prototype.dbWatcher = function() {
     found = false;
     switch (change.operationType) {
       case 'replace':
-        _id = JSON.stringify(change.documentKey._id);
-        that.findSockets(_id, function(sockets) {
-          for (const sock of sockets) {
-            logger.warn('SOCKET replace: ' + sockets.length + ' sockets found for user ' + _id);
-            that.getImageStatus(sock);
-            logger.info(`Emitted ${Const.SOCKET_MISSING_IMAGES} to user ${_id}`);
-            that.getUserState(sock, {});
-            logger.info('Emitted user state to user ' + _id);
-            found = true;
-          }
-        });
+        found = that.notifyUser(change.documentKey._id);
         break;
       case 'update':
-        _id = JSON.stringify(change.documentKey._id);
         updatedFields = change.updateDescription.updatedFields;
         keys = Object.keys(updatedFields);
         that.checkUpdatedFields(keys, function(key) {
-          that.findSockets(_id, function(sockets) {
-            for (const sock of sockets) {
-              logger.warn('SOCKET update: ' + sockets.length + ' sockets found for user ' + _id);
-              that.getImageStatus(sock);
-              logger.info(`Emitted ${Const.SOCKET_MISSING_IMAGES} to user ${_id}`);
-              that.getUserState(sock, {});
-              logger.info('Emitted user state to user ' + _id);
-              found = true;
-            }
-          });
+          found = that.notifyUser(change.documentKey._id);
         });
         break;
       default:
         break;
     }
 
-    if (!found) logger.info('No connected socket found for user ' + _id);
+    if (!found) logger.info('No connected socket found for user ' + change.documentKey._id);
   });
+};
+
+/** notifyUser
+ * @param {object} id - the user's DB id
+ * @return {bool} found - whether any sockets have been found for the user
+ */
+SocketManager.prototype.notifyUser = function(id) {
+  const printID = JSON.stringify(id);
+  let found = false;
+
+  that.findSockets(printID, async function(sockets) {
+    logger.info('findSockets returned ' + sockets.length + ' sockets for user ' + printID);
+    if (sockets.length < 1) {
+      return false;
+    }
+
+    found = sockets.length > 0;
+
+    const user = await that.getUser(id);
+    for (const sock of sockets) {
+      that.getImageStatus(sock, user);
+      logger.info(`Emitted ${Const.SOCKET_MISSING_IMAGES} to user ${printID}`);
+      that.getUserState(sock, user);
+      logger.info('Emitted user state to user ' + printID);
+    }
+  });
+
+  return found;
 };
 
 SocketManager.prototype.initRoutes = function(socket) {
@@ -121,13 +128,15 @@ SocketManager.prototype.initRoutes = function(socket) {
   socket.on(Const.SOCKET_TEST_MESSAGE, function(data) {
     socket.emit(Const.SOCKET_TEST_MESSAGE, data);
   });
-  socket.on(Const.SOCKET_USER_GET_STATE, function(data) {
+  socket.on(Const.SOCKET_USER_GET_STATE, async function(data) {
     logger.info('SOCKET_USER_GET_STATE');
-    that.getUserState(socket, data);
+    const user = await that.getUser(socket.worbliUser._id);
+    that.getUserState(socket, user);
   });
-  socket.on(Const.SOCKET_MISSING_IMAGES, function(data) {
+  socket.on(Const.SOCKET_MISSING_IMAGES, async function(data) {
     logger.info('SOCKET_MISSING_IMAGES');
-    that.getMissingDocuments(socket, data);
+    const user = await that.getUser(socket.worbliUser._id);
+    that.getImageStatus(socket, user);
   });
 };
 
@@ -156,143 +165,44 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
   }
 };
 
-/**
- * Internal getMissingImages
- * @param {object} socket - The socket of the user
- * @param {object} data - The request data (unused for the moment)
- */
-SocketManager.prototype.getMissingDocuments = function(socket, data) {
-  const user = socket.worbliUser;
-  Users.findOne({_id: user._id}, function(err, user) {
-    if (err) {
-      socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
-        error: 'Internal service error, please try again later.',
-      });
-    } else {
-      if (!user) {
-        socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
-          status: HttpStatus.UNAUTHORIZED,
-          error: 'Unauthorized!',
-        });
-      } else {
-        if (!user.identity_images) {
-          socket.emit(Const.SOCKET_MISSING_IMAGES, {
-            completed: false,
-            missingDocuments: ['selfie', 'identity'],
-            data: true,
-          });
-        } else {
-          const countryPrefix = user.identity_images.country;
-          IDDocs.findOne({code: countryPrefix}, function(err, countryInfo) {
-            if (!countryInfo) {
-              socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
-                status: HttpStatus.BAD_REQUEST,
-                error: 'Malformed request submitted!',
-              });
-            } else {
-              const result = user.identity_images.verify(countryInfo.accepted[0]);
-              if (result.error) {
-                socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false,
-                  status: HttpStatus.BAD_REQUEST,
-                  error: 'Malformed request submitted!',
-                });
-              } else {
-                socket.emit(Const.SOCKET_MISSING_IMAGES, {data: true,
-                  completed: result.missingDocuments.length === 0,
-                  missingDocuments: result.missingDocuments,
-                  completedDocuments: user.identity_images.uploaded_documents,
-                });
-              }
-            }
-          });
-        }
-      }
-    }
-  });
-};
-
-SocketManager.prototype.getUserState = function(socket, data) {
-  const user = socket.worbliUser;
-  Users.findOne({_id: user._id}, function(err, user) {
-    if (err) {
-      socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
-    } else {
-      if (!user) {
-        socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.UNAUTHORIZED});
-      } else {
-        const ofStatus = user.getOnFidoStatus();
-        ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
-        socket.emit(Const.SOCKET_USER_GET_STATE, {
-          status: ofStatus,
-          data: true,
-        });
-      }
-    }
-  });
-};
-
-SocketManager.prototype.getUserFiles = function(socket, data) {
-  const user = socket.worbliUser;
-  Users.findOne({_id: user._id}, function(err, user) {
-    if (err) {
-      socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
-    } else {
-      if (!user || !user.shortcodeData) {
-        socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {data: false, status: HttpStatus.UNAUTHORIZED});
-      } else {
-        if (user.shortcodeData) {
-          const sFiles = user.shortcodeData.files.replace(/'/g, '"');
-          // sFiles = sFiles.substr(1, sFiles.length - 1);
-          // sFiles = sFiles.substr(0, sFiles.length - 1);
-          logger.info('sFiles is ' + JSON.stringify(sFiles));
-          const filesArray = JSON.parse(sFiles);
-          logger.info('filesArray is ' + JSON.stringify(filesArray));
-          for (const file of filesArray) {
-            let index = undefined;
-            if (user.identity_images) {
-              index = user.identity_images.includes(file.value);
-            }
-
-            if (index) {
-              file.uploaded = !user.identity_images.uploaded_documents[index].error;
-              file.error = user.identity_images.uploaded_documents[index].error;
-              file.deviceId = user.identity_images.uploaded_documents[index].id;
-            } else {
-              file.uploaded = false;
-            }
-
-            logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
-          }
-
-          const userFiles = {country: user.shortcodeData.country, files: JSON.stringify(filesArray)};
-          socket.emit(Const.SOCKET_MOBILE_DOCUMENTS, {
-            documents: userFiles,
-            data: true,
-          });
-        }
-      }
-    }
-  });
-};
-
-SocketManager.prototype.getImageStatus = async function(socket, user=undefined) {
+SocketManager.prototype.getUserState = function(socket, user) {
   if (!user) {
-    user = await new Promise((resolve, reject) => {
-      Users.findOne({_id: socket.worbliUser._id}, function(err, user) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(user);
-        }
-      });
-    }).catch(function(err) {
-      logger.error('getImageStatus error: ' + JSON.stringify(err));
-      socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
-      return;
+    logger.error('getUserState: no user provided, ERRORING out...');
+    socket.emit(Const.SOCKET_USER_GET_STATE, {data: false, status: HttpStatus.UNAUTHORIZED});
+  } else {
+    const ofStatus = user.getOnFidoStatus();
+    ofStatus['worbliAccountName'] = user.worbli_account_name ? user.worbli_account_name: '';
+    logger.info('getUserState: emitting back ' + JSON.stringify(ofStatus));
+    socket.emit(Const.SOCKET_USER_GET_STATE, {
+      status: ofStatus,
+      data: true,
     });
   }
+};
 
+/**
+ * internal getUser
+ * @param {object} userID - the user's socket
+ */
+SocketManager.prototype.getUser = async function(userID) {
+  const user = await new Promise((resolve, reject) => {
+    Users.findOne({_id: userID}, function(err, user) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(user);
+      }
+    });
+  }).catch(function(err) {
+    logger.error('getUser error: ' + JSON.stringify(err));
+    // socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
+  });
+
+  if (user) logger.info('getUser: found user with id ' + JSON.stringify(user._id) + ' and email ' + JSON.stringify(user.email));
+  return user;
+};
+
+SocketManager.prototype.getImageStatus = function(socket, user=undefined) {
   const result = utils.getImageStatus(user);
   socket.emit(Const.SOCKET_MISSING_IMAGES, result);
 };
@@ -341,12 +251,16 @@ SocketManager.prototype.findSockets = function(userID, cb=null) {
 SocketManager.prototype.checkUpdatedFields = function(keys, cb=null) {
   for (const key of keys) {
     if (key.startsWith('identity_images') ||
-      key.startsWith('worbli_account_name') ||
-      key.startsWith('onfido') ||
-      key.startsWith('updated_at') ||
-      key.startsWith('shortcodeData')) {
-      if (cb) (cb(key));
-      else return key;
+        key.startsWith('worbli_account_name') ||
+        key.startsWith('onfido') ||
+        key.startsWith('updated_at') ||
+        key.startsWith('shortcodeData')) {
+      if (cb) {
+        (cb(key));
+        break;
+      } else {
+        return key;
+      }
     }
   }
 };

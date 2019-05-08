@@ -39,6 +39,10 @@ const _saveDefUser = function(done) {
   });
 };
 
+function timeout(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 describe('## Mobile', function() {
   this.timeout(15000);
   const testUrl = baseTestUrl + 'shortcode/';
@@ -122,34 +126,50 @@ describe('## Mobile', function() {
     });
 
     const onInitialMissingImagesIncomplete = function(data) {
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onInitialMissingImagesIncomplete);
       logger.info('onInitialMissingImagesIncomplete: ' + JSON.stringify(data));
-      // eslint-disable-next-line max-len
+
       assert(data.completed === false, 'Err completed is not false');
       assert(data.data === true, 'Err data is not true');
       assert(data.country === '', 'Err country is not empty');
       assert(data.files.length === 0, 'Err files is not empty');
-      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onInitialMissingImagesIncomplete);
-      myDone();
+      // while (!myDone) {
+      //   logger.warn('onInitialMissingImagesIncomplete: Waiting for myDone to be set...');
+      //   await timeout(100);
+      // }
+    };
+
+    const onInitialUserStateIncomplete = function(data) {
+      socket.removeListener(Const.SOCKET_USER_GET_STATE, onInitialUserStateIncomplete);
+      logger.info('onInitialUserStateIncomplete: ' + JSON.stringify(data));
+
+      assert(data.data === true, 'Err data is not true');
+      assert(data.status !== undefined, 'Err data.status is undefined');
+      assert(data.status.status === 'created', 'Err status.created is not false');
+      assert(data.status.errored === false, 'Err status.errored is not false');
+      let done = myDone;
+      myDone = undefined;
+      done();
     };
 
     const onAllMissingImagesIncomplete = function(data) {
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
       logger.info('onAllMissingImagesIncomplete: ' + JSON.stringify(data));
-      // eslint-disable-next-line max-len
       const files = JSON.parse(data.files);
       assert(data.completed === false, 'Err completed is not false');
       assert(data.data === true, 'Err data is not true');
-      assert(data.country === 'GBR', 'Err country is not empty');
+      assert(data.country === 'GBR', 'Err country is not GBR');
       assert(files.length > 0, 'Err files is empty');
       assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
-      assert(files[0].uploaded === false, 'Err files[0].uploadded is not false');
-      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
-      // myDone();
-      completeDone = true;
+      assert(files[0].uploaded === false, 'Err files[0].uploaded is not false');
+      let done = myDone;
+      myDone = undefined;
+      done();
     };
 
-    const onOneMissingImageIncomplete = function(data) {
-      logger.info('onOneMissingImageIncomplete: ' + JSON.stringify(data));
-      // eslint-disable-next-line max-len
+    const onTwoMissingImagesIncomplete = function(data) {
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onTwoMissingImagesIncomplete);
+      logger.info('onTwoMissingImagesIncomplete: ' + JSON.stringify(data));
       const files = JSON.parse(data.files);
       assert(data.completed === false, 'Err completed is not false');
       assert(data.data === true, 'Err data is not true');
@@ -157,29 +177,34 @@ describe('## Mobile', function() {
       assert(files.length > 0, 'Err files is empty');
       assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
       assert(files[0].uploaded === true, 'Err files[0].uploaded is not false');
-      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onOneMissingImageIncomplete);
-      // myDone();
-      completeDone = true;
+      assert(files[1].value === 'national_identity_card', 'Err files[1] is not national_identity_card');
+      assert(files[1].uploaded === false, 'Err files[1].uploaded is not false');
+      let done = myDone;
+      myDone = undefined;
+      done();
     };
 
-    const onMissingImagesEmpty = function(data) {
-      // eslint-disable-next-line max-len
-      logger.info('onMissingImagesEmpty: ' + JSON.stringify(data));
-      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesEmpty);
-      // myDone();
+    const onBadSelfieMissingImagesIncomplete = function(data) {
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onBadSelfieMissingImagesIncomplete);
+      logger.info('onBadSelfieMissingImagesIncomplete: ' + JSON.stringify(data));
+      const files = JSON.parse(data.files);
+      assert(data.completed === false, 'Err completed is not false');
+      assert(data.data === true, 'Err data is not true');
+      assert(data.country === 'GBR', 'Err country is not empty');
+      assert(files.length > 0, 'Err files is empty');
+      assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
+      assert(files[0].uploaded === true, 'Err files[0].uploaded is not false');
+      assert(files[1].value === 'national_identity_card', 'Err files[1] is not national_identity_card');
+      assert(files[1].uploaded === false, 'Err files[0].uploaded is not false');
+      assert(files[2].value === 'selfie', 'Err files[2] is not selfie');
+      assert(files[2].uploaded === false, 'Err files[2].uploaded is not false');
+      assert(files[2].error === 'no face detected', 'Err files[2].error is not equal to \'no face detected\'');
+      assert(files[2].deviceId === 111111, 'Err files[2].deviceId is not 111111');
+      let done = myDone;
+      myDone = undefined;
+      done();
     };
 
-    // const onMissingImagesComplete = function(data) {
-    //   logger.info('onMissingImagesComplete: ' + JSON.stringify(data));
-    //   // eslint-disable-next-line max-len
-    //   assert(data.completed === true, 'Err completed is not true');
-    //   assert(data.data === true, 'Err data is not true');
-    //   socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
-    //   completeDone = true;
-    //   // myDone();
-    // };
-
-    // eslint-disable-next-line max-len
     it('SOCKET: connects', (done) => {
       socket = clientio(`http://localhost:9020`, {
         autoConnect: true,
@@ -192,54 +217,38 @@ describe('## Mobile', function() {
       socket.on('connect', () => {
         logger.info('SOCKET connected!');
       });
+
       myDone = done;
       socket.on(Const.SOCKET_MISSING_IMAGES, onInitialMissingImagesIncomplete);
-      socket.on(Const.SOCKET_ON_CONNECT, function(data) {
-        logger.info('SOCKET_ON_CONNECT: ' + JSON.stringify(data));
-        done();
-      });
+      socket.on(Const.SOCKET_USER_GET_STATE, onInitialUserStateIncomplete);
     });
 
-    it('sends files and a country - should return 200 and data true', (done) => {
-      // done() will be called by onAllMissingImagesIncomplete
+    it('sends files and a country - should return 200 and data true', function(done) {
       myDone = done;
       socket.on(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
       request(app)
-          .post(baseTestUrl + 'files/')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .send({country: 'GBR', files:
-          '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]'})
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            Users.findOne({email: defUser.email}, function(err, user) {
-              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
-              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-              assert(user.shortcodeData.files ===
-              // '"[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]"',
-              '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]',
-              'Err the stored document DOES NOT match the submitted one');
-              // done();
-              setTimeout(() => {
-                assert(completeDone === true, 'Err completeDone is not true');
-                done();
-              }, 2000);
-            });
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
-      myDone = done;
-      setTimeout(() => {
-        assert(completeDone === true, 'Err completeDone is not true');
-        done();
-      }, 5000);
+        .post(baseTestUrl + 'files/')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${jwtToken}`)
+        .send({country: 'GBR', files:
+        '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]'})
+        .expect(HttpStatus.OK)
+        .then((res) => {
+          assert(res.body.data === true, 'Err data is not true');
+          Users.findOne({email: defUser.email}, function(err, user) {
+            assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+            assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+            assert(user.shortcodeData.files ===
+            '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]',
+            'Err the stored document DOES NOT match the submitted one');
+            // done() will be called by onAllMissingImagesIncomplete
+          });
+        }).catch(done);
     });
 
     it('authenticates with a valid shortcode - should return 200 and data true', (done) => {
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
@@ -249,62 +258,38 @@ describe('## Mobile', function() {
             assert(res.body.data === true, 'Err data is not true');
             assert(res.body.jwt !== undefined, 'Err No JWT was returned');
             mobilejwtToken = res.body.jwt;
-            done();
-          })
-          .catch(done);
+            // done() will be called by onAllMissingImagesIncomplete
+          }).catch(done);
     });
 
-    // eslint-disable-next-line max-len
     it('uploads a single image - should return 200 and data true', (done) => {
       myDone = done;
-      socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesEmpty);
-      socket.on(Const.SOCKET_MISSING_IMAGES, onOneMissingImageIncomplete);
+      socket.on(Const.SOCKET_MISSING_IMAGES, onTwoMissingImagesIncomplete);
       request(app)
-          .post('/api/v3/identity/image/')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${mobilejwtToken}`)
-          .attach('111111_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            expect({data: true});
-            setTimeout(() => {
-              assert(completeDone === true, 'Err completeDone is not true');
-              done();
-            }, 3000);
-          })
-          .catch(done);
+        .post('/api/v3/identity/image/')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${mobilejwtToken}`)
+        .attach('111111_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+        .expect(HttpStatus.OK)
+        .then((res) => {
+          expect({data: true});
+          // done() will be called by onTwoMissingImagesIncomplete
+        }).catch(done);
     });
 
-    // // eslint-disable-next-line max-len
-    // it('uploads all images - should return 200 and data true', (done) => {
-    //   myDone = done;
-    //   socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
-    //   request(app)
-    //       .post('/api/v3/identity/image/')
-    //       .set('Accept', 'application/json')
-    //       .set('Authorization', `Bearer ${jwtToken}`)
-    //       .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
-    //       // eslint-disable-next-line max-len
-    //       .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
-    //       // eslint-disable-next-line max-len
-    //       .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-    //       .expect(HttpStatus.OK)
-    //       .then((res) => {
-    //         expect({data: true});
-    //         expect({completed: true});
-    //         expect({missingDocuments: []});
-    //         done();
-    //       })
-    //       .catch(done);
-    // });
-
-    // // eslint-disable-next-line max-len
-    // it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
-    //   myDone = done;
-    //   setTimeout(() => {
-    //     assert(completeDone === true, 'Err completeDone is not true');
-    //     done();
-    //   }, 5000);
-    // });
+    it('uploads a BAD SELFIE - should return 200 and data true', (done) => {
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onBadSelfieMissingImagesIncomplete);
+      request(app)
+        .post('/api/v3/identity/image/')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${mobilejwtToken}`)
+        .attach('111111_BGR_selfie', 'src/samples/images/double_selfie.jpg')
+        .expect(HttpStatus.OK)
+        .then((res) => {
+          expect({data: true});
+          // done() will be called by onBadSelfieMissingImagesIncomplete
+        }).catch(done);
+    });
   });
 });
