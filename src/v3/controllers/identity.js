@@ -75,12 +75,13 @@ async function postImage(req, res) {
 
   req.files.forEach(function(element) {
     docName = element.fieldname.substring(offset);
+    const data = {};
     if (element.failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
+      data['error'] = element.errorStatus === 422 ? 'no face detected' : 'unprocessable image';
       rejectedDocuments.push(docName);
-    } else {
-      user.identity_images.pushDocumentUnique(docName, deviceId);
     }
+    user.identity_images.pushDocumentUnique(docName, deviceId, data);
   });
 
   // get the record for that country from MongoDB's worbli.identity_documents
@@ -181,7 +182,7 @@ function delIdentityImages(req, res) {
   let resp = undefined;
 
   if (user.identity_images) {
-    if (user.identity_images.includes(Const.ID_SELFIE)) {
+    if (user.identity_images.includesWithoutError(Const.ID_SELFIE)) {
       user.identity_images.delAllBut(Const.ID_SELFIE);
     } else {
       user.identity_images.uploaded_documents = [];

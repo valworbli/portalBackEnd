@@ -60,7 +60,7 @@ function getImageStatus(user) {
       }
 
       if (!bSelfieFound) {
-        filesArray[Const.ID_SELFIE] = {value: Const.ID_SELFIE, label: Const.ID_SELFIE};
+        filesArray.push({value: Const.ID_SELFIE, label: Const.ID_SELFIE});
         bSelfieFound = true;
       }
 
@@ -71,14 +71,15 @@ function getImageStatus(user) {
         }
 
         if (index) {
-          logger.info('File ' + JSON.stringify(file.value) + ' is UPLOADED');
-          file.uploaded = true;
+          file.uploaded = !user.identity_images.uploaded_documents[index].error;
+          file.error = user.identity_images.uploaded_documents[index].error;
           file.deviceId = user.identity_images.uploaded_documents[index].id;
         } else {
-          logger.info('File ' + JSON.stringify(file.value) + ' is NOT uploaded');
           file.uploaded = false;
           completed = false;
         }
+
+        logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
       }
 
       return {

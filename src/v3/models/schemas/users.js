@@ -1,3 +1,4 @@
+/* eslint max-len: 0, guard-for-in: 0 */
 const Const = require('../../defs/const');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt-nodejs');
@@ -14,7 +15,7 @@ const shortcodeDataSchema = new mongoose.Schema({
   country: {type: String, required: true, index: true},
 });
 
-identityImagesSchema.methods.pushDocumentUnique = function(docName, devId) {
+identityImagesSchema.methods.pushDocumentUnique = function(docName, devId, data={}) {
   // if the document exist, check if it needs to be updated
   // else insert it in the array
   for (const doc of this.uploaded_documents) {
@@ -27,7 +28,7 @@ identityImagesSchema.methods.pushDocumentUnique = function(docName, devId) {
     }
   }
 
-  this.uploaded_documents.push({name: docName, id: devId});
+  this.uploaded_documents.push({...data, name: docName, id: devId});
 };
 
 identityImagesSchema.methods.delAllBut = function(docName, devId=0) {
@@ -72,6 +73,19 @@ identityImagesSchema.methods.includes = function(docName) {
   return index;
 };
 
+identityImagesSchema.methods.includesWithoutError = function(docName) {
+  let index = undefined;
+  for (const ind in this.uploaded_documents) {
+    const doc = this.uploaded_documents[ind];
+    if (doc.name === docName && !doc.error) {
+      index = ind;
+      break;
+    }
+  }
+
+  return index;
+};
+
 identityImagesSchema.methods.verify = function(accepted) {
   const missingDocuments = [];
   let docType = undefined;
@@ -88,7 +102,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     }
   });
 
-  if (!this.includes(Const.ID_SELFIE)) {
+  if (!this.includesWithoutError(Const.ID_SELFIE)) {
     missingDocuments.push(Const.ID_SELFIE);
   }
 
@@ -97,7 +111,7 @@ identityImagesSchema.methods.verify = function(accepted) {
   } else {
     // check the uploaded vs the required documents
     const backRequired = accepted[docType];
-    if (!this.includes(docType)) {
+    if (!this.includesWithoutError(docType)) {
       missingDocuments.push(docType);
     }
     if (backRequired.constructor !== Boolean) {
@@ -105,7 +119,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     }
     if (backRequired) {
       const docTypeReverse = docType + '_' + Const.ID_REVERSE_SUFFIX;
-      if (!this.includes(docTypeReverse)) {
+      if (!this.includesWithoutError(docTypeReverse)) {
         missingDocuments.push(docTypeReverse);
       }
     }

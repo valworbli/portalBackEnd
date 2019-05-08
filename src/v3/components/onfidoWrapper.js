@@ -149,6 +149,49 @@ function findReport(checkId, reportId) {
   return api.findReport(checkId, reportId);
 }
 
+/**
+ * Gets an OnFido document
+ * @param {string} applicantId - The OnFido applicant ID
+ * @param {string} documentId - The OnFido document ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function findDocument(applicantId, documentId) {
+  return api.findDocument(applicantId, documentId);
+}
+
+/**
+ * Gets an OnFido live photo
+ * @param {string} livePhotoId - The OnFido document ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function findLivePhoto(livePhotoId) {
+  return api.findLivePhoto(livePhotoId);
+}
+
+/**
+ * Gets all OnFido checks for an applicant
+ * @param {string} applicantId - The OnFido applicant ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function listChecks(applicantId) {
+  const opts = {
+    'page': 1, // Number | The page to return. The first page is `page=1`.
+    'per_page': 99, // Number | The number of objects per page.
+  };
+
+  return api.listChecks(applicantId, opts);
+}
+
+/**
+ * Download an OnFido document
+ * @param {string} applicantId - The OnFido applicant ID
+ * @param {string} documentId - The OnFido applicant ID
+ * @return {Promise} A Promise from the OnFido module
+ */
+function downloadDocument(applicantId, documentId) {
+  return api.downloadDocument(applicantId, documentId);
+}
+
 module.exports = {
   createApplicant,
   createFakeApplicant,
@@ -161,4 +204,8 @@ module.exports = {
   startCheck,
   findCheck,
   findReport,
+  findDocument,
+  findLivePhoto,
+  listChecks,
+  downloadDocument,
 };

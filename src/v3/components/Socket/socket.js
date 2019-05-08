@@ -255,13 +255,14 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
             }
 
             if (index) {
-              logger.info('File ' + JSON.stringify(file.value) + ' is UPLOADED');
-              file.uploaded = true;
+              file.uploaded = !user.identity_images.uploaded_documents[index].error;
+              file.error = user.identity_images.uploaded_documents[index].error;
               file.deviceId = user.identity_images.uploaded_documents[index].id;
             } else {
-              logger.info('File ' + JSON.stringify(file.value) + ' is NOT uploaded');
               file.uploaded = false;
             }
+
+            logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
           }
 
           const userFiles = {country: user.shortcodeData.country, files: JSON.stringify(filesArray)};
