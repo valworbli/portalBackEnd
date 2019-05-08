@@ -1,0 +1,310 @@
+/* eslint max-len: 0 */
+const HttpStatus = require('http-status-codes');
+const request = require('supertest');
+const chai = require('chai'); // eslint-disable-line import/newline-after-import
+const expect = chai.expect;
+const assert = chai.assert;
+const app = require('../../../worbli-api');
+const logger = require('../components/logger')(module);
+const clientio = require('socket.io-client');
+const Const = require('../defs/const');
+
+require('dotenv').config();
+const Promise = require('bluebird');
+const Users = require('../models/schemas/users');
+const mongoose = require('mongoose');
+mongoose.Promise = Promise;
+
+chai.config.includeStack = true;
+
+const baseTestUrl = '/api/v3/mobile/';
+const defUser = new Users({
+  email: 'test319@example.com',
+  password: 'bozoPass!',
+  agreed_terms: true,
+  agreed_marketing: false,
+  verify_token: 'cc2b039697793f4f38aa908f07fd2974',
+});
+
+const _saveDefUser = function(done) {
+  defUser.save(function(err, user) {
+    expect(err).to.be.null;
+    expect(user.verify_token).to.equal(defUser.verify_token);
+    done();
+    // user.verify_token = '';
+    // user.save(function(err, user) {
+    //   expect(err).to.be.null;
+    //   done();
+    // });
+  });
+};
+
+describe('## Mobile', function() {
+  this.timeout(15000);
+  const testUrl = baseTestUrl + 'shortcode/';
+  let jwtToken = ''; let mobilejwtToken = ''; let shortcode = 0;
+  let socket = undefined;
+  let completeDone = false;
+  let myDone = undefined;
+
+  describe(`# POST ${testUrl}`, () => {
+    let mustDisconnect = false;
+    before(function(done) {
+      if (mongoose.connection.readyState === 0) {
+        mustDisconnect = true;
+        mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`,
+            {useNewUrlParser: true}, function(err) {
+              expect(err).to.be.null;
+              _saveDefUser(done);
+            });
+      } else {
+        _saveDefUser(done);
+      }
+    });
+
+    after(function(done) {
+      Users.deleteOne({email: defUser.email}, function(err) {
+        if (err) {
+          logger.error(`Error deleting ${defUser.email}: ${err}`);
+        } else {
+          logger.info(`Deleted ${defUser.email}`);
+        }
+
+        if (mustDisconnect) {
+          mongoose.disconnect(done);
+        } else {
+          done();
+        }
+      });
+    });
+
+    it('verifies the user - should return 200 and data true', (done) => {
+      request(app)
+          .post('/api/v3/user/verify/')
+          .auth()
+          .set('Accept', 'application/json')
+          .send({token: defUser.verify_token})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            done();
+          })
+          .catch(done);
+    });
+
+    it('logs in - should return 200 and true', (done) => {
+      request(app)
+          .post('/api/v3/visitor/signin/')
+          .set('Accept', 'application/json')
+          .send({email: defUser.email, password: 'bozoPass!'})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect(res.body.jwt).to.be.not.undefined;
+            expect({data: true});
+            jwtToken = res.body.jwt;
+            done();
+          })
+          .catch(done);
+    });
+
+    it('gets a shortcode - should return 200 and data true', (done) => {
+      request(app)
+          .get(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            shortcode = Number(res.body.shortcode);
+            done();
+          })
+          .catch(done);
+    });
+
+    const onInitialMissingImagesIncomplete = function(data) {
+      logger.info('onInitialMissingImagesIncomplete: ' + JSON.stringify(data));
+      // eslint-disable-next-line max-len
+      assert(data.completed === false, 'Err completed is not false');
+      assert(data.data === true, 'Err data is not true');
+      assert(data.country === '', 'Err country is not empty');
+      assert(data.files.length === 0, 'Err files is not empty');
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onInitialMissingImagesIncomplete);
+      myDone();
+    };
+
+    const onAllMissingImagesIncomplete = function(data) {
+      logger.info('onAllMissingImagesIncomplete: ' + JSON.stringify(data));
+      // eslint-disable-next-line max-len
+      const files = JSON.parse(data.files);
+      assert(data.completed === false, 'Err completed is not false');
+      assert(data.data === true, 'Err data is not true');
+      assert(data.country === 'GBR', 'Err country is not empty');
+      assert(files.length > 0, 'Err files is empty');
+      assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
+      assert(files[0].uploaded === false, 'Err files[0].uploadded is not false');
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
+      // myDone();
+      completeDone = true;
+    };
+
+    const onOneMissingImageIncomplete = function(data) {
+      logger.info('onOneMissingImageIncomplete: ' + JSON.stringify(data));
+      // eslint-disable-next-line max-len
+      const files = JSON.parse(data.files);
+      assert(data.completed === false, 'Err completed is not false');
+      assert(data.data === true, 'Err data is not true');
+      assert(data.country === 'GBR', 'Err country is not empty');
+      assert(files.length > 0, 'Err files is empty');
+      assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
+      assert(files[0].uploaded === true, 'Err files[0].uploaded is not false');
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onOneMissingImageIncomplete);
+      // myDone();
+      completeDone = true;
+    };
+
+    const onMissingImagesEmpty = function(data) {
+      // eslint-disable-next-line max-len
+      logger.info('onMissingImagesEmpty: ' + JSON.stringify(data));
+      socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesEmpty);
+      // myDone();
+    };
+
+    // const onMissingImagesComplete = function(data) {
+    //   logger.info('onMissingImagesComplete: ' + JSON.stringify(data));
+    //   // eslint-disable-next-line max-len
+    //   assert(data.completed === true, 'Err completed is not true');
+    //   assert(data.data === true, 'Err data is not true');
+    //   socket.removeListener(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
+    //   completeDone = true;
+    //   // myDone();
+    // };
+
+    // eslint-disable-next-line max-len
+    it('SOCKET: connects', (done) => {
+      socket = clientio(`http://localhost:9020`, {
+        autoConnect: true,
+        reconnection: false,
+        path: `${process.env.SOCKET_PATH}`,
+        query: {
+          jwt: jwtToken,
+        },
+      });
+      socket.on('connect', () => {
+        logger.info('SOCKET connected!');
+      });
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onInitialMissingImagesIncomplete);
+      socket.on(Const.SOCKET_ON_CONNECT, function(data) {
+        logger.info('SOCKET_ON_CONNECT: ' + JSON.stringify(data));
+        done();
+      });
+    });
+
+    it('sends files and a country - should return 200 and data true', (done) => {
+      // done() will be called by onAllMissingImagesIncomplete
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
+      request(app)
+          .post(baseTestUrl + 'files/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({country: 'GBR', files:
+          '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]'})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.files ===
+              // '"[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]"',
+              '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]',
+              'Err the stored document DOES NOT match the submitted one');
+              // done();
+              setTimeout(() => {
+                assert(completeDone === true, 'Err completeDone is not true');
+                done();
+              }, 2000);
+            });
+          })
+          .catch(done);
+    });
+
+    // eslint-disable-next-line max-len
+    it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
+      myDone = done;
+      setTimeout(() => {
+        assert(completeDone === true, 'Err completeDone is not true');
+        done();
+      }, 5000);
+    });
+
+    it('authenticates with a valid shortcode - should return 200 and data true', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .send({shortcode: shortcode})
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            assert(res.body.jwt !== undefined, 'Err No JWT was returned');
+            mobilejwtToken = res.body.jwt;
+            done();
+          })
+          .catch(done);
+    });
+
+    // eslint-disable-next-line max-len
+    it('uploads a single image - should return 200 and data true', (done) => {
+      myDone = done;
+      socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesEmpty);
+      socket.on(Const.SOCKET_MISSING_IMAGES, onOneMissingImageIncomplete);
+      request(app)
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${mobilejwtToken}`)
+          .attach('111111_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
+            setTimeout(() => {
+              assert(completeDone === true, 'Err completeDone is not true');
+              done();
+            }, 3000);
+          })
+          .catch(done);
+    });
+
+    // // eslint-disable-next-line max-len
+    // it('uploads all images - should return 200 and data true', (done) => {
+    //   myDone = done;
+    //   socket.on(Const.SOCKET_MISSING_IMAGES, onMissingImagesComplete);
+    //   request(app)
+    //       .post('/api/v3/identity/image/')
+    //       .set('Accept', 'application/json')
+    //       .set('Authorization', `Bearer ${jwtToken}`)
+    //       .attach('BGR_selfie', 'src/samples/images/selfie.jpg')
+    //       // eslint-disable-next-line max-len
+    //       .attach('BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+    //       // eslint-disable-next-line max-len
+    //       .attach('BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+    //       .expect(HttpStatus.OK)
+    //       .then((res) => {
+    //         expect({data: true});
+    //         expect({completed: true});
+    //         expect({missingDocuments: []});
+    //         done();
+    //       })
+    //       .catch(done);
+    // });
+
+    // // eslint-disable-next-line max-len
+    // it('SOCKET: gets the missing images - should return 200 and data true', (done) => {
+    //   myDone = done;
+    //   setTimeout(() => {
+    //     assert(completeDone === true, 'Err completeDone is not true');
+    //     done();
+    //   }, 5000);
+    // });
+  });
+});

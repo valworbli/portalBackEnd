@@ -1,3 +1,8 @@
+/* eslint max-len: 0 */
+const Const = require('../defs/const');
+const HttpStatus = require('http-status-codes');
+const logger = require('./logger')(module);
+
 /**
  * extractNames
  * @param {object} fieldname - The fieldname to be split
@@ -27,6 +32,67 @@ function extractNames(fieldname) {
   return {deviceId, countryPrefix, docName, offset};
 }
 
+/**
+ * getImageStatus
+ * @param {object} user - The user DB record
+ * @return {object} - the imageStatus object to be sent to the user
+ */
+function getImageStatus(user) {
+  if (!user) {
+    logger.warn('getImageStatus: user is undefined!');
+    return {data: false, status: HttpStatus.UNAUTHORIZED};
+  } else {
+    if (!user.shortcodeData || !user.shortcodeData.files || !user.shortcodeData.country) {
+      logger.warn('getImageStatus: user\'s shortcodeData is undefined!');
+      return {data: true, status: HttpStatus.OK, completed: false, files: [], country: ''};
+    } else {
+      const sFiles = user.shortcodeData.files.replace(/'/g, '"');
+      logger.info('sFiles is ' + JSON.stringify(sFiles));
+      const filesArray = JSON.parse(sFiles);
+      logger.info('filesArray is ' + JSON.stringify(filesArray));
+      let bSelfieFound = false; let completed = true;
+
+      for (const file of filesArray) {
+        if (file.value === Const.ID_SELFIE) {
+          bSelfieFound = true;
+          break;
+        }
+      }
+
+      if (!bSelfieFound) {
+        filesArray[Const.ID_SELFIE] = {value: Const.ID_SELFIE, label: Const.ID_SELFIE};
+        bSelfieFound = true;
+      }
+
+      for (const file of filesArray) {
+        let index = undefined;
+        if (user.identity_images) {
+          index = user.identity_images.includes(file.value);
+        }
+
+        if (index) {
+          logger.info('File ' + JSON.stringify(file.value) + ' is UPLOADED');
+          file.uploaded = true;
+          file.deviceId = user.identity_images.uploaded_documents[index].id;
+        } else {
+          logger.info('File ' + JSON.stringify(file.value) + ' is NOT uploaded');
+          file.uploaded = false;
+          completed = false;
+        }
+      }
+
+      return {
+        data: true,
+        status: HttpStatus.OK,
+        completed: completed,
+        files: JSON.stringify(filesArray),
+        country: user.shortcodeData.country,
+      };
+    }
+  }
+}
+
 module.exports = {
   extractNames,
+  getImageStatus,
 };

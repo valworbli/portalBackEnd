@@ -128,33 +128,7 @@ function postShortCode(req, res) {
       res.status(HttpStatus.BAD_REQUEST)
           .json({data: false, error: 'Failed to authenticate the short code'});
     } else {
-      let sFiles = user.shortcodeData.files.replace(/'/g, '"');
-      sFiles = sFiles.substr(1, sFiles.length - 1);
-      sFiles = sFiles.substr(0, sFiles.length - 1);
-      const filesArray = JSON.parse(sFiles);
-      logger.info('filesArray is ' + JSON.stringify(filesArray));
-      for (const file of filesArray) {
-        let index = undefined;
-        if (user.identity_images) {
-          index = user.identity_images.includes(file.value);
-        }
-
-        if (index) {
-          logger.info('File ' + JSON.stringify(file.value) + ' is UPLOADED');
-          file.uploaded = true;
-          file.deviceId = user.identity_images.uploaded_documents[index].id;
-        } else {
-          logger.info('File ' + JSON.stringify(file.value) + ' is NOT uploaded');
-          file.uploaded = false;
-        }
-      }
-      const shortcodeData = {
-        country: user.shortcodeData.country,
-        files: JSON.stringify(filesArray),
-      };
-
       user.shortcode = undefined;
-      user.shortcodeData = undefined;
 
       user.save(function(err, user) {
         if (err) {
@@ -166,7 +140,7 @@ function postShortCode(req, res) {
                 .json({data: false, error: 'Failed to authenticate the short code'});
           } else {
             const token = jwt.jwtWithExpiry({email: user.email}, '72h');
-            res.status(HttpStatus.OK).json({...shortcodeData, data: true, jwt: token});
+            res.status(HttpStatus.OK).json({data: true, jwt: token});
           }
         }
       });

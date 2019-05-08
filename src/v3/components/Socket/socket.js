@@ -8,6 +8,7 @@ const socketio = require('socket.io');
 const logger = require('../logger')(module);
 const Const = require('../../defs/const');
 const HttpStatus = require('http-status-codes');
+const utils = require('../utils');
 
 // const authSocket = require('./authSocket');
 
@@ -48,8 +49,9 @@ function SocketManager(server) {
         socket.disconnect(true);
       } else {
         that.initRoutes(socket);
+        that.getImageStatus(socket);
         that.getUserState(socket, {});
-        that.getMissingDocuments(socket, {});
+        // that.getMissingDocuments(socket, {});
       }
     });
   });
@@ -62,8 +64,6 @@ function SocketManager(server) {
 }
 
 SocketManager.prototype.dbWatcher = function() {
-  // let db = client.db('worbli');
-
   let updatedFields = undefined;
   let _id = undefined;
   let found = false;
@@ -78,12 +78,11 @@ SocketManager.prototype.dbWatcher = function() {
         _id = JSON.stringify(change.documentKey._id);
         that.findSockets(_id, function(sockets) {
           for (const sock of sockets) {
-            that.getMissingDocuments(sock, {});
-            logger.info('Emitted missing documents to user ' + _id);
+            logger.warn('SOCKET replace: ' + sockets.length + ' sockets found for user ' + _id);
+            that.getImageStatus(sock);
+            logger.info(`Emitted ${Const.SOCKET_MISSING_IMAGES} to user ${_id}`);
             that.getUserState(sock, {});
             logger.info('Emitted user state to user ' + _id);
-            that.getUserFiles(sock, {});
-            logger.info('Emitted user files to user ' + _id);
             found = true;
           }
         });
@@ -95,12 +94,11 @@ SocketManager.prototype.dbWatcher = function() {
         that.checkUpdatedFields(keys, function(key) {
           that.findSockets(_id, function(sockets) {
             for (const sock of sockets) {
-              that.getMissingDocuments(sock, {});
-              logger.info('Emitted missing documents to user ' + _id);
+              logger.warn('SOCKET update: ' + sockets.length + ' sockets found for user ' + _id);
+              that.getImageStatus(sock);
+              logger.info(`Emitted ${Const.SOCKET_MISSING_IMAGES} to user ${_id}`);
               that.getUserState(sock, {});
               logger.info('Emitted user state to user ' + _id);
-              that.getUserFiles(sock, {});
-              logger.info('Emitted user files to user ' + _id);
               found = true;
             }
           });
@@ -275,6 +273,27 @@ SocketManager.prototype.getUserFiles = function(socket, data) {
       }
     }
   });
+};
+
+SocketManager.prototype.getImageStatus = async function(socket, user=undefined) {
+  if (!user) {
+    user = await new Promise((resolve, reject) => {
+      Users.findOne({_id: socket.worbliUser._id}, function(err, user) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(user);
+        }
+      });
+    }).catch(function(err) {
+      logger.error('getImageStatus error: ' + JSON.stringify(err));
+      socket.emit(Const.SOCKET_MISSING_IMAGES, {data: false, status: HttpStatus.INTERNAL_SERVER_ERROR});
+      return;
+    });
+  }
+
+  const result = utils.getImageStatus(user);
+  socket.emit(Const.SOCKET_MISSING_IMAGES, result);
 };
 
 /**
