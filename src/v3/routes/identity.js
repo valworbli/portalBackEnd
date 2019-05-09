@@ -7,6 +7,8 @@ const jwtAuthenticator = require('../components/jwtAuthenticator');
 const upload = require('../components/multers3')({useDBID: true});
 const s3upload = require('../components/s3uploader')({useDBID: true});
 const ofUploader = require('../components/onfidoUploader')({markFailed: true});
+const fuSerializer = require('../components/uploadSerializer')({});
+const selfieRotate = require('../components/selfieRotate')({});
 
 const postImage = require('../validators/identity/postImage.js');
 const getImage = require('../validators/identity/getImage.js');
@@ -23,7 +25,8 @@ router.route('/image/:doctype').delete(validate(delImage.validate),
     jwtAuthenticator({getUser: true}), identityController.delImage);
 router.route('/image/').post(validate(postImage.validate),
     jwtAuthenticator({getUser: true}), upload.any(),
-    ofUploader, s3upload, identityController.postImage);
+    ofUploader, s3upload, selfieRotate,
+    fuSerializer, identityController.postImage);
 router.route('/application/').get(validate(getApplication.validate),
     identityController.getApplication);
 router.route('/application/').post(validate(postApplication.validate),

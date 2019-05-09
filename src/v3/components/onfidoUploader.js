@@ -49,14 +49,19 @@ module.exports = function(options) {
             printName = 'DOCUMENT';
           }
 
+          const ofStatus = {};
+
           func.then(function(doc) {
             logger.info('SUCCESSFULLY uploaded a ' + printName + ' with id:' + JSON.stringify(doc.id));
-            if (options.markFailed) element.failed = false;
+            ofStatus['onfido_id'] = doc.id;
+            ofStatus['dump'] = JSON.stringify(doc);
+            if (options.markFailed) ofStatus['failed'] = false;
           }).catch(function(err) {
             logger.error('ERROR uploading the ' + printName + ': ' + JSON.stringify(err));
             if (options.markFailed) {
-              element.failed = true;
-              element.errorStatus = err.status;
+              ofStatus['failed'] = true;
+              ofStatus['errorStatus'] = err.status;
+              ofStatus['dump'] = JSON.stringify(err);
             }
           }).finally(() => {
             fs.unlinkSync(fName);
@@ -65,6 +70,7 @@ module.exports = function(options) {
               next();
             }
           });
+          element[Const.ONFIDO] = ofStatus;
         })();
       });
     } catch (err) {

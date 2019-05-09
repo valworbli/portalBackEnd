@@ -28,3 +28,6 @@ module.exports.SOCKET_USER_GET_STATE = 'status';
 module.exports.SOCKET_MISSING_IMAGES = 'imageStatus';
 module.exports.SOCKET_MOBILE_DOCUMENTS = 'mobileDocuments';
 module.exports.SOCKET_ON_CONNECT = 'ON_CONNECT';
+
+module.exports.ONFIDO = 'onfido';
+module.exports.S3 = 'S3';

@@ -76,9 +76,9 @@ async function postImage(req, res) {
   req.files.forEach(function(element) {
     docName = element.fieldname.substring(offset);
     const data = {};
-    if (element.failed) {
+    if (element[Const.ONFIDO].failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
-      data['error'] = element.errorStatus === 422 ? 'no face detected' : 'unprocessable image';
+      data['error'] = element[Const.ONFIDO].errorStatus === 422 ? 'no face detected' : 'unprocessable image';
       rejectedDocuments.push(docName);
     }
     user.identity_images.pushDocumentUnique(docName, deviceId, data);
