@@ -6,7 +6,8 @@ const ofWrapper = require('../components/onfidoWrapper');
 const Const = require('../defs/const.js');
 const crypto = require('crypto');
 const Users = require('../models/users');
-// const Checks = require('../models/schemas/onFidoChecks');
+const OFChecks = require('../models/schemas/onfidoChecks');
+const utils = require('../components/utils');
 
 /**
  * Internal _getMissingImages
@@ -15,7 +16,7 @@ const Users = require('../models/users');
  */
 function _getMissingImages(user) {
   return new Promise(function(resolve, reject) {
-    if (!user.identity_images) {
+    if (!user.identity_images || !user.identity_images.country) {
       resolve({status: HttpStatus.OK, body: {
         completed: false,
         missingDocuments: ['selfie', 'identity'],
@@ -54,7 +55,6 @@ function _getMissingImages(user) {
 async function postImage(req, res) {
   // try {
   const {user} = req.worbliUser;
-  let countryPrefix = undefined;
   const rejectedDocuments = [];
 
   user.initIDImages();
@@ -65,8 +65,7 @@ async function postImage(req, res) {
         json({data: false, error: 'Please include at least one file in the request!'});
   }
 
-  // get the country from the uploaded file.fieldname
-  countryPrefix = req.files[0].fieldname.split('_')[0];
+  let {deviceId, countryPrefix, docName, offset} = utils.extractNames(req.files[0].fieldname);
 
   if (user.identity_images && (user.identity_images.country !== countryPrefix)) {
     user.initIDImages(true);
@@ -75,13 +74,14 @@ async function postImage(req, res) {
   }
 
   req.files.forEach(function(element) {
-    const docName = element.fieldname.substring(countryPrefix.length + 1);
-    if (element.failed) {
+    docName = element.fieldname.substring(offset);
+    const data = {};
+    if (element[Const.ONFIDO].failed) {
       logger.info('/identity/image: the file ' + docName + ' FAILED to be uploaded!');
+      data['error'] = element[Const.ONFIDO].errorStatus === 422 ? 'no face detected' : 'unprocessable image';
       rejectedDocuments.push(docName);
-    } else {
-      user.identity_images.pushDocumentUnique(docName);
     }
+    user.identity_images.pushDocumentUnique(docName, deviceId, data);
   });
 
   // get the record for that country from MongoDB's worbli.identity_documents
@@ -103,6 +103,7 @@ async function postImage(req, res) {
           completed: user.identity_images.completed,
           missingDocuments: result.missingDocuments,
           rejectedDocuments: rejectedDocuments,
+          completedDocuments: user.identity_images.uploaded_documents,
           data: true,
         });
       });
@@ -181,11 +182,13 @@ function delIdentityImages(req, res) {
   let resp = undefined;
 
   if (user.identity_images) {
-    if (user.identity_images.uploaded_documents.includes('selfie')) {
-      user.identity_images.uploaded_documents = ['selfie'];
+    if (user.identity_images.includesWithoutError(Const.ID_SELFIE)) {
+      user.identity_images.delAllBut(Const.ID_SELFIE);
     } else {
       user.identity_images.uploaded_documents = [];
     }
+  } else {
+    user.initIDImages(true);
   }
 
   _getMissingImages(user).then(async (response) => {
@@ -246,19 +249,19 @@ function postApplication(req, res) {
             if (user.onfido.onfido_status === Const.ONFIDO_STATUS_CREATED) {
               ofWrapper.updateApplicant(user).then(function(applicant) {
                 logger.info('OnFido Applicant UPDATED, id: ' +
-                    JSON.stringify(applicant.id));
+                  JSON.stringify(applicant.id));
                 user.onfido.onfido_id = applicant.id;
 
                 ofWrapper.startCheck(user.onfido.onfido_id).then(function(check) {
                   logger.info('OnFido check started: ' +
-                      JSON.stringify(check));
+                    JSON.stringify(check));
 
                   user.onfido.onfido_check = check.id;
                   user.onfido.onfido_status = Const.ONFIDO_STATUS_PENDING;
                   user.onfido.onfido_error = false;
                 }).catch(function(error) {
                   logger.error('OnFido START check ERRORED: ' +
-                        JSON.stringify(error.response.body));
+                    JSON.stringify(error.response.body));
                   user.onfido.onfido_error = true;
                   user.onfido.onfido_status = Const.ONFIDO_STATUS_REJECTED;
                   user.onfido.onfido_error_message = JSON.stringify(error.response.body);
@@ -328,7 +331,8 @@ function postWebHook(req, res) {
           ', completedAt: ' + JSON.stringify(completedAt) + ', href: ' + JSON.stringify(href));
 
       let myUser = undefined;
-      // const reports = [];
+      const reports = [];
+      let ofCheck = undefined;
 
       switch (action) {
         case Const.ONFIDO_CHECK_COMPLETED:
@@ -344,17 +348,44 @@ function postWebHook(req, res) {
                   onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
                 }
 
-                // check.reports.reduce(function(acc, reportId) {
-                //   acc.push(ofWrapper.findReport(onfidoId, reportId));
-                // }, reports);
-                // Promise.all(reports).then(function(values) {
-                //   values.forEach(function(report) {
-                //     logger.info('==== report: ' + JSON.stringify(report));
-                //   });
-                // }).catch(function(err) {
-                //   logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
-                // });
-                return Users.onfidoCheckCompleted(onfidoId, onfidoStatus);
+                try {
+                  ofCheck = new OFChecks({
+                    user: myUser._id,
+                    onfido_id: check.id,
+                    created_at: check.created_at,
+                    href: check.href,
+                    status: check.status,
+                    result: check.result,
+                    download_uri: check.download_uri,
+                    results_uri: check.results_uri,
+                    check_type: check.type,
+                    dump: JSON.stringify(check),
+                    reports: [],
+                  });
+                  logger.info('==== Created a new check: ' + JSON.stringify(ofCheck));
+                  check.reports.reduce(function(acc, reportId) {
+                    logger.info('==== processing report: ' + JSON.stringify(reportId));
+                    acc.push(ofWrapper.findReport(check.id, reportId).catch(function(err) {
+                      logger.error('Error obtaining report ' + JSON.stringify(check.id));
+                    }));
+                    return acc;
+                  }, reports);
+                  Promise.all(reports).then(function(values) {
+                    values.forEach(function(report) {
+                      logger.info('==== obtained a report: ' + JSON.stringify(report));
+                      ofCheck.addReport(report);
+                      logger.info('==== ADDED report: ' + JSON.stringify(report));
+                    });
+                  }).catch(function(err) {
+                    logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
+                  }).finally(function() {
+                    ofCheck.save();
+                    logger.info('==== Saved check ' + check.id);
+                  });
+                } catch (err) {
+                  logger.error('Error iterating through the reports: ' + JSON.stringify(err));
+                }
+                return Users.onfidoCheckCompleted(myUser._id, onfidoStatus);
               })
               .then(function(user) {
                 myUser = user;

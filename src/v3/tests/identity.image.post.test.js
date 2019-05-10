@@ -71,7 +71,7 @@ describe('## User', function() {
     beforeEach(function(done) {
       setTimeout(function() {
         done();
-      }, 1000);
+      }, 2500);
     });
 
     it('verifies the user - should return 200 and data true', (done) => {
@@ -210,6 +210,29 @@ describe('## User', function() {
                   // assert(res.body.completed === false, 'Err completed is not false');
                   // assert(res.body.missingDocuments[0] === 'selfie', 'Err missingDocuments[0] is not \'selfie\'');
                   // assert(res.body.rejectedDocuments[0] === 'selfie', 'Err rejectedDocuments[0] is not \'selfie\'');
+                  done();
+                })
+                .catch(done);
+          });
+    });
+
+    it('tests uploading with a device ID - should return 200 and completed true', (done) => {
+      Users.updateOne(
+          {email: defUser.email},
+          {$set: {'identity_images.uploaded_documents': [],
+            'identity_images.completed': false}}, function(err, user) {
+            request(app)
+                .post(testUrl)
+                .set('Accept', 'application/json')
+                .set('Authorization', `Bearer ${jwtToken}`)
+                .attach('112233_BGR_selfie', 'src/samples/images/selfie.jpg')
+                .attach('112233_BGR_national_identity_card', 'src/samples/images/sampleID-front.jpg')
+                .attach('112233_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+                .expect(HttpStatus.OK)
+                .then((res) => {
+                  assert(res.body.data === true, 'Err data is not true');
+                  assert(res.body.completed === true, 'Err completed is not false');
+                  assert(res.body.missingDocuments.length === 0, 'Err missingDocuments is not empty');
                   done();
                 })
                 .catch(done);

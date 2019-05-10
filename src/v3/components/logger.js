@@ -47,3 +47,21 @@ module.exports = function(callingModule) {
   });
 };
 
+module.exports.short = function(callingModule) {
+  return createLogger({
+    format: combine(
+        label({label: getLabel(callingModule)}),
+        timestamp(),
+        format.splat(),
+        format.timestamp({format: 'YYYY-MM-DD HH:mm:ss'}),
+        format.colorize(),
+        format.json(),
+        printf((info) => {
+          // return `${info.timestamp} [${info.label}]
+          // ${info.level}: ${info.message}`;
+          return `${info.level}: ${info.message}`;
+        })
+    ),
+    transports: [new transports.Console()],
+  });
+};

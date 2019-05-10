@@ -1,6 +1,7 @@
 const logger = require('../components/logger')(module);
 const aws = require('aws-sdk');
 const asyncForEach = require('./asyncFunctions').asyncForEach;
+const Const = require('../defs/const.js');
 
 aws.config.update({
   secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
@@ -29,7 +30,8 @@ module.exports = function(options) {
         await (async () => {
           const filesCount = req.files.length;
 
-          const fName = prefix + element.fieldname + '_' + Date.now() + '.jpg';
+          const ts = Date.now();
+          const fName = prefix + element.fieldname + '_' + ts + '.jpg';
           // logger.info('===== S3 UPLOADING ' + fName);
           const params = {
             Bucket: process.env.S3_IMAGES_BUCKET_NAME,
@@ -38,8 +40,15 @@ module.exports = function(options) {
           };
 
           s3.upload(params, function(perr, pres) {
+            element[Const.S3] = {
+              fileName: fName,
+              ts: ts,
+              failed: Boolean(perr),
+              dump: JSON.stringify(pres),
+            };
             if (perr) {
               logger.error('Error uploading data: ', perr);
+              element[Const.S3].dump = JSON.stringify(perr);
             }
             // else
             //   logger.info('Successfully uploaded data: ', pres);

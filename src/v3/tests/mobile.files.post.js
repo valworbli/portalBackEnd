@@ -38,8 +38,8 @@ const _saveDefUser = function(done) {
 
 describe('## Mobile', function() {
   this.timeout(20000);
-  const testUrl = baseTestUrl + 'sms/';
-  let jwtToken = ''; let shortcode = 0;
+  const testUrl = baseTestUrl + 'files/';
+  let jwtToken = '';
 
   describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -87,35 +87,21 @@ describe('## Mobile', function() {
           .catch(done);
     });
 
-    it('generates a short code - should return 200 and data true', (done) => {
-      request(app)
-          .get('/api/v3/mobile/shortcode')
-          .set('Accept', 'application/json')
-          .set('Authorization', `Bearer ${jwtToken}`)
-          .expect(HttpStatus.OK)
-          .then((res) => {
-            assert(res.body.data === true, 'Err data is not true');
-            assert(res.body.shortcode > 99999, 'Err shortcode is less than 100000');
-            assert(res.body.shortcode < 1000000, 'Err shortcode is greater than 1000000');
-            shortcode = res.body.shortcode;
-            done();
-          })
-          .catch(done);
-    });
-
-    it('sends an SMS - should return 200 and data true', (done) => {
+    it('sends files and a country - should return 200 and data true', (done) => {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+359893546540'})
+          .send({country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
-            assert(Number(res.body.shortcode) === shortcode, 'Err the returned shortcode DOES NOT match the submitted one');
-            assert(res.body.link.endsWith('/id/' + JSON.stringify(shortcode)), 'Err the link DOES NOT match!');
             Users.findOne({email: defUser.email}, function(err, user) {
+              logger.warn('shortcodeData: ' + JSON.stringify(user.shortcodeData));
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.files === '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]',
+                  'Err the stored document DOES NOT match the submitted one');
               done();
             });
           })
@@ -127,7 +113,7 @@ describe('## Mobile', function() {
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567'})
+          .send({country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             done();
@@ -141,7 +127,7 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
           .set('Accept', 'application/json')
-          .send({number: '+15551234567'})
+          .send({country: 'GBR', files: '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}]'})
           .expect(HttpStatus.UNAUTHORIZED)
           .then((res) => {
             assert(res.body.data === false, 'Err data is not false');
@@ -156,7 +142,7 @@ describe('## Mobile', function() {
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+1555123456743943938378373'})
+          .send({number: '+1555123456743943938378373', message: 'Sample message'})
           .expect(HttpStatus.BAD_REQUEST)
           .then((res) => {
             done();

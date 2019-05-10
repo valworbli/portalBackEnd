@@ -23,26 +23,15 @@ AWS.config.update({
 function postSMS(req, res) {
   const {user} = req.worbliUser;
   // TODO remove the following line and uncomment the next one after the tests
-  let {message, country, files} = req.body;
-  // let {number, message, country, files} = req.body;
+  // let {number, country, files} = req.body;
 
-  user.shortcodeData = {files: JSON.stringify(files), country};
   if (!user.shortcode) {
     const shortCode = randomIntFromInterval(Const.SHORTCODE_MIN, Const.SHORTCODE_MAX);
     user.shortcode = shortCode;
   }
 
   const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
-  const myMessage = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
-  if (message !== myMessage && !(myMessage.startsWith(message))) {
-    logger.error('++++ The POSTed message DOES NOT equal the generated one:');
-    logger.error('++++ generated: ' + JSON.stringify(myMessage));
-    logger.error('++++ POSTed: ' + JSON.stringify(message));
-    message = myMessage;
-  }
-
-  logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
   user.save(function(err, user) {
     if (err) {
       logger.error('Failed to save the user when sending the SMS: ' + JSON.stringify(err));
@@ -69,6 +58,29 @@ function postSMS(req, res) {
       //       .json({data: false, error: 'Failed to send out the SMS, please try again later'});
       // });
       // END TODO
+    }
+  });
+}
+
+/**
+ * POST mobile/files
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ */
+function postFiles(req, res) {
+  const {user} = req.worbliUser;
+  const {country, files} = req.body;
+
+  user.shortcodeData = {files, country};
+
+  logger.info('user.shortcodeData: ' + JSON.stringify(user.shortcodeData));
+  user.save(function(err, user) {
+    if (err) {
+      logger.error('Failed to save the user when posting the mobile files: ' + JSON.stringify(err));
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .json({data: false, error: 'Failed to send out the SMS, please try again later'});
+    } else {
+      res.status(HttpStatus.OK).json({data: true});
     }
   });
 }
@@ -116,12 +128,7 @@ function postShortCode(req, res) {
       res.status(HttpStatus.BAD_REQUEST)
           .json({data: false, error: 'Failed to authenticate the short code'});
     } else {
-      const shortcodeData = {
-        country: user.shortcodeData.country,
-        files: JSON.parse(user.shortcodeData.files),
-      };
       user.shortcode = undefined;
-      user.shortcodeData = undefined;
 
       user.save(function(err, user) {
         if (err) {
@@ -133,12 +140,13 @@ function postShortCode(req, res) {
                 .json({data: false, error: 'Failed to authenticate the short code'});
           } else {
             const token = jwt.jwtWithExpiry({email: user.email}, '72h');
-            res.status(HttpStatus.OK).json({...shortcodeData, data: true, jwt: token});
+            res.status(HttpStatus.OK).json({data: true, jwt: token});
           }
         }
       });
     }
   }).catch(function(err) {
+    logger.error('Error in POST /mobile/shortcode: ' + JSON.stringify(err));
     res.status(HttpStatus.INTERNAL_SERVER_ERROR)
         .json({data: false, error: 'Failed to authenticate the short code, please try again later'});
   });
@@ -146,6 +154,7 @@ function postShortCode(req, res) {
 
 module.exports = {
   postSMS,
+  postFiles,
   getShortCode,
   postShortCode,
 };

@@ -9,8 +9,9 @@ module.exports = {
           .error(() => 'Invalid token').required(),
     },
     body: {
-      number: Joi.string().lowercase().regex(/^\+[0-9]{7,15}$/)
-          .error(() => 'Invalid number').required(),
+      country: Joi.string().length(3).uppercase()
+          .error(() => 'Invalid country provided').required(),
+      files: Joi.string().error(() => 'Invalid fields provided').required(),
     },
   },
 };

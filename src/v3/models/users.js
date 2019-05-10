@@ -270,15 +270,42 @@ function createNetworkAccount(email, accountName) {
 
 /**
  * onfidoCheckCompleted
- * @param {string} checkId - the user's email
+ * @param {string} userId - the user's ID
  * @param {string} onfidoStatus - the new OnFido status
  * @return {Promise} a Promise with the user or an error
  */
-function onfidoCheckCompleted(checkId, onfidoStatus) {
+function onfidoCheckCompleted(userId, onfidoStatus) {
   return new Promise(function(resolve, reject) {
-    Users.findOneAndUpdate({'onfido.onfido_check': checkId},
+    Users.findOneAndUpdate({'_id': userId},
         {$set: {'onfido.onfido_status': onfidoStatus}},
         {new: true},
+        function(err, user) {
+          if (err) {
+            logger.error('onfidoCheckCompleted: User with id: ' +
+              JSON.stringify(userId) + ' NOT FOUND: ' + JSON.stringify(err));
+            reject({err});
+          }
+
+          if (user) {
+            resolve(user);
+          } else {
+            reject('Could not find a user for this check');
+          }
+        });
+  });
+}
+
+/**
+ * findByOnFidoCheck
+ * @param {string} checkId - the user's email
+ * @return {Promise} a Promise with the user or an error
+ */
+function findByOnFidoCheck(checkId) {
+  return new Promise(function(resolve, reject) {
+    Users.findOneAndUpdate(
+        {'onfido.onfido_check': checkId},
+        {'onfido.onfido_check': ''},
+        {new: true, upsert: false},
         function(err, user) {
           if (err) {
             logger.error('User with OnFido check: ' +
@@ -296,32 +323,6 @@ function onfidoCheckCompleted(checkId, onfidoStatus) {
             reject('Could not find a user for this check');
           }
         });
-  });
-}
-
-/**
- * findByOnFidoCheck
- * @param {string} checkId - the user's email
- * @return {Promise} a Promise with the user or an error
- */
-function findByOnFidoCheck(checkId) {
-  return new Promise(function(resolve, reject) {
-    Users.findOne({'onfido.onfido_check': checkId}, function(err, user) {
-      if (err) {
-        logger.error('User with OnFido check: ' +
-          JSON.stringify(checkId) + ' NOT FOUND');
-        reject({err});
-      }
-
-      if (user) {
-        logger.info('Found a user ' + JSON.stringify(user.email)
-          + ' for check ' + JSON.stringify(checkId));
-        resolve(user);
-      } else {
-        logger.info('NO USER was found for check ' + JSON.stringify(checkId));
-        reject('Could not find a user for this check');
-      }
-    });
   });
 }
 
