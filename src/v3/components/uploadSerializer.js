@@ -45,8 +45,9 @@ module.exports = function(options) {
 
       Promise.all(fileRecords).then(function(values) {
         for (const value of values) {
-          if (value)
+          if (value) {
             logger.info('Saved file upload ' + JSON.stringify(value.s3_filename));
+          }
         }
       }).finally(function() {
         next();
