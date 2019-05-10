@@ -108,7 +108,7 @@ describe('## User', function() {
           .post('/api/v3/identity/image/')
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .attach('BGR_selfie', 'src/samples/images/rotated_selfie_cw.jpg')
+          .attach('BGR_selfie', 'src/samples/images/rotated_selfie_ccw.jpg')
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');

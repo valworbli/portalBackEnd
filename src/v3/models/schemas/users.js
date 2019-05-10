@@ -22,6 +22,7 @@ identityImagesSchema.methods.pushDocumentUnique = function(docName, devId, data=
     if (doc.name === docName) {
       if (doc.id !== devId) {
         doc.id = devId;
+        doc.error = data.error;
       }
 
       return;

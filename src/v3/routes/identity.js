@@ -25,7 +25,7 @@ router.route('/image/:doctype').delete(validate(delImage.validate),
     jwtAuthenticator({getUser: true}), identityController.delImage);
 router.route('/image/').post(validate(postImage.validate),
     jwtAuthenticator({getUser: true}), upload.any(),
-    ofUploader, s3upload, selfieRotate,
+    s3upload, selfieRotate, ofUploader,
     fuSerializer, identityController.postImage);
 router.route('/application/').get(validate(getApplication.validate),
     identityController.getApplication);
