@@ -103,7 +103,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     }
   });
 
-  if (!this.includesWithoutError(Const.ID_SELFIE)) {
+  if (this.includesWithoutError(Const.ID_SELFIE) === undefined) {
     missingDocuments.push(Const.ID_SELFIE);
   }
 
@@ -112,7 +112,7 @@ identityImagesSchema.methods.verify = function(accepted) {
   } else {
     // check the uploaded vs the required documents
     const backRequired = accepted[docType];
-    if (!this.includesWithoutError(docType)) {
+    if (this.includesWithoutError(docType) === undefined) {
       missingDocuments.push(docType);
     }
     if (backRequired.constructor !== Boolean) {
@@ -120,7 +120,7 @@ identityImagesSchema.methods.verify = function(accepted) {
     }
     if (backRequired) {
       const docTypeReverse = docType + '_' + Const.ID_REVERSE_SUFFIX;
-      if (!this.includesWithoutError(docTypeReverse)) {
+      if (this.includesWithoutError(docTypeReverse) === undefined) {
         missingDocuments.push(docTypeReverse);
       }
     }
