@@ -223,40 +223,28 @@ async function processChecks(user, userFolder, archiver) {
         } else {
           // check if the document is present in S3
           // construct the file name
-          const repFileName = user.id + '/' + check.id + '/' + reportId + '.archive';
-          let s3Err = {};
-          await s3.headObject({Bucket: process.env.S3_IMAGES_BUCKET_NAME, Key: repFileName}).promise().catch(function(err) {
-            // logger.error('Error checking whether the file ' + repFileName + ' exists on S3: ' + JSON.stringify(err));
-            s3Err = err;
-          });
+          for (const documentId of report.documents) {
+            const docNameTmpl = `${userReportFolder}${documentId.id}_*.*`;
+            if (glob.sync(docNameTmpl).length > 0) {
+              logger.info('            Document ' + JSON.stringify(documentId.id) + ' exists, skipping it');
+            } else {
+              logger.info('            Document ' + JSON.stringify(documentId.id) + ' DOES NOT exist, downloading it');
+              await timeout(delay);
+              // if there is an archive (a single file) for that report in S3
+              // then assume all the documents have been downloaded already
+              const document = await ofWrapper.findDocument(user.onfido.onfido_id, documentId.id);
+              const docName = userReportFolder + documentId.id + '_' + document.file_name;
 
-          if (s3Err.statusCode !== HttpStatus.NOT_FOUND) {
-            logger.info('        Report archive ' + repFileName + ' EXISTS on S3, skipping all documents');
-          } else {
-            logger.info('        Report archive ' + repFileName + ' DOES NOT exist on S3, downloading all documents');
-            for (const documentId of report.documents) {
-              const docNameTmpl = `${userReportFolder}${documentId.id}_*.*`;
-              if (glob.sync(docNameTmpl).length > 0) {
-                logger.info('            Document ' + JSON.stringify(documentId.id) + ' exists, skipping it');
-              } else {
-                logger.info('            Document ' + JSON.stringify(documentId.id) + ' DOES NOT exist, downloading it');
-                await timeout(delay);
-                // if there is an archive (a single file) for that report in S3
-                // then assume all the documents have been downloaded already
-                const document = await ofWrapper.findDocument(user.onfido.onfido_id, documentId.id);
-                const docName = userReportFolder + documentId.id + '_' + document.file_name;
+              const download = bArchive ?
+              await downloadOnfidoFileToStream(document.download_href).catch(function(err) {
+                logger.error('        Error downloading the document to a buffer: ' + JSON.stringify(err));
+              }) :
+              await downloadOnfidoFile(document.download_href, docName).catch(function(err) {});
 
-                const download = bArchive ?
-                await downloadOnfidoFileToStream(document.download_href).catch(function(err) {
-                  logger.error('        Error downloading the document to a buffer: ' + JSON.stringify(err));
-                }) :
-                await downloadOnfidoFile(document.download_href, docName).catch(function(err) {});
-
-                if (bArchive) {
-                  if (download) {
-                    archiver.archive.append(download.getContents(), {name: docName});
-                    logger.info('        Appended the document to the archive');
-                  }
+              if (bArchive) {
+                if (download) {
+                  archiver.archive.append(download.getContents(), {name: docName});
+                  logger.info('        Appended the document to the archive');
                 }
               }
             }
@@ -299,7 +287,7 @@ async function processLivePhotos(user, userFolder, archiver) {
     if (archiver) {
       if (!fs.existsSync(userLPFolder + 'livePhotos.tar.gz')) {
         await archiver.compressFile(JSON.stringify(livePhotos), 'livePhotos.json', userLPFolder + 'livePhotos.tar.gz');
-        archiver = new Archiver();
+        archiver = new Archiver(true);
       }
     } else {
       if (!fs.existsSync(userLPFolder + 'livePhotos.json')) fs.writeFileSync(userLPFolder + 'livePhotos.json', JSON.stringify(livePhotos));
@@ -373,18 +361,57 @@ Users.estimatedDocumentCount(async function(err, count) {
     logger.info('Processing user ' + email + ': ' + usersCount + ' out of ' + count);
     try {
       if (user.onfido.onfido_id) {
-        const userFolder = '/tmp/a/' + user._id + '/';
-        if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder);
+        // check if the user's data is present in S3
+        // construct the file name
+        const udFileName = user.id + '/' + user.id + '.tar.gz';
+        let s3Err = {};
+        await s3.headObject({Bucket: process.env.S3_IMAGES_BUCKET_NAME, Key: udFileName}).promise().catch(function(err) {
+          logger.error('Error checking whether the file ' + udFileName + ' exists on S3: ' + JSON.stringify(err));
+          s3Err = err;
+        });
 
-        let archiver = new Archiver();
+        if (s3Err.statusCode !== HttpStatus.NOT_FOUND) {
+          logger.info('        Onfido archive ' + udFileName + ' EXISTS on S3, skipping it.');
+        } else {
+          logger.info('        Onfido archive ' + udFileName + ' DOES NOT exist on S3, skipping it.');
+          const userFolder = '/tmp/a/' + user._id + '/';
+          if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder);
 
-        await processChecks(user, userFolder, archiver);
-        await timeout(checkDelay);
+          let archiver = new Archiver(true);
 
-        archiver = new Archiver();
+          await processChecks(user, userFolder, archiver);
+          await timeout(checkDelay);
 
-        await processLivePhotos(user, userFolder, archiver);
-        await timeout(checkDelay);
+          archiver = new Archiver(true);
+
+          await processLivePhotos(user, userFolder, archiver);
+          await timeout(checkDelay);
+
+          // create a new tar.gz, encrypted, from all the
+          // encrypted checks and live photos of the user
+          const userArchive = '/tmp/a/' + user._id + '.tar.gz';
+          archiver = new Archiver(true);
+          archiver.start(userArchive);
+          archiver.archive.directory(userFolder, user._id + '/');
+          await archiver.stop();
+          logger.info('Archived all the user\'s data to ' + userArchive);
+          let data = fs.readFileSync(userArchive);
+          const params = {
+            Bucket: process.env.S3_IMAGES_BUCKET_NAME,
+            Key: udFileName,
+            Body: data,
+          };
+          s3Err = undefined;
+          await s3.upload(params).promise().catch(function(err) {
+            logger.error('Error uploading the user\'s data: ' + JSON.stringify(err));
+            s3Err = err;
+          });
+
+          if (s3Err === undefined) {
+            logger.info('Uploaded the archive to S3: ' + udFileName);
+            // fs.unlinkSync(userArchive);
+          }
+        }
       } else {
         logger.error('!!!! User ' + email + ' has NO OnFido ID!!!!');
       }

@@ -3,7 +3,8 @@ const fs = require('fs');
 const archiverjs = require('archiver');
 const streamBuffers = require('stream-buffers');
 const logger = require('../logger').short(module);
-const crypto = require('crypto'); const algorithm = 'aes-256-cbc';
+const crypto = require('crypto');
+const algorithm = 'aes-256-cbc';
 
 let that = undefined;
 
@@ -76,14 +77,14 @@ class Archiver {
           fs.writeFile(that.name, encBuff, function() {
             logger.info('    Key: ' + that.key.toString('hex'));
             logger.info('    IV: ' + that.iv.toString('hex'));
-            logger.info('        ENCRYPTED the archive to ' + that.name);
+            logger.info('    ENCRYPTED the archive to ' + that.name);
             resolve(true);
           });
         });
       } else {
         that.outputStreamBuffer.on('finish', () => {
           fs.writeFile(that.name, that.outputStreamBuffer.getContents(), function() {
-            logger.info('        Saved the archive to ' + that.name);
+            logger.info('    Saved the archive to ' + that.name);
             resolve(true);
           });
         });

@@ -4,9 +4,9 @@ const Archiver = require('./Archiver');
 
 /**
  * Decrypt the archive with
- * cat test.tar.gz | openssl enc -nosalt -d -aes-256-cbc -K $DECRYPT_KEY -iv $DECRYPT_IV > decoded.tar.gz
- * and then, of course
- * tar xvfz decoded.tar.gz
+ * cat test.tar.gz | openssl enc -nosalt -d -aes-256-cbc -K $DECRYPT_KEY -iv $DECRYPT_IV | tar xvz
+ * Check the contents:
+ * cat test.txt
  */
 const text = 'Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo Bozo';
 
