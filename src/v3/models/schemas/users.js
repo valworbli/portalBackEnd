@@ -137,6 +137,11 @@ const onFidoUsersSchema = new mongoose.Schema({
   onfido_error_message: {type: String},
 });
 
+const SMSLimits = new mongoose.Schema({
+  count: {type: Number, required: true},
+  seconds: {type: Number, required: true},
+});
+
 const usersSchema = new mongoose.Schema({
   email: {type: String, required: true, index: true, unique: true},
   agreed_terms: {type: Boolean, required: true},
@@ -171,6 +176,7 @@ const usersSchema = new mongoose.Schema({
   identity_images: identityImagesSchema,
   shortcode: {type: String},
   shortcodeData: shortcodeDataSchema,
+  sms_limits: [SMSLimits],
 });
 
 usersSchema.pre('save', function(next) {
@@ -183,6 +189,11 @@ usersSchema.pre('save', function(next) {
       onfido_error: false,
       onfido_id: '',
     };
+
+    user.sms_limits = [];
+    user.sms_limits.push({count: 3, seconds: 300});
+    user.sms_limits.push({count: 10, seconds: 86400});
+    user.sms_limits.push({count: 50, seconds: Const.MAX_DATE_VALUE});
 
     if (this.isNew && !user.verify_token) {
       user.verify_token = crypto

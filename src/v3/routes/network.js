@@ -2,7 +2,7 @@ const express = require('express');
 const validate = require('express-validation');
 const networkController = require('../controllers/network.js');
 const router = new express.Router();
-const jwtAuthenticator = require('../components/jwtAuthenticator');
+const jwtAuthenticator = require('../components/middleware/jwtAuthenticator');
 
 const postAccount = require('../validators/network/postAccount.js');
 const getCheck = require('../validators/network/getCheck.js');

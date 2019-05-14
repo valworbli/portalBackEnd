@@ -32,3 +32,4 @@ module.exports.SOCKET_ON_CONNECT = 'ON_CONNECT';
 module.exports.ONFIDO = 'onfido';
 module.exports.S3 = 'S3';
 module.exports.PROCESSING = 'processing';
+module.exports.MAX_DATE_VALUE = 9460800000;

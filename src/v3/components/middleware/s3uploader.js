@@ -1,7 +1,7 @@
-const logger = require('../components/logger')(module);
+const logger = require('../logger')(module);
 const aws = require('aws-sdk');
-const asyncForEach = require('./asyncFunctions').asyncForEach;
-const Const = require('../defs/const.js');
+const asyncForEach = require('../asyncFunctions').asyncForEach;
+const Const = require('../../defs/const.js');
 
 aws.config.update({
   secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,

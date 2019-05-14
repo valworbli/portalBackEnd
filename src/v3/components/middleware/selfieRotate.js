@@ -1,6 +1,6 @@
 /* eslint max-len: 0 */
-const Const = require('../defs/const.js');
-const logger = require('./logger')(module);
+const Const = require('../../defs/const.js');
+const logger = require('../logger')(module);
 const aws = require('aws-sdk');
 const sharp = require('sharp');
 

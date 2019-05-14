@@ -6,6 +6,7 @@ const expect = chai.expect;
 const assert = chai.assert;
 const app = require('../../../worbli-api');
 const logger = require('../components/logger')(module);
+const SMSLog = require('../models/schemas/smsLog');
 
 require('dotenv').config();
 const Promise = require('bluebird');
@@ -103,12 +104,14 @@ describe('## Mobile', function() {
           .catch(done);
     });
 
-    it('sends an SMS - should return 200 and data true', (done) => {
+    it('sends the first SMS - should return 200 and data true', (done) => {
+      const number = '+11111111111';
+      const message = 'bozo mozo zozo 1';
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+111111111111'})
+          .send({number})
           .expect(HttpStatus.OK)
           .then((res) => {
             assert(res.body.data === true, 'Err data is not true');
@@ -116,52 +119,114 @@ describe('## Mobile', function() {
             assert(res.body.link.endsWith('/id/' + JSON.stringify(shortcode)), 'Err the link DOES NOT match!');
             Users.findOne({email: defUser.email}, function(err, user) {
               assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
-              done();
+              const smsEntries = [];
+              for (let i = 0; i < 3; i++) {
+                const smsLogEntry = new SMSLog({user, number, message});
+                smsEntries.push(smsLogEntry.save());
+              }
+
+              Promise.all(smsEntries).then(function(values) {
+                done();
+              }).catch(function(err) {
+                logger.error('Error storing THREE SMSes in the DB: ' + JSON.stringify(err));
+                done();
+              });
             });
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 400 because the token is missing', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Accept', 'application/json')
-          .send({number: '+15551234567'})
-          .expect(HttpStatus.BAD_REQUEST)
-          .then((res) => {
+          }).catch(function(err) {
+            logger.error('GENERIC ERROR: ' + JSON.stringify(err));
             done();
-          })
-          .catch(done);
+          });
     });
 
-    // eslint-disable-next-line max-len
-    it('should return 401 because the token is malformed', (done) => {
-      request(app)
-          .post(testUrl)
-          .set('Authorization', `Bearer WRONGTOKEN.blahblah.blahblah`)
-          .set('Accept', 'application/json')
-          .send({number: '+15551234567'})
-          .expect(HttpStatus.UNAUTHORIZED)
-          .then((res) => {
-            assert(res.body.data === false, 'Err data is not false');
-            done();
-          })
-          .catch(done);
-    });
-
-    // eslint-disable-next-line max-len
-    it('should return 400 and data false because the input data is invalid', (done) => {
+    it('sends the fifth SMS - should return 429 and data false', (done) => {
+      const number = '+11111111111';
+      const message = 'bozo mozo zozo 2';
       request(app)
           .post(testUrl)
           .set('Accept', 'application/json')
           .set('Authorization', `Bearer ${jwtToken}`)
-          .send({number: '+1555123456743943938378373'})
-          .expect(HttpStatus.BAD_REQUEST)
+          .send({number})
+          .expect(HttpStatus.TOO_MANY_REQUESTS)
           .then((res) => {
+            assert(res.body.data === false, 'Err data is not false');
+            Users.findOne({email: defUser.email}, async function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              await SMSLog.deleteMany({user: user}).exec();
+              logger.warn('Deleted all SMS log entries for user ' + JSON.stringify(user.email));
+
+              const smsEntries = [];
+              for (let i = 0; i < 10; i++) {
+                const time = Date.now() - 22*3600*1000;
+                const smsLogEntry = new SMSLog({user, number, message, time});
+                smsEntries.push(smsLogEntry.save());
+              }
+
+              Promise.all(smsEntries).then(function(values) {
+                done();
+              }).catch(function(err) {
+                logger.error('Error storing TEN SMSes in the DB: ' + JSON.stringify(err));
+                done();
+              });
+            });
+          }).catch(function(err) {
+            logger.error('GENERIC ERROR: ' + JSON.stringify(err));
             done();
-          })
-          .catch(done);
+          });
+    });
+
+    it('sends the eleventh SMS - should return 429 and data false', (done) => {
+      const number = '+11111111111';
+      const message = 'bozo mozo zozo 3';
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({number})
+          .expect(HttpStatus.TOO_MANY_REQUESTS)
+          .then((res) => {
+            assert(res.body.data === false, 'Err data is not false');
+            Users.findOne({email: defUser.email}, async function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              await SMSLog.deleteMany({user: user}).exec();
+
+              const smsEntries = [];
+              for (let i = 0; i < 50; i++) {
+                const time = new Date(Date.now() - 122*3600*1000);
+                const smsLogEntry = new SMSLog({user, number, message, time});
+                smsEntries.push(smsLogEntry.save());
+              }
+
+              Promise.all(smsEntries).then(function(values) {
+                done();
+              }).catch(function(err) {
+                logger.error('Error storing FIFTY SMSes in the DB: ' + JSON.stringify(err));
+                done();
+              });
+            });
+          }).catch(function(err) {
+            logger.error('GENERIC ERROR: ' + JSON.stringify(err));
+            done();
+          });
+    });
+
+    it('sends the fifty-first SMS - should return 429 and data false', (done) => {
+      request(app)
+          .post(testUrl)
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({number: '+11111111111'})
+          .expect(HttpStatus.TOO_MANY_REQUESTS)
+          .then((res) => {
+            assert(res.body.data === false, 'Err data is not false');
+            Users.findOne({email: defUser.email}, async function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              await SMSLog.deleteMany({user: user}).exec();
+              done();
+            });
+          }).catch(function(err) {
+            logger.error('GENERIC ERROR: ' + JSON.stringify(err));
+            done();
+          });
     });
   });
 });

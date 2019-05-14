@@ -2,8 +2,8 @@ const express = require('express');
 const validate = require('express-validation');
 const userController = require('../controllers/user.js');
 const router = new express.Router();
-const jwtAuthenticator = require('../components/jwtAuthenticator');
-const ipExtractor = require('../components/ipExtractor');
+const jwtAuthenticator = require('../components/middleware/jwtAuthenticator');
+const ipExtractor = require('../components/middleware/ipExtractor');
 
 const getProfile = require('../validators/user/getProfile.js');
 const getState = require('../validators/user/getState.js');

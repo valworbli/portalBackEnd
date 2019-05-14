@@ -1,10 +1,10 @@
 /* eslint max-len: 0 */
 const fs = require('fs');
-const Const = require('../defs/const.js');
-const logger = require('./logger')(module);
-const ofWrapper = require('../components/onfidoWrapper');
-const asyncForEach = require('./asyncFunctions').asyncForEach;
-const utils = require('./utils');
+const Const = require('../../defs/const.js');
+const logger = require('../logger')(module);
+const ofWrapper = require('../onfidoWrapper');
+const asyncForEach = require('../asyncFunctions').asyncForEach;
+const utils = require('../utils');
 
 module.exports = function(options) {
   return function uploadToOnFido(req, res, next) {

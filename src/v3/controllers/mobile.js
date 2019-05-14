@@ -4,7 +4,7 @@ const logger = require('../components/logger')(module);
 const Const = require('../defs/const.js');
 const Users = require('../models/users');
 const jwt = require('../components/jwt');
-
+const SMSLog = require('../models/schemas/smsLog');
 const AWS = require('aws-sdk');
 AWS.config.update({
   'accessKeyId': process.env.SES_ACCESS_KEY_ID,
@@ -24,6 +24,7 @@ function postSMS(req, res) {
   const {user} = req.worbliUser;
   // TODO remove the following line and uncomment the next one after the tests
   // let {number, country, files} = req.body;
+  const {number} = req.body;
 
   if (!user.shortcode) {
     const shortCode = randomIntFromInterval(Const.SHORTCODE_MIN, Const.SHORTCODE_MAX);
@@ -31,6 +32,7 @@ function postSMS(req, res) {
   }
 
   const myLink = `${process.env.FRONT_END_URL}/id/${user.shortcode}`;
+  const message = `WORBLI: Tap this link to upload your photos: ${myLink}`;
 
   user.save(function(err, user) {
     if (err) {
@@ -38,15 +40,17 @@ function postSMS(req, res) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .json({data: false, error: 'Failed to send out the SMS, please try again later'});
     } else {
-      // TODO: remove this once the tests are done
-      res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
+      // TODO: uncomment these lines once the tests are done
       // sns.setSMSAttributes({attributes: {'DefaultSMSType': 'Transactional'}}).promise().then(function(data) {
       //   const params = {Message: message, PhoneNumber: number};
       //   logger.info('Successfully set the SMS attribute to Transactional: ' + JSON.stringify(data));
 
       // sns.publish(params).promise().then(function(data) {
       //   logger.info('Sent an SMS to ' + JSON.stringify(number) + ': ' + JSON.stringify(data));
-      //   res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
+      const smsLogEntry = new SMSLog({user, number, message});
+      smsLogEntry.save(function(err, entry) {
+        res.status(HttpStatus.OK).json({data: true, shortcode: user.shortcode, link: myLink});
+      });
       // }).catch(function(err) {
       //   logger.error('Failed to send the SMS: ' + JSON.stringify(err));
       //   res.status(HttpStatus.INTERNAL_SERVER_ERROR)

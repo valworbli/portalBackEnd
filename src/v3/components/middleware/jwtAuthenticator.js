@@ -1,6 +1,6 @@
 const HttpStatus = require('http-status-codes');
-const Users = require('../models/schemas/users');
-const jwt = require('./jwt');
+const Users = require('../../models/schemas/users');
+const jwt = require('../jwt');
 
 // middleware that is specific to this router
 module.exports = function(options) {

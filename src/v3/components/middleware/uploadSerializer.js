@@ -1,9 +1,9 @@
 /* eslint max-len: 0 */
-const Const = require('../defs/const.js');
-const logger = require('./logger')(module);
-const FileUploads = require('../models/schemas/fileUploads');
+const Const = require('../../defs/const.js');
+const logger = require('../logger')(module);
+const FileUploads = require('../../models/schemas/fileUploads');
 
-module.exports = function(options) {
+module.exports = function(options = {}) {
   return function(req, res, next) {
     if (!req.files) {
       logger.info('uploadSerializer: no files are present, skipping...');
