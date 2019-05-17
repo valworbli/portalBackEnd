@@ -395,7 +395,7 @@ Users.estimatedDocumentCount(async function(err, count) {
           archiver.archive.directory(userFolder, user._id + '/');
           await archiver.stop();
           logger.info('Archived all the user\'s data to ' + userArchive);
-          let data = fs.readFileSync(userArchive);
+          const data = fs.readFileSync(userArchive);
           const params = {
             Bucket: process.env.S3_IMAGES_BUCKET_NAME,
             Key: udFileName,
