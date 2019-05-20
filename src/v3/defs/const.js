@@ -34,4 +34,4 @@ module.exports.S3 = 'S3';
 module.exports.PROCESSING = 'processing';
 module.exports.MAX_DATE_VALUE = 9460800000;
 
-module.exports.USERDATA_FOLDER = '/tmp/userdata/';
+module.exports.USERDATA_FOLDER = process.env.TRAVIS ? process.cwd() : '/tmp/userdata/';

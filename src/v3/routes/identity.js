@@ -6,7 +6,7 @@ const router = new express.Router();
 const jwtAuthenticator = require('../components/middleware/jwtAuthenticator');
 const upload = require('../components/middleware/multers3')({useDBID: true});
 const s3upload = require('../components/middleware/s3uploader')({useDBID: true});
-const ofUploader = require('../components/middleware/onfidoUploader')({markFailed: true, encryptFiles: true});
+const ofUploader = require('../components/middleware/onfidoUploader')({markFailed: true, encryptFiles: !process.env.TRAVIS});
 const fuSerializer = require('../components/middleware/uploadSerializer')({});
 const selfieRotate = require('../components/middleware/selfieRotate')({});
 
