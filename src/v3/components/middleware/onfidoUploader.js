@@ -5,6 +5,7 @@ const logger = require('../logger')(module);
 const ofWrapper = require('../onfidoWrapper');
 const asyncForEach = require('../asyncFunctions').asyncForEach;
 const utils = require('../utils');
+const Archiver = require('../sync/Archiver');
 
 module.exports = function(options) {
   return function uploadToOnFido(req, res, next) {
@@ -16,12 +17,21 @@ module.exports = function(options) {
         return next();
       }
 
+      const userFolder = Const.USERDATA_FOLDER + req.worbliUser._id + '/';
+      if (options.encryptFiles && !fs.existsSync(userFolder)) fs.mkdirSync(userFolder);
+
       asyncForEach(req.files, async (element) => {
         await (async () => {
           const {user} = req.worbliUser;
           const {docName} = utils.extractNames(element.fieldname);
+          if (options.encryptFiles) {
+            const archiver = new Archiver(true, true);
+            archiver.start(userFolder + user.onfido.onfido_id + element.fieldname + '.jpg.tar.gz');
+            archiver.archive.append(element.buffer, {name: user.onfido.onfido_id + element.fieldname + '.jpg'});
+            await archiver.stop();
+          }
 
-          const fName = '/tmp/' + user.onfido.onfido_id + element.fieldname + '.jpg';
+          const fName = '/tmp/' + user.onfido.onfido_id + '_' + element.fieldname + '.jpg';
           fs.writeFileSync(fName, element.buffer);
 
           const image = fs.createReadStream(fName);

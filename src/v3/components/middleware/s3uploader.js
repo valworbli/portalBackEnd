@@ -2,6 +2,7 @@ const logger = require('../logger')(module);
 const aws = require('aws-sdk');
 const asyncForEach = require('../asyncFunctions').asyncForEach;
 const Const = require('../../defs/const.js');
+const Archiver = require('../sync/Archiver');
 
 aws.config.update({
   secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
@@ -32,12 +33,27 @@ module.exports = function(options) {
 
           const ts = Date.now();
           const fName = prefix + element.fieldname + '_' + ts + '.jpg';
-          // logger.info('===== S3 UPLOADING ' + fName);
-          const params = {
-            Bucket: process.env.S3_IMAGES_BUCKET_NAME,
-            Key: fName,
-            Body: element.buffer,
-          };
+          let params = {};
+
+          if (options.encryptFiles) {
+            const archiver = new Archiver(true, false);
+            archiver.start();
+            archiver.archive.append(element.buffer, {name: fName});
+            await archiver.stop();
+            // logger.info('===== S3 UPLOADING ' + fName);
+            params = {
+              Bucket: process.env.S3_IMAGES_BUCKET_NAME,
+              Key: fName,
+              Body: archiver.encBuff,
+              // Body: element.buffer,
+            };
+          } else {
+            params = {
+              Bucket: process.env.S3_IMAGES_BUCKET_NAME,
+              Key: fName,
+              Body: element.buffer,
+            };
+          }
 
           s3.upload(params, function(perr, pres) {
             element[Const.S3] = {

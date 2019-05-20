@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const Users = require('../models/users');
 const OFChecks = require('../models/schemas/onfidoChecks');
 const utils = require('../components/utils');
+const Archiver = require('../components/sync/Archiver');
 
 /**
  * Internal _getMissingImages
@@ -348,6 +349,11 @@ function postWebHook(req, res) {
                   onfidoStatus = Const.ONFIDO_STATUS_REJECTED;
                 }
 
+                const docFolder = Const.USERDATA_FOLDER + myUser._id + '/';
+                const archiver = new Archiver(true, true);
+                archiver.start(Const.USERDATA_FOLDER + myUser.onfido.onfido_id + '.tar.gz');
+                archiver.archive.append(JSON.stringify(check), {name: myUser.onfido.onfido_id + '_check_' + check.id + '.json'});
+
                 try {
                   ofCheck = new OFChecks({
                     user: myUser._id,
@@ -372,14 +378,16 @@ function postWebHook(req, res) {
                   }, reports);
                   Promise.all(reports).then(function(values) {
                     values.forEach(function(report) {
-                      logger.info('==== obtained a report: ' + JSON.stringify(report));
                       ofCheck.addReport(report);
                       logger.info('==== ADDED report: ' + JSON.stringify(report));
+                      archiver.archive.append(JSON.stringify(report), {name: myUser.onfido.onfido_id + '_report_' + report.id + '.json'});
                     });
                   }).catch(function(err) {
                     logger.error('==== Error obtaining the reports: ' + JSON.stringify(err));
-                  }).finally(function() {
+                  }).finally(async function() {
                     ofCheck.save();
+                    archiver.archive.directory(docFolder, 'documents');
+                    await archiver.stop();
                     logger.info('==== Saved check ' + check.id);
                   });
                 } catch (err) {
