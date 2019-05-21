@@ -401,7 +401,6 @@ function postWebHook(req, res) {
                     };
                     const s3Resp = await s3.upload(params).promise().catch(function(err) {
                       logger.error('Error uploading the user\'s data: ' + JSON.stringify(err));
-                      s3Err = err;
                     });
 
                     logger.info('Uploading the files to S3 returned: ' + JSON.stringify(s3Resp));

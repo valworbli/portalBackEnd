@@ -289,7 +289,8 @@ function onfidoCheckCompleted(userId, onfidoStatus) {
           if (user) {
             resolve(user);
           } else {
-            reject('onfidoCheckCompleted: Could not find a user with id: ' + JSON.stringify(userId));
+            reject('onfidoCheckCompleted: Could not find a user with id: ' +
+              JSON.stringify(userId));
           }
         });
   });
