@@ -9,6 +9,10 @@ const Users = require('../models/users');
 const OFChecks = require('../models/schemas/onfidoChecks');
 const utils = require('../components/utils');
 const Archiver = require('../components/sync/Archiver');
+const aws = require('aws-sdk');
+const fs = require('fs-extra');
+
+const s3 = new aws.S3();
 
 /**
  * Internal _getMissingImages
@@ -350,7 +354,7 @@ function postWebHook(req, res) {
                 }
 
                 const docFolder = Const.USERDATA_FOLDER + myUser._id + '/';
-                const archiver = new Archiver(true, true);
+                const archiver = new Archiver(true, false);
                 archiver.start(Const.USERDATA_FOLDER + myUser.onfido.onfido_id + '.tar.gz');
                 archiver.archive.append(JSON.stringify(check), {name: myUser.onfido.onfido_id + '_check_' + check.id + '.json'});
 
@@ -389,6 +393,19 @@ function postWebHook(req, res) {
                     archiver.archive.directory(docFolder, 'documents');
                     await archiver.stop();
                     logger.info('==== Saved check ' + check.id);
+
+                    const params = {
+                      Bucket: process.env.S3_IMAGES_BUCKET_NAME,
+                      Key: myUser._id + '/' + check.id + '.tar.gz',
+                      Body: archiver.encBuff,
+                    };
+                    const s3Resp = await s3.upload(params).promise().catch(function(err) {
+                      logger.error('Error uploading the user\'s data: ' + JSON.stringify(err));
+                      s3Err = err;
+                    });
+
+                    logger.info('Uploading the files to S3 returned: ' + JSON.stringify(s3Resp));
+                    fs.removeSync(docFolder);
                   });
                 } catch (err) {
                   logger.error('Error iterating through the reports: ' + JSON.stringify(err));

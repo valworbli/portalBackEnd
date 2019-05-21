@@ -276,7 +276,7 @@ function createNetworkAccount(email, accountName) {
  */
 function onfidoCheckCompleted(userId, onfidoStatus) {
   return new Promise(function(resolve, reject) {
-    Users.findOneAndUpdate({'_id': userId},
+    Users.findOneAndUpdate({_id: userId},
         {$set: {'onfido.onfido_status': onfidoStatus}},
         {new: true},
         function(err, user) {
@@ -289,7 +289,7 @@ function onfidoCheckCompleted(userId, onfidoStatus) {
           if (user) {
             resolve(user);
           } else {
-            reject('Could not find a user for this check');
+            reject('onfidoCheckCompleted: Could not find a user with id: ' + JSON.stringify(userId));
           }
         });
   });
