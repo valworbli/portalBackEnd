@@ -21,12 +21,13 @@ if [[ ! " ${BRANCHES_TO_DEPLOY[@]} " =~ " ${TRAVIS_BRANCH} " ]]; then
   exit 0
 fi
 
-pip install awscli -q
+pip install awscli --user -q
 
 if [ $? = 0 ]; then
-  AWSBIN=$(which aws)
-  AWSPATH=$(dirname $AWSBIN)
-  export PATH=$PATH:$AWSPATH
+  # AWSBIN=$(which aws)
+  # AWSPATH=$(dirname $AWSBIN)
+  # export PATH=$PATH:$AWSPATH
+  export PATH=$PATH:$HOME/.local/bin
 
   # Get absolute path of dir where run.sh is located
   SOURCE="${BASH_SOURCE[0]}"
