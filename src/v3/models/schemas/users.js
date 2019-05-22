@@ -20,10 +20,8 @@ identityImagesSchema.methods.pushDocumentUnique = function(docName, devId, data=
   // else insert it in the array
   for (const doc of this.uploaded_documents) {
     if (doc.name === docName) {
-      if (doc.id !== devId) {
-        doc.id = devId;
-        doc.error = data.error;
-      }
+      doc.id = devId;
+      doc.error = data.error;
 
       return;
     }

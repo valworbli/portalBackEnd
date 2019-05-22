@@ -65,7 +65,7 @@ function getImageStatus(user) {
       for (const file of filesArray) {
         let index = undefined;
         if (user.identity_images) {
-          index = user.identity_images.includes(file.value);
+          index = user.identity_images.includesWithoutError(file.value);
         }
 
         if (index) {
