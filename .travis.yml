@@ -24,75 +24,75 @@ before_install:
 #  openssl enc -e -aes-256-cbc -md md5 -salt -pass env:ENV_PASS -in .env -out env.encoded
 # see https://askubuntu.com/questions/1067762/unable-to-decrypt-text-files-with-openssl-on-ubuntu-18-04
 - openssl aes-256-cbc -d -pass pass:${ENV_PASS} -in .env.enc -out .env
-env:
-  global:
-    - IMAGE_NAME=portalbackend
-    - DEPLOY_BRANCHES=develop_v3 uat_v3
-    - AWS_REGION=us-east-1
-deploy:
-  skip_cleanup: true
-  provider: script
-  script:
-    - ./bin/run.sh
-  on:
-    all_branches: true
-
+# env:
+#   global:
+#     - IMAGE_NAME=portalbackend
+#     - DEPLOY_BRANCHES=develop_v3 uat_v3
+#     - AWS_REGION=us-east-1
 # deploy:
-# - provider: s3
-#   access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-#   secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-#   local_dir: dpl_cd_upload
-#   key: latest.zip
-#   bundle_type: zip
 #   skip_cleanup: true
-#   on: 
-#     repo: worbli/portalBackEnd
-#     branch: develop_v3
-#   bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
-#   region: us-west-2
-# - provider: codedeploy
-#   access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-#   secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-#   bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
-#   key: latest.zip
-#   bundle_type: zip
-#   application: $AWS_CODE_DEPLOY_APPLICATION
-#   deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
+#   provider: script
+#   script:
+#     - ./bin/run.sh
 #   on:
-#     repo: worbli/portalBackEnd
-#     branch: develop_v3
-#   region: us-west-2
-#   wait_until_deployed: true
-# - provider: s3
-#   access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-#   secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-#   bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
-#   local_dir: dpl_cd_upload
-#   key: latest.zip
-#   bundle_type: zip
-#   skip_cleanup: true
-#   on: 
-#     repo: worbli/portalBackEnd
-#     branch: uat_v3
-#   region: us-west-2
-# - provider: codedeploy
-#   access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
-#   secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
-#   bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
-#   key: latest.zip
-#   bundle_type: zip
-#   application: $AWS_CODE_DEPLOY_APPLICATION
-#   deployment_group: $AWS_UAT_CODE_DEPLOY_DEPLOYMENT_GROUP
-#   on:
-#     repo: worbli/portalBackEnd
-#     branch: uat_v3
-#   region: us-west-2
-#   wait_until_deployed: true
-# before_deploy:
-#   - rm -fr node_modules
-#   - shopt -s dotglob && zip -rq latest *
-#   - mkdir -p dpl_cd_upload
-#   - mv latest.zip dpl_cd_upload/latest.zip
+#     all_branches: true
+
+deploy:
+- provider: s3
+  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
+  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
+  local_dir: dpl_cd_upload
+  key: latest.zip
+  bundle_type: zip
+  skip_cleanup: true
+  on: 
+    repo: worbli/portalBackEnd
+    branch: develop_v3
+  bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
+  region: us-west-2
+- provider: codedeploy
+  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
+  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
+  bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
+  key: latest.zip
+  bundle_type: zip
+  application: $AWS_CODE_DEPLOY_APPLICATION
+  deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
+  on:
+    repo: worbli/portalBackEnd
+    branch: develop_v3
+  region: us-west-2
+  wait_until_deployed: true
+- provider: s3
+  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
+  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
+  bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
+  local_dir: dpl_cd_upload
+  key: latest.zip
+  bundle_type: zip
+  skip_cleanup: true
+  on: 
+    repo: worbli/portalBackEnd
+    branch: uat_v3
+  region: us-west-2
+- provider: codedeploy
+  access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
+  secret_access_key: $TRAVIS_AWS_SECRET_ACCESS_KEY
+  bucket: $TRAVIS_S3_UAT_API_BUCKET_NAME
+  key: latest.zip
+  bundle_type: zip
+  application: $AWS_CODE_DEPLOY_APPLICATION
+  deployment_group: $AWS_UAT_CODE_DEPLOY_DEPLOYMENT_GROUP
+  on:
+    repo: worbli/portalBackEnd
+    branch: uat_v3
+  region: us-west-2
+  wait_until_deployed: true
+before_deploy:
+  - rm -fr node_modules
+  - shopt -s dotglob && zip -rq latest *
+  - mkdir -p dpl_cd_upload
+  - mv latest.zip dpl_cd_upload/latest.zip
 
 notifications:
   slack:
