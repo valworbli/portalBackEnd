@@ -19,6 +19,9 @@ const networkRoutesV3 = require('./v3/routes/network.js');
 const healthRoutesV3 = require('./v3/routes/health.js');
 const mobileRoutesV3 = require('./v3/routes/mobile.js');
 
+// Github
+const githubWebhook = require('./v3/routes/github.js');
+
 const router = new express.Router();
 // Version 1
 router.use('/api/v1/email', emailRoutes);
@@ -39,5 +42,8 @@ router.use('/api/v3/identity', identityRoutesV3);
 router.use('/api/v3/network', networkRoutesV3);
 router.use('/api/v3/health', healthRoutesV3);
 router.use('/api/v3/mobile', mobileRoutesV3);
+
+// Github webhook
+router.use('/github', githubWebhook);
 
 module.exports = router;
