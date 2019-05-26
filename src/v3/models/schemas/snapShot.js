@@ -1,9 +1,12 @@
 const mongoose = require('mongoose');
 
 const snapShotSchema = new mongoose.Schema({
-  account_name: {type: String, required: true, unique: true},
-  owner_key: {type: String, required: true, unique: true},
-  active_key: {type: String, required: true, unique: true},
+  // account_name: {type: String, required: true, unique: true},
+  // owner_key: {type: String, required: true, unique: true},
+  // active_key: {type: String, required: true, unique: true},
+  account_name: {type: String, required: true},
+  owner_key: {type: String, required: true},
+  active_key: {type: String, required: true},
   total_nostake: {type: Number, required: true},
   staked: {type: Number, required: true},
   delegated: {type: Number, required: true},
@@ -13,6 +16,6 @@ const snapShotSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.models.SnapShot ||
-mongoose.model('SnapShot', snapShotSchema);
+mongoose.model('snapshots', snapShotSchema);
 
 module.exports.snapShotSchema = snapShotSchema;

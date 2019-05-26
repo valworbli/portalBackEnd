@@ -3,6 +3,7 @@ const Const = require('../../defs/const');
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt-nodejs');
 const crypto = require('crypto');
+const logger = require('../../components/logger')(module);
 
 const identityImagesSchema = new mongoose.Schema({
   completed: {type: Boolean, index: true},
@@ -141,7 +142,8 @@ const SMSLimits = new mongoose.Schema({
 });
 
 const usersSchema = new mongoose.Schema({
-  email: {type: String, required: true, index: true, unique: true},
+  // email: {type: String, required: true, index: true, unique: true},
+  email: {type: String, required: true, index: true},
   agreed_terms: {type: Boolean, required: true},
   agreed_marketing: {type: Boolean},
   password: {type: String, required: true},
@@ -182,18 +184,22 @@ usersSchema.pre('save', function(next) {
   user.updated_at = Date.now();
 
   if (this.isNew) {
-    user.onfido = {
-      onfido_status: Const.ONFIDO_STATUS_NONE,
-      onfido_error: false,
-      onfido_id: '',
-    };
+    if (!user.onfido) {
+      user.onfido = {
+        onfido_status: Const.ONFIDO_STATUS_NONE,
+        onfido_error: false,
+        onfido_id: '',
+      };
+    }
 
-    user.sms_limits = [];
-    user.sms_limits.push({count: 3, seconds: 300});
-    user.sms_limits.push({count: 10, seconds: 86400});
-    user.sms_limits.push({count: 50, seconds: Const.MAX_DATE_VALUE});
+    if (!user.sms_limits) {
+      user.sms_limits = [];
+      user.sms_limits.push({count: 3, seconds: 300});
+      user.sms_limits.push({count: 10, seconds: 86400});
+      user.sms_limits.push({count: 50, seconds: Const.MAX_DATE_VALUE});
+    }
 
-    if (this.isNew && !user.verify_token) {
+    if (!user.verify_token) {
       user.verify_token = crypto
           .randomBytes(Const.VERIFY_TOKEN_LENGTH / 2)
           .toString('hex');

@@ -10,6 +10,6 @@ const sharegrabRequestSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.models.sharegrab_request ||
-mongoose.model('sharegrab_request', sharegrabRequestSchema);
+mongoose.model('sharegrab_requests', sharegrabRequestSchema);
 
 module.exports.sharegrabRequestSchema = sharegrabRequestSchema;
