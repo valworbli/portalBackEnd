@@ -34,50 +34,59 @@ const newDbConn = mongoose.createConnection(process.env.MIGRATION_DB_CONN_NEW, {
 const OldUsers = oldDbConn.model(process.env.MIGRATION_COLL_NAME, usersSchema);
 const NewUsers = newDbConn.model(process.env.MIGRATION_COLL_NAME_NEW, usersSchema);
 
-let savers = [];
+const savers = [];
 let count = 0;
 
-async function CopyRecords(oldColl, newColl, name='unnamed') {
-  await new Promise(function(resolve, reject) {
-    oldColl.estimatedDocumentCount(async function(err, count) {
-      let myCount = 0;
-      logger.info('Found ' + count + ' entries in ' + name);
-      savers = [];
-      newColl.deleteMany({}).exec();
-      let cursor = oldColl.find().cursor();
-    
-      cursor.on('data', function(entry) {
-        logger.info('Processing ' + name + ' entry ' + ++myCount + '/' + count);
-        const newEntry = new newColl({...entry._doc});
-      
-        savers.push(newEntry.save().catch(function(err) {
-          if (err)
-            logger.error('Error saving the new ' + name + ': ' + JSON.stringify(err));
-        }));
-      });
+/**
+ * Copies records from one collection to another
+ * @param {object} oldColl
+ * @param {object} newColl
+ * @param {string} name
+ */
+// async function CopyRecords(oldColl, newColl, name='unnamed') {
+//   await new Promise(function(resolve, reject) {
+//     oldColl.estimatedDocumentCount(async function(err, count) {
+//       let myCount = 0;
+//       logger.info('Found ' + count + ' entries in ' + name);
+//       savers = [];
+//       newColl.deleteMany({}).exec();
+//       const cursor = oldColl.find().cursor();
 
-      cursor.on('close', function() {
-        // Called when done
-        myCount = 0;
-        logger.info('Saving ' + savers.length + ' ' + name + ' entries...');
-        Promise.all(savers).then(function(values) {
-          for (const value of values) {
-            logger.info('Saved ' + name + ' entry ' + ++myCount + '/' + count);
-          }
-        }).catch(function(err) {
-          logger.error('Error SAVING ' + name + ', err: ' + JSON.stringify(err));
-        }).finally(function() {
-          logger.info('EOF reading ' + name);
-          resolve();
-        });
-      });
-    });
-  });
+//       cursor.on('data', function(entry) {
+//         logger.info('Processing ' + name + ' entry ' + ++myCount + '/' + count);
+//         // eslint-disable-next-line new-cap
+//         const newEntry = new newColl({...entry._doc});
+//         delete newEntry._id;
 
-  logger.info('Copied all ' + name + ' entries');
-};
+//         savers.push(newEntry.save().catch(function(err) {
+//           if (err) {
+//             logger.error('Error saving the new ' + name + ': ' + JSON.stringify(err));
+//           }
+//         }));
+//       });
 
-newDbConn.once('open', async function () {
+//       cursor.on('close', function() {
+//         // Called when done
+//         myCount = 0;
+//         logger.info('Saving ' + savers.length + ' ' + name + ' entries...');
+//         Promise.all(savers).then(function(values) {
+//           for (const value of values) {
+//             logger.info('Saved ' + name + ' entry ' + ++myCount + '/' + count);
+//           }
+//         }).catch(function(err) {
+//           logger.error('Error SAVING ' + name + ', err: ' + JSON.stringify(err));
+//         }).finally(function() {
+//           logger.info('EOF reading ' + name);
+//           resolve();
+//         });
+//       });
+//     });
+//   });
+
+//   logger.info('Copied all ' + name + ' entries');
+// }
+
+newDbConn.once('open', async function() {
   logger.info('Connected to database');
   // await CopyRecords(OldLogs, NewLogs, 'log');
   // await CopyRecords(OldSGRequest, NewSGRequest, 'sharegrab_requests');
@@ -85,7 +94,7 @@ newDbConn.once('open', async function () {
 
   logger.info('Copying users...');
   NewUsers.deleteMany({}).exec();
-  cursor = OldUsers.find().cursor();
+  const cursor = OldUsers.find().cursor();
   cursor.on('data', function(user) {
     let onfidoId = undefined;
     let onfidoStatus = undefined;
@@ -153,8 +162,9 @@ newDbConn.once('open', async function () {
       delete nUser.address_flat_number;
     }
 
-    if (nUser.address_two.startsWith(', '))
+    if (nUser.address_two.startsWith(', ')) {
       nUser.address_two = nUser.address_two.substring(', '.length, nUser.address_two.length);
+    }
 
     const newUser = new NewUsers(nUser);
     savers.push(newUser.save().catch(function(err) {

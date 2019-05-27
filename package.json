@@ -26,7 +26,6 @@
     "bcrypt": "^3.0.2",
     "bcrypt-nodejs": "0.0.3",
     "big-integer": "^1.6.36",
-    "bl": "^3.0.0",
     "bluebird": "^3.5.3",
     "body-parser": "^1.18.3",
     "buffer-equal-constant-time": "^1.0.1",
