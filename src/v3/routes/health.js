@@ -9,5 +9,6 @@ router.route('/ready/').get(validate(getReady.validate),
     healthController.getReady);
 router.route('/live/').get(validate(getLive.validate),
     healthController.getLive);
+router.route('/check/').get(healthController.getCheck);
 
 module.exports = router;
