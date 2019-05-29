@@ -144,13 +144,13 @@ SocketManager.prototype.authenticate = function(socket, cb=null) {
   const token = socket.handshake.query['jwt'];
   if (!token) {
     logger.error('authenticate: Missing token!');
-    if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'Missing token'});
+    if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'missing token'});
   }
 
   const jwtToken = jwt.jwtDecode(token);
   if (!jwtToken) {
     logger.error('authenticate: Invalid token!');
-    if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'Invalid token'});
+    if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'invalid token'});
   } else {
     Users.findOne({email: jwtToken.email}, function(err, user) {
       if (err) {
