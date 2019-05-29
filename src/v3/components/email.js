@@ -1,10 +1,5 @@
 /* eslint-disable */
 const AWS = require('aws-sdk');
-AWS.config.update({
-  'accessKeyId': process.env.SES_ACCESS_KEY_ID,
-  'secretAccessKey': process.env.SES_SECRET_ACCESS_KEY,
-  'region': process.env.SES_REGION,
-});
 
 /**
  * Status
@@ -15,6 +10,12 @@ AWS.config.update({
  * @return {string} SES Receipt ID.
  */
 function sendEmail(email, newjwt, template, firstName) {
+  AWS.config.update({
+    'accessKeyId': process.env.SES_ACCESS_KEY_ID,
+    'secretAccessKey': process.env.SES_SECRET_ACCESS_KEY,
+    'region': process.env.SES_REGION,
+  });
+  
   try {
     return new Promise(function(resolve, reject) {
       let title;
