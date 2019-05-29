@@ -1,3 +1,4 @@
+/* eslint-disable */
 const crypto = require('crypto');
 const HttpStatus = require('http-status-codes');
 const bufferEq = require('buffer-equal-constant-time');
@@ -237,7 +238,7 @@ function postWebhook(req, res) {
             if (response.statusCode !== HttpStatus.OK) {
               logger.error('postWebhook: Error response obtained trying to get the diff of the PR:');
               logger.error('    status: ' + JSON.stringify(response.statusCode));
-              logger.error('    message: ' + JSON.stringify(message.statusMessage));
+              logger.error('    message: ' + JSON.stringify(response.statusMessage));
             } else {
               logger.info('GOT THIS DIFF: ' + body);
               var files = parse(body);
