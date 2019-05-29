@@ -142,10 +142,15 @@ SocketManager.prototype.initRoutes = function(socket) {
 
 SocketManager.prototype.authenticate = function(socket, cb=null) {
   const token = socket.handshake.query['jwt'];
-  const jwtToken = jwt.jwtDecode(token);
-  if (!jwtToken) {
+  if (!token) {
     logger.error('authenticate: Missing token!');
     if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'Missing token'});
+  }
+
+  const jwtToken = jwt.jwtDecode(token);
+  if (!jwtToken) {
+    logger.error('authenticate: Invalid token!');
+    if (cb) return cb(true, {data: false, status: HttpStatus.UNAUTHORIZED, error: 'Invalid token'});
   } else {
     Users.findOne({email: jwtToken.email}, function(err, user) {
       if (err) {
