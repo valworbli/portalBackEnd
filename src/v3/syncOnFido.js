@@ -9,7 +9,7 @@ const ofChecksSchema = require('./models/schemas/onfidoChecks').ofChecksSchema;
 const usersSchema = require('./models/schemas/users').usersSchema;
 
 const https = require('https');
-const fs = require('fs');
+const fs = require('fs-extra');
 const glob = require('glob');
 
 const logger = require('./components/logger').short(module);
@@ -143,12 +143,12 @@ async function processChecks(user, userFolder, archiver) {
   } else {
     let checksCount = 0;
     const userChecksFolder = userFolder + 'checks/';
-    if (!fs.existsSync(userChecksFolder)) fs.mkdirSync(userChecksFolder);
+    if (!fs.existsSync(userChecksFolder)) fs.mkdirpSync(userChecksFolder);
     logger.info('    Obtained ' + checks.checks.length + ' OnFido checks for user ' + email);
 
     for (const check of checks.checks) {
       const userCheckFolder = userChecksFolder + check.id + '/';
-      if (!fs.existsSync(userCheckFolder)) fs.mkdirSync(userCheckFolder);
+      if (!fs.existsSync(userCheckFolder)) fs.mkdirpSync(userCheckFolder);
       if (archiver) {
         if (!fs.existsSync(userCheckFolder + check.id + '.tar.gz')) {
           await archiver.compressFile(JSON.stringify(check), check.id + '.json', userCheckFolder + check.id + '.tar.gz');
@@ -176,7 +176,7 @@ async function processChecks(user, userFolder, archiver) {
 
       for (const reportId of check.reports) {
         const userReportFolder = userCheckFolder + reportId + '/';
-        if (!fs.existsSync(userReportFolder)) fs.mkdirSync(userReportFolder);
+        if (!fs.existsSync(userReportFolder)) fs.mkdirpSync(userReportFolder);
 
         let report = undefined;
         if (dbCheck) report = dbCheck.includesReport(reportId);
@@ -282,7 +282,7 @@ async function processLivePhotos(user, userFolder, archiver) {
 
   const userLPFolder = userFolder + 'Live/';
   if (livePhotos && livePhotos.live_photos) {
-    if (!fs.existsSync(userLPFolder)) fs.mkdirSync(userLPFolder);
+    if (!fs.existsSync(userLPFolder)) fs.mkdirpSync(userLPFolder);
     logger.info('    Live photos for the user: ' + livePhotos.live_photos.length);
     if (archiver) {
       if (!fs.existsSync(userLPFolder + 'livePhotos.tar.gz')) {
@@ -375,7 +375,7 @@ Users.estimatedDocumentCount(async function(err, count) {
         } else {
           logger.info('        Onfido archive ' + udFileName + ' DOES NOT exist on S3, skipping it.');
           const userFolder = '/tmp/a/' + user._id + '/';
-          if (!fs.existsSync(userFolder)) fs.mkdirSync(userFolder);
+          if (!fs.existsSync(userFolder)) fs.mkdirpSync(userFolder);
 
           let archiver = new Archiver(true);
 

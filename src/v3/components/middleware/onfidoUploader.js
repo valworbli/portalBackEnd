@@ -1,5 +1,5 @@
 /* eslint max-len: 0 */
-const fs = require('fs');
+const fs = require('fs-extra');
 const Const = require('../../defs/const.js');
 const logger = require('../logger')(module);
 const ofWrapper = require('../onfidoWrapper');
@@ -18,7 +18,7 @@ module.exports = function(options) {
       }
 
       const userFolder = Const.USERDATA_FOLDER + req.worbliUser._id + '/';
-      if (options.encryptFiles && !fs.existsSync(userFolder)) fs.mkdirSync(userFolder);
+      if (options.encryptFiles && !fs.existsSync(userFolder)) fs.mkdirpSync(userFolder);
 
       asyncForEach(req.files, async (element) => {
         await (async () => {
