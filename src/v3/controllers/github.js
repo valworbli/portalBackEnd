@@ -5,6 +5,7 @@ const bufferEq = require('buffer-equal-constant-time');
 const logger = require('../components/logger')(module);
 const request = require('request');
 const parse = require('parse-diff');
+const tcpping = require('tcp-ping');
 
 const {JsonRpc} = require('eosjs');
 const fetch = require('node-fetch');
@@ -43,23 +44,26 @@ function verify(signature, data) {
  * Internal sendEmail
  * @param {string} email - The email address to send to.
  * @param {string} pubEndSucceeded - Whether the public endpoint verification succeeded.
+ * @param {string} p2pSucceeded - Whether the p2p endpoint verification succeeded.
  * @param {string} jsonSucceeded - Whether parsing the endpoints.json to JSON was successful.
  * @param {string} prNumber - The number of the pull request.
  * @param {string} prUrl - The Github url of the pull request.
  * @param {string} prUserLogin - The name of the user submitting the PR.
  * @param {string} prUserUrl - The Github url of the user.
  * @param {string} pubEndpoint - The public endpoint from the added data.
+ * @param {string} p2pEndpoint - The p2p endpoint from the added data.
  * @return {string} SES Receipt ID.
  */
-function sendEmail(email, pubEndSucceeded, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, pubEndpoint) {
+function sendEmail(email, pubEndSucceeded, p2pSucceeded, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, pubEndpoint, p2pEndpoint) {
   try {
     return new Promise(function(resolve, reject) {
       let suffix = '';
       let pubEndSuffix = pubEndSucceeded ? 'SUCCESS' : 'FAILED';
+      let p2pSuffix = p2pSucceeded ? 'SUCCESS' : 'FAILED';
       let jsonSuffix = jsonSucceeded ? 'SUCCESS' : 'FAILED';
 
-      if ((pubEndSucceeded & jsonSucceeded) === 0) {
-        if (pubEndSucceeded || jsonSucceeded) {
+      if ((pubEndSucceeded & jsonSucceeded & p2pSucceeded) === 0) {
+        if (pubEndSucceeded || jsonSucceeded || p2pSucceeded) {
           suffix = 'PARTIALLY VERIFIED';
         } else {
           suffix = 'VERIFY FAILED';
@@ -118,6 +122,8 @@ function sendEmail(email, pubEndSucceeded, jsonSucceeded, prNumber, prUrl, prUse
                     <p>Push request for publicEndpoints:</p>
                     <p>  Public endpoint: ${pubEndpoint}</p>
                     <p>  Public endpoint: ${pubEndSuffix}</p></br></br>
+                    <p>  P2P endpoint: ${p2pEndpoint}</p></br></br>
+                    <p>  P2P endpoint: ${p2pSuffix}</p></br></br>
                     <p>  JSON parsed: ${jsonSuffix}</p></br></br>
                     <p>  <hr width="100%">
                     <p>  PR url: ${prUrl}</p></br></br>
@@ -196,6 +202,74 @@ async function _verifyEndpointsJSON(url) {
 }
 
 /**
+ * 
+ * @param {string} url - the URL of the p2p endpoint
+ * @return {boolean} - whether the connection succeeded
+ */
+async function _verifyP2PEndpoint(url) {
+  let hostname = undefined, port = 0;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    let myUrl = new URL(url);
+    hostname = myUrl.hostname;
+    port = myUrl.port;
+  } else {
+    let parts = url.split(':');
+    hostname = parts[0];
+    if (parts.length > 1)
+      port = parts[1];
+  }
+
+  logger.info('Parsed the p2p endpoint to host: ' + JSON.stringify(hostname) + ', port: ' + JSON.stringify(port));
+  let result = await new Promise(function(resolve, reject) {
+    tcpping.probe(hostname, port, function(err, data) {
+      if (err || !data) {
+        reject(err);
+      }
+
+      resolve(true);
+    });
+  }).catch(function(err) {
+    logger.warn('Error verifying the p2p endpoint: ' + JSON.stringify(err));
+  });
+
+  return Boolean(result);
+}
+
+/**
+ * 
+ * @param {string} line - the diff line from which to extract an URL
+ * @return {string} - the extracted URL
+ */
+function _extractURL(line) {
+  let urls = line.match(/\bhttps?:\/\/\S+/gi);
+  if (urls && urls.length > 0)
+    return urls[0].split('\"').join('').split(',').join('');
+
+  return undefined;
+}
+
+/**
+ * 
+ * @param {string} url - the URL of the api endpoint
+ * @return {boolean} - whether the connection succeeded
+ */
+async function _verifyApiEndpoint(url) {
+  const rpc = new JsonRpc(url, {fetch});
+  let result = await new Promise(function(resolve, reject) {
+    rpc.get_info().then((data) => {
+      logger.info('            get_info SUCCESS' + JSON.stringify(data));
+      resolve(true);
+    }).catch((err) => {
+      logger.info('            get_info ERROR' + JSON.stringify(err));
+      reject(err);
+    });
+  }).catch((err) => {});
+
+  logger.warn('_verifyApiEndpoint result: ' + JSON.stringify(Boolean(result)));
+  return Boolean(result);
+}
+
+/**
  * POST /github/webhook - accepts Github webhook calls
  * @param {string} req - The incoming request.
  * @param {string} res - The outcoming response.
@@ -220,8 +294,8 @@ function postWebhook(req, res) {
       logger.warn('Github sent us an event ' + JSON.stringify(event) +
         ' with ID ' + JSON.stringify(id) +
         ' we do not support: ' + JSON.stringify(obj));
-    } else {
-      // logger.info('Received a PULL request: ' + JSON.stringify(obj));
+    } else if (obj.pull_request.state === 'open') {
+      logger.info('Received a PULL request: ' + JSON.stringify(obj));
       var prNumber = obj.pull_request.number;
       var prUrl = obj.pull_request.html_url;
       var prDiffUrl = obj.pull_request.diff_url;
@@ -230,7 +304,7 @@ function postWebhook(req, res) {
       var endpointsUrl = obj.pull_request.head.repo.html_url + '/raw/' + obj.pull_request.head.ref + '/endpoints.json';
       let jsonSucceeded = _verifyEndpointsJSON(endpointsUrl);
 
-      request(prDiffUrl, function(error, response, body) {
+      request(prDiffUrl, async function(error, response, body) {
         if (error) {
           logger.error('postWebhook: Error getting the diff of the PR: ' + JSON.stringify(error));
         } else {
@@ -240,39 +314,76 @@ function postWebhook(req, res) {
               logger.error('    status: ' + JSON.stringify(response.statusCode));
               logger.error('    message: ' + JSON.stringify(response.statusMessage));
             } else {
+              let apiSucceeded = false, apiURL = '';
+              let p2pSucceeded = false, p2pURL = '';
+
               logger.info('GOT THIS DIFF: ' + body);
               var files = parse(body);
               logger.info('Parsed ' + JSON.stringify(files.length) + ' affected files');
-              files.forEach(function(file) {
-                logger.info(file.chunks.length); // number of hunks
-                logger.info(file.chunks[0].changes.length) // hunk added/deleted/context lines
-                file.chunks[0].changes.forEach(function(change) {
+              for (let file of files) {
+                for (let change of file.chunks[0].changes) {
                   if (change.add) {
                     if (change.content.indexOf('apiEndpoint') > -1) {
-                      let urls = change.content.match(/\bhttps?:\/\/\S+/gi);
-                      if (urls && urls.length > 0) {
-                        let url = urls[0].split('\"').join('').split(',').join('');
-                        logger.info('    Obtained the apiEndpoint: ' + JSON.stringify(url));
-                        const rpc = new JsonRpc(url, {fetch});
-                        rpc.get_info().then((data) => {
-                          logger.info('            get_info SUCCESS' + JSON.stringify(data));
-                          sendEmail(process.env.PR_EMAIL, true, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, url);
-                        }).catch((err) => {
-                          logger.info('            get_info ERROR' + JSON.stringify(err));
-                          sendEmail(process.env.PR_EMAIL, false, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, url);
-                        });
-
+                      apiURL = _extractURL(change.content);
+                      if (apiURL && apiURL.length > 0) {
+                        logger.info('    Obtained the apiEndpoint: ' + JSON.stringify(apiURL));
+                        apiSucceeded = await _verifyApiEndpoint(apiURL);
                       } else {
                         logger.error('postWebhook: No url specified for the public endpoint: ' + JSON.stringify(change.content));
                       }
+                    } else if (change.content.indexOf('p2pEndpoint') > -1) {
+                      p2pURL = _extractURL(change.content);
+                      if (p2pURL && p2pURL.length > 0) {
+                        logger.info('    Obtained the p2pEndpoint: ' + JSON.stringify(p2pURL));
+                        p2pSucceeded = await _verifyP2PEndpoint(p2pURL);
+                      } else {
+                        logger.error('postWebhook: No url specified for the p2p endpoint: ' + JSON.stringify(change.content));
+                      }
                     }
                   }
-                });
-              });
+                }
+
+                sendEmail(process.env.PR_EMAIL, apiSucceeded, p2pSucceeded, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, apiURL, p2pURL);
+              }
+
+              // files.forEach(function(file) {
+              //   file.chunks[0].changes.forEach(async function(change) {
+              //     if (change.add) {
+              //       if (change.content.indexOf('apiEndpoint') > -1) {
+              //         apiURL = _extractURL(change.content);
+              //         apiURL = 'https://api.worbli.eosdetroit.io';
+              //         if (apiURL && apiURL.length > 0) {
+              //           logger.info('    Obtained the apiEndpoint: ' + JSON.stringify(apiURL));
+              //           apiSucceeded = await _verifyApiEndpoint(apiURL);
+              //           if (apiSucceeded instanceof Object)
+              //             apiSucceeded = Boolean(Object.keys(apiSucceeded).length);
+
+              //           logger.warn('apiSucceeded111: ' + JSON.stringify(apiSucceeded));
+              //         } else {
+              //           logger.error('postWebhook: No url specified for the public endpoint: ' + JSON.stringify(change.content));
+              //         }
+              //       } else if (change.content.indexOf('p2pEndpoint') > -1) {
+              //         p2pURL = _extractURL(change.content);
+              //         p2pURL = 'p2p.worbli.eosdetroit.io:1337';
+              //         if (p2pURL && p2pURL.length > 0) {
+              //           logger.info('    Obtained the p2pEndpoint: ' + JSON.stringify(p2pURL));
+              //           p2pSucceeded = await _verifyP2PEndpoint(p2pURL);
+              //         } else {
+              //           logger.error('postWebhook: No url specified for the p2p endpoint: ' + JSON.stringify(change.content));
+              //         }
+              //       }
+              //     }
+              //   });
+
+              //   logger.warn('apiSucceeded: ' + JSON.stringify(apiSucceeded) + ', p2pSucceeded: ' + JSON.stringify(p2pSucceeded));
+              //   sendEmail(process.env.PR_EMAIL, apiSucceeded, p2pSucceeded, jsonSucceeded, prNumber, prUrl, prUserLogin, prUserUrl, apiURL, p2pURL);
+              // });
             }
           }
         }
       });
+    } else {
+      logger.info('The state of the pull_request is not "open" so ignoring it: ' + JSON.stringify(obj));
     }
   } catch (err) {
     logger.error('Error PARSING the data: ' + JSON.stringify(err));

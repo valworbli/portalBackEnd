@@ -35,7 +35,8 @@ const _saveDefUser = function(done) {
   });
 };
 
-describe('## User', () => {
+describe('## User', function() {
+  this.timeout(15000);
   const testUrl = baseTestUrl + 'password/';
 
   describe(`# POST ${testUrl}`, () => {

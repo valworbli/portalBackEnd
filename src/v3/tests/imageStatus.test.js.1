@@ -39,16 +39,16 @@ const _saveDefUser = function(done) {
   });
 };
 
-function timeout(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// function timeout(ms) {
+//   return new Promise((resolve) => setTimeout(resolve, ms));
+// }
 
 describe('## Mobile', function() {
   this.timeout(15000);
   const testUrl = baseTestUrl + 'shortcode/';
   let jwtToken = ''; let mobilejwtToken = ''; let shortcode = 0;
   let socket = undefined;
-  let completeDone = false;
+  // const completeDone = false;
   let myDone = undefined;
 
   describe(`# POST ${testUrl}`, () => {
@@ -147,7 +147,7 @@ describe('## Mobile', function() {
       assert(data.status !== undefined, 'Err data.status is undefined');
       assert(data.status.status === 'created', 'Err status.created is not false');
       assert(data.status.errored === false, 'Err status.errored is not false');
-      let done = myDone;
+      const done = myDone;
       myDone = undefined;
       done();
     };
@@ -162,7 +162,7 @@ describe('## Mobile', function() {
       assert(files.length > 0, 'Err files is empty');
       assert(files[0].value === 'national_identity_card_reverse', 'Err files[0] is not national_identity_card_reverse');
       assert(files[0].uploaded === false, 'Err files[0].uploaded is not false');
-      let done = myDone;
+      const done = myDone;
       myDone = undefined;
       done();
     };
@@ -179,7 +179,7 @@ describe('## Mobile', function() {
       assert(files[0].uploaded === true, 'Err files[0].uploaded is not false');
       assert(files[1].value === 'national_identity_card', 'Err files[1] is not national_identity_card');
       assert(files[1].uploaded === false, 'Err files[1].uploaded is not false');
-      let done = myDone;
+      const done = myDone;
       myDone = undefined;
       done();
     };
@@ -200,7 +200,7 @@ describe('## Mobile', function() {
       assert(files[2].uploaded === false, 'Err files[2].uploaded is not false');
       assert(files[2].error === 'no face detected', 'Err files[2].error is not equal to \'no face detected\'');
       assert(files[2].deviceId === 111111, 'Err files[2].deviceId is not 111111');
-      let done = myDone;
+      const done = myDone;
       myDone = undefined;
       done();
     };
@@ -227,23 +227,23 @@ describe('## Mobile', function() {
       myDone = done;
       socket.on(Const.SOCKET_MISSING_IMAGES, onAllMissingImagesIncomplete);
       request(app)
-        .post(baseTestUrl + 'files/')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${jwtToken}`)
-        .send({country: 'GBR', files:
+          .post(baseTestUrl + 'files/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${jwtToken}`)
+          .send({country: 'GBR', files:
         '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]'})
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          assert(res.body.data === true, 'Err data is not true');
-          Users.findOne({email: defUser.email}, function(err, user) {
-            assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
-            assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
-            assert(user.shortcodeData.files ===
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            assert(res.body.data === true, 'Err data is not true');
+            Users.findOne({email: defUser.email}, function(err, user) {
+              assert(Boolean(err) === false, 'Err could not retrieve the user from the DB post-test');
+              assert(user.shortcodeData.country === 'GBR', 'Err the stored country DOES NOT match the submitted one');
+              assert(user.shortcodeData.files ===
             '[{\'value\': \'national_identity_card_reverse\', \'label\': \'national identity card reverse\'}, {\'value\': \'national_identity_card\', \'label\': \'national identity card\'}]',
-            'Err the stored document DOES NOT match the submitted one');
+              'Err the stored document DOES NOT match the submitted one');
             // done() will be called by onAllMissingImagesIncomplete
-          });
-        }).catch(done);
+            });
+          }).catch(done);
     });
 
     it('authenticates with a valid shortcode - should return 200 and data true', (done) => {
@@ -266,30 +266,30 @@ describe('## Mobile', function() {
       myDone = done;
       socket.on(Const.SOCKET_MISSING_IMAGES, onTwoMissingImagesIncomplete);
       request(app)
-        .post('/api/v3/identity/image/')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${mobilejwtToken}`)
-        .attach('111111_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          expect({data: true});
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${mobilejwtToken}`)
+          .attach('111111_BGR_national_identity_card_reverse', 'src/samples/images/sampleID-back.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
           // done() will be called by onTwoMissingImagesIncomplete
-        }).catch(done);
+          }).catch(done);
     });
 
     it('uploads a BAD SELFIE - should return 200 and data true', (done) => {
       myDone = done;
       socket.on(Const.SOCKET_MISSING_IMAGES, onBadSelfieMissingImagesIncomplete);
       request(app)
-        .post('/api/v3/identity/image/')
-        .set('Accept', 'application/json')
-        .set('Authorization', `Bearer ${mobilejwtToken}`)
-        .attach('111111_BGR_selfie', 'src/samples/images/double_selfie.jpg')
-        .expect(HttpStatus.OK)
-        .then((res) => {
-          expect({data: true});
+          .post('/api/v3/identity/image/')
+          .set('Accept', 'application/json')
+          .set('Authorization', `Bearer ${mobilejwtToken}`)
+          .attach('111111_BGR_selfie', 'src/samples/images/double_selfie.jpg')
+          .expect(HttpStatus.OK)
+          .then((res) => {
+            expect({data: true});
           // done() will be called by onBadSelfieMissingImagesIncomplete
-        }).catch(done);
+          }).catch(done);
     });
   });
 });

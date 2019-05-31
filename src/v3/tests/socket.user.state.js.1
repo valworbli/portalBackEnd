@@ -38,7 +38,8 @@ const _saveDefUser = function(done) {
   });
 };
 
-describe('## Socket User', () => {
+describe('## Socket User', function() {
+  this.timeout(15000);
   const testUrl = baseTestUrl + 'state/';
   let jwtToken = '';
 
