@@ -211,91 +211,116 @@ function postWebhook(req, res) {
  * @param {string} res - The outcoming response.
  * @property {string} req.headers.authorization - The bearer token.
  */
-function getStatus(req, res) {
+async function getStatus(req, res) {
   try {
     const bearer = req.headers.authorization.split(' ');
     const token = bearer[1];
     let email;
     let onfidoId;
-    jwt.jwtDecode(token)
-        .then((data) => {
-          email = data.email;
-          onfidoId = data.onfido_id;
-          if (data.onfido_status === 'review') {
-            const sdkToken = {
-              url: `https://api.onfido.com/v2/applicants/${onfidoId}/checks`,
-              method: 'GET',
-              headers: {
-                'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`,
-              },
-            };
-            return fetch.fetchData(sdkToken);
-          }
-        })
-        .then((data) => {
-          if (data) {
-            const parse = JSON.parse(data);
-            if (parse &&
-              parse.checks[0] &&
-              parse.checks[0].status === 'complete'
-              && parse.checks[0].result === 'clear') {
-              const onfidoStatus = 'approved';
-              const newjwt = jwt.jwtSign({
-                email,
-                onfido_status: onfidoStatus,
-                onfido_id: onfidoId,
-              });
-              const newData = {onfido_status: onfidoStatus};
-              const query = {email};
-              userModel.findOneAndUpdate(query, newData, {upsert: true},
-                  (err, doc) => {
-                    if (!err) {
-                      res.status(200).json({
-                        data: true,
-                        token: newjwt,
-                        onfido_status: onfidoStatus,
-                        action: 'redirect',
-                      });
-                    }
-                  });
-            } else if (parse && parse.checks[0] &&
-              parse.checks[0].status === 'complete' &&
-              parse.checks[0].result !== 'clear') {
-              userModel.find({email}, (err, data) => {
-                if (!err && data && data[0] && data[0].name_first) {
-                  const firstName = data[0].name_first;
-                  const status = data[0].onfido_status;
-                  if (status !== 'rejected') {
-                    const onfidoStatus = 'rejected';
-                    const newData = {onfido_status: onfidoStatus};
-                    const query = {email};
-                    userModel.findOneAndUpdate(query, newData, {upsert: true},
-                        (err, doc) => {
-                          if (!err) {
-                            res.status(200).json({
-                              status: 200,
-                              data: true,
-                              action: 'support',
-                            });
-                            mail.sendEmail(email, '', 'kycfail', firstName);
-                          }
-                        });
-                  } else {
+    const data = await jwt.jwtDecode(token);
+
+    if (data) {
+      email = data.email;
+      onfidoId = data.onfido_id;      
+      if (data.onfido_status === 'review') {
+        const user = await userModel.findOne({email: email});
+        if (!user) {
+          const error = 'get status failed';
+          logger.error(`user not found: ${user.email}`);
+          res.status(400).json({data: false, error});
+          return;
+        }
+
+        if (user.onfido_status != 'review') {
+          const newjwt = jwt.jwtSign({
+            email,
+            onfido_status: user.onfido_status,
+            onfido_id: user.onfido_id,
+          });
+
+          res.status(200).json({
+            data: true,
+            token: newjwt,
+            onfido_status: user.onfido_status,
+            action: 'redirect',
+          });
+          return;
+        }
+
+        const sdkToken = {
+          url: `https://api.onfido.com/v2/applicants/${onfidoId}/checks`,
+          method: 'GET',
+          headers: {
+            'Authorization': `Token token=${process.env.ONFIDO_TOKEN}`,
+          },
+        };
+
+        const checkData = await fetch.fetchData(sdkToken);
+        
+        if (checkData) {
+          const parse = JSON.parse(checkData);
+          if (parse &&
+            parse.checks[0] &&
+            parse.checks[0].status === 'complete'
+            && parse.checks[0].result === 'clear') {
+            const onfidoStatus = 'approved';
+            const newjwt = jwt.jwtSign({
+              email,
+              onfido_status: onfidoStatus,
+              onfido_id: onfidoId,
+            });
+            const newData = {onfido_status: onfidoStatus};
+            const query = {email};
+            userModel.findOneAndUpdate(query, newData, {upsert: true},
+                (err, doc) => {
+                  if (!err) {
                     res.status(200).json({
-                      status: 200,
                       data: true,
-                      action: 'support',
+                      token: newjwt,
+                      onfido_status: onfidoStatus,
+                      action: 'redirect',
                     });
                   }
+                });
+          } else if (parse && parse.checks[0] &&
+            parse.checks[0].status === 'complete' &&
+            parse.checks[0].result !== 'clear') {
+            userModel.find({email}, (err, data) => {
+              if (!err && data && data[0] && data[0].name_first) {
+                const firstName = data[0].name_first;
+                const status = data[0].onfido_status;
+                if (status !== 'rejected') {
+                  const onfidoStatus = 'rejected';
+                  const newData = {onfido_status: onfidoStatus};
+                  const query = {email};
+                  userModel.findOneAndUpdate(query, newData, {upsert: true},
+                      (err, doc) => {
+                        if (!err) {
+                          res.status(200).json({
+                            status: 200,
+                            data: true,
+                            action: 'support',
+                          });
+                          mail.sendEmail(email, '', 'kycfail', firstName);
+                        }
+                      });
+                } else {
+                  res.status(200).json({
+                    status: 200,
+                    data: true,
+                    action: 'support',
+                  });
                 }
-              });
-            } else {
-              res.status(400).json({status: 400, data: false});
-            }
+              }
+            });
           } else {
-            res.status(200).json({status: 200, data: true, action: 'support'});
+            res.status(400).json({status: 400, data: false});
           }
-        });
+        } else {
+          res.status(200).json({status: 200, data: true, action: 'support'});
+        }
+      }
+    }
   } catch (err) {
     const error = 'get status failed';
     res.status(400).json({data: false, error});
