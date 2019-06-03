@@ -63,7 +63,22 @@ function getLive(req, res) { // eslint-disable-line
   }
 }
 
+/**
+ * Health Check
+ * @param {string} req - The incoming request.
+ * @param {string} res - The outcoming response.
+ */
+function getCheck(req, res) {
+  try {
+    res.status(200).send('OK');
+  } catch (data) {
+    const error = data.message;
+    res.status(400).json({data: false, error});
+  }
+}
+
 module.exports = {
   getReady,
   getLive,
+  getCheck
 };
