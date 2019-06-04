@@ -74,13 +74,13 @@ module.exports = function(options) {
               ofStatus['dump'] = JSON.stringify(err);
             }
           }).finally(() => {
+            element[Const.ONFIDO] = ofStatus;
             fs.unlinkSync(fName);
             count += 1;
             if (count === req.files.length) {
               next();
             }
           });
-          element[Const.ONFIDO] = ofStatus;
         })();
       });
     } catch (err) {
