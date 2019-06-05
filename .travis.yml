@@ -47,7 +47,7 @@ deploy:
   skip_cleanup: true
   on: 
     repo: worbli/portalBackEnd
-    branch: develop_v3
+    branch: dev
   bucket: $TRAVIS_S3_DEV_API_BUCKET_NAME
   region: us-west-2
 - provider: codedeploy
@@ -60,7 +60,7 @@ deploy:
   deployment_group: $AWS_CODE_DEPLOY_DEPLOYMENT_GROUP
   on:
     repo: worbli/portalBackEnd
-    branch: develop_v3
+    branch: dev
   region: us-west-2
   wait_until_deployed: true
 - provider: s3
@@ -73,7 +73,7 @@ deploy:
   skip_cleanup: true
   on: 
     repo: worbli/portalBackEnd
-    branch: uat_v3
+    branch: uat
   region: us-west-2
 - provider: codedeploy
   access_key_id: $TRAVIS_AWS_ACCESS_KEY_ID
@@ -85,7 +85,7 @@ deploy:
   deployment_group: $AWS_UAT_CODE_DEPLOY_DEPLOYMENT_GROUP
   on:
     repo: worbli/portalBackEnd
-    branch: uat_v3
+    branch: uat
   region: us-west-2
   wait_until_deployed: true
 before_deploy:
