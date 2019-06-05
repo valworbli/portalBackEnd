@@ -16,16 +16,17 @@ const shortcodeDataSchema = new mongoose.Schema({
 });
 
 identityImagesSchema.methods.pushDocumentUnique = function(docName, devId, data={}) {
-  // if the document exist, check if it needs to be updated
-  // else insert it in the array
-  for (const doc of this.uploaded_documents) {
+  let index = undefined;
+  for (const ind in this.uploaded_documents) {
+    let doc = this.uploaded_documents[ind];
     if (doc.name === docName) {
-      doc.id = devId;
-      doc.error = data.error;
-
-      return;
+      index = ind;
+      break;
     }
   }
+
+  if (index)
+    this.uploaded_documents.splice(index, 1);
 
   this.uploaded_documents.push({...data, name: docName, id: devId});
 };

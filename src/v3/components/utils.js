@@ -78,7 +78,7 @@ function getImageStatus(user) {
         }
 
         file.frontCamera = file.value === Const.ID_SELFIE;
-        logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
+        // logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
       }
 
       return {
