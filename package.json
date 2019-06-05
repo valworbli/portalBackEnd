@@ -7,7 +7,7 @@
     "start": "node worbli-api.js",
     "dev": "DEBUG=snapshotimporter:* nodemon --legacy-watch --inspect=0.0.0.0:9229 --nolazy worbli-api.js",
     "import": "node import-snapshot.js",
-    "test": "mocha --exit src/v3/tests/user.password.test.js --timeout 15000",
+    "test": "mocha --exit src/v3/tests/*.js --timeout 15000",
     "lint": "eslint --ignore-path .gitignore --fix .",
     "coveralls": "nyc npm test || true && nyc report --reporter=text-lcov | ./node_modules/coveralls/bin/coveralls.js"
   },
