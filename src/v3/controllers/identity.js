@@ -89,31 +89,25 @@ async function postImage(req, res) {
     user.identity_images.pushDocumentUnique(docName, deviceId, data);
   });
 
-  // get the record for that country from MongoDB's worbli.identity_documents
-  const countryInfo = await IDDocs.findOne({code: countryPrefix}).exec();
-  if (!countryInfo) {
-    res.status(HttpStatus.BAD_REQUEST).json({data: false,
-      error: 'Malformed request submitted!'});
-  } else {
-    user.identity_images.country = countryPrefix;
-    const result = user.identity_images.verify(countryInfo.accepted[0]);
-    if (result.error) {
-      res.status(HttpStatus.BAD_REQUEST).json({data: false,
-        error: 'Malformed request submitted!'});
-    } else {
-      user.identity_images.completed = result.missingDocuments.length === 0;
+  user.identity_images.country = countryPrefix;
 
-      user.save(function(err, user) {
-        res.status(HttpStatus.OK).json({
-          completed: user.identity_images.completed,
-          missingDocuments: result.missingDocuments,
-          rejectedDocuments: rejectedDocuments,
-          completedDocuments: user.identity_images.uploaded_documents,
-          data: true,
-        });
+  _getMissingImages(user).then((response) => {
+    let result = response.body;
+    user.identity_images.completed = result.missingDocuments.length === 0;
+
+    user.save(function(err, user) {
+      res.status(HttpStatus.OK).json({
+        completed: user.identity_images.completed,
+        missingDocuments: result.missingDocuments,
+        rejectedDocuments: rejectedDocuments,
+        completedDocuments: user.identity_images.uploaded_documents,
+        data: true,
       });
-    }
-  }
+    });
+  }).catch((response) => {
+    res.status(response.status).json(response.body);
+  });
+
   // } catch (err) {
   //   logger.error('Error uploading the images: ' + JSON.stringify(err));
   //   res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({data: false});
