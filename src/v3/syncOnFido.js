@@ -15,8 +15,8 @@ const glob = require('glob');
 const logger = require('./components/logger').short(module);
 const aws = require('aws-sdk');
 aws.config.update({
-  secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
-  accessKeyId: process.env.SES_ACCESS_KEY_ID,
+  secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
+  accessKeyId: process.env.S3_ACCESS_KEY_ID,
   region: process.env.S3_IMAGES_BUCKET_REGION,
 });
 const s3 = new aws.S3();

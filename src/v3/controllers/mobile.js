@@ -73,7 +73,9 @@ function postSMS(req, res) {
  */
 function postFiles(req, res) {
   const {user} = req.worbliUser;
-  const {country, files} = req.body;
+  let {country, files} = req.body;
+
+  files = files.replace(/licence/g, 'license');
 
   user.shortcodeData = {files, country};
 

@@ -23,6 +23,7 @@ module.exports = function(options) {
       asyncForEach(req.files, async (element) => {
         await (async () => {
           const {user} = req.worbliUser;
+          element.fieldname = element.fieldname.replace('licence', 'license');
           const {docName} = utils.extractNames(element.fieldname);
           if (options.encryptFiles) {
             const archiver = new Archiver(true, true);
