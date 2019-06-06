@@ -3,10 +3,10 @@ require('dotenv').config();
 const logger = require('./src/v3/components/logger')(module);
 const mongoose = require('mongoose');
 const app = require('./src/express.js');
-const Promise = require('bluebird');
+// const Promise = require('bluebird');
 const SocketManager = require('./src/v3/components/Socket/socket');
 
-mongoose.Promise = Promise;
+mongoose.Promise = require('bluebird');
 
 // mongoose.connect(`mongodb://${process.env.DB_HOST}/${process.env.DB_NAME}`, {useNewUrlParser: true});
 mongoose.connect(process.env.DB_CONN, {

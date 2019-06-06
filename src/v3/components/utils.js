@@ -72,13 +72,15 @@ function getImageStatus(user) {
           file.uploaded = !user.identity_images.uploaded_documents[index].error;
           file.error = user.identity_images.uploaded_documents[index].error;
           file.deviceId = user.identity_images.uploaded_documents[index].id;
+
+          completed = Boolean(completed & file.uploaded);
         } else {
           file.uploaded = false;
           completed = false;
         }
 
         file.frontCamera = file.value === Const.ID_SELFIE;
-        logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
+        // logger.info('File ' + JSON.stringify(file.value) + ' uploaded: ' + JSON.stringify(file.uploaded));
       }
 
       return {

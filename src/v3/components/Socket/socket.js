@@ -209,6 +209,7 @@ SocketManager.prototype.getUser = async function(userID) {
 
 SocketManager.prototype.getImageStatus = function(socket, user=undefined) {
   const result = utils.getImageStatus(user);
+  logger.info('socket.getImageStatus returns: ' + JSON.stringify(result));
   socket.emit(Const.SOCKET_MISSING_IMAGES, result);
 };
 
