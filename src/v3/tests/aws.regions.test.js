@@ -38,7 +38,7 @@ const defParams = {
 
 describe('## User', () => {
   const testUrl = baseTestUrl + 'verify/';
-  let ofID = undefined;
+  let jwtToken = undefined;
 
   describe(`# POST ${testUrl}`, () => {
     let mustDisconnect = false;
@@ -72,7 +72,7 @@ describe('## User', () => {
             } else {
               logger.info(`Deleted ${defUser.email}`);
             }
-    
+
             if (mustDisconnect) {
               mongoose.disconnect(done);
             } else {

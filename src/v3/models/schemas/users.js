@@ -18,15 +18,16 @@ const shortcodeDataSchema = new mongoose.Schema({
 identityImagesSchema.methods.pushDocumentUnique = function(docName, devId, data={}) {
   let index = undefined;
   for (const ind in this.uploaded_documents) {
-    let doc = this.uploaded_documents[ind];
+    const doc = this.uploaded_documents[ind];
     if (doc.name === docName) {
       index = ind;
       break;
     }
   }
 
-  if (index)
+  if (index) {
     this.uploaded_documents.splice(index, 1);
+  }
 
   this.uploaded_documents.push({...data, name: docName, id: devId});
 };

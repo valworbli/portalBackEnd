@@ -80,5 +80,5 @@ function getCheck(req, res) {
 module.exports = {
   getReady,
   getLive,
-  getCheck
+  getCheck,
 };
