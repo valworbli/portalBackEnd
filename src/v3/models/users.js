@@ -220,7 +220,7 @@ function getByNetworkAccount(accountName) {
       if (err) reject(err);
 
       if (user) {
-        reject(user);
+        reject('Network name already taken');
       } else {
         resolve();
       }
