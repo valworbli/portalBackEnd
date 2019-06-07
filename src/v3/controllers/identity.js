@@ -12,6 +12,11 @@ const Archiver = require('../components/sync/Archiver');
 const aws = require('aws-sdk');
 const fs = require('fs-extra');
 
+aws.config.update({
+  secretAccessKey: process.env.SES_SECRET_ACCESS_KEY,
+  accessKeyId: process.env.SES_ACCESS_KEY_ID,
+  region: process.env.S3_IMAGES_BUCKET_REGION,
+});
 const s3 = new aws.S3();
 
 /**
