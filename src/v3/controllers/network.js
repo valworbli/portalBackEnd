@@ -56,13 +56,6 @@ function postAccount(req, res) {
 
     _checkAccountName(accountName)
         .then(function() {
-          res.status(HttpStatus.BAD_REQUEST)
-              .json({
-                data: false,
-                // eslint-disable-next-line max-len
-                error: 'The requested account name is not available. Please choose another one.',
-              });
-        }).catch(function(err) {
           Users.createNetworkAccount(email, accountName)
               .then(function(user) {
                 try {
@@ -109,6 +102,13 @@ function postAccount(req, res) {
                 }
 
                 res.json({data: false, error: error});
+              });
+        }).catch(function(err) {
+          res.status(HttpStatus.BAD_REQUEST)
+              .json({
+                data: false,
+                // eslint-disable-next-line max-len
+                error: 'The requested account name is not available. Please choose another one.',
               });
         });
   } catch (err) {
