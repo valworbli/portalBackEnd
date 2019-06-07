@@ -4,6 +4,7 @@ const rpc = new JsonRpc('https://api.worbli.io', {fetch});
 const logger = require('../components/logger')(module);
 const HttpStatus = require('http-status-codes');
 const Users = require('../models/users');
+const Messages = require('../defs/messages');
 
 const AWS = require('aws-sdk');
 AWS.config.update({
@@ -22,15 +23,19 @@ function _checkAccountName(accountName) {
   return new Promise(function(resolve, reject) {
     try {
       Users.getByNetworkAccount(accountName)
-          .then(() => {
-            rpc.get_account(accountName)
-                .then((data) => {
-                  resolve();
-                }).catch((err) => {
-                  reject(undefined);
-                });
+          .then((user) => {
+            reject();
           }).catch((err) => {
-            reject(err);
+            if (err) {
+              reject(err);
+            } else {
+              rpc.get_account(accountName)
+                  .then((data) => {
+                    reject();
+                  }).catch((err) => {
+                    resolve();
+                  });
+            }
           });
     } catch (err) {
       logger.error('getCheck ' + JSON.stringify(err));
@@ -128,13 +133,13 @@ function getCheck(req, res) {
 
   _checkAccountName(accountName)
       .then(function() {
-        res.status(HttpStatus.OK).json({data: true});
+        res.status(HttpStatus.OK).json({data: false});
       }).catch(function(err) {
         if (err) {
           res.status(HttpStatus.INTERNAL_SERVER_ERROR)
               .json({data: false, error: err});
         } else {
-          res.status(HttpStatus.OK).json({data: false});
+          res.status(HttpStatus.OK).json({data: true, error: Messages.NETWORK_NAME_TAKEN});
         }
       });
 }
